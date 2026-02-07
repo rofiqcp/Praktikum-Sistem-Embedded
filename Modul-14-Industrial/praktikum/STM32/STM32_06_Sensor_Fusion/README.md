@@ -1,1 +1,0 @@
-# Program 58: Sensor_Fusion\n\nIndustrial pattern implementation.\n

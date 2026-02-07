@@ -1,1 +1,0 @@
-# Program 55: Graceful_Shutdown\n\nIndustrial pattern implementation.\n

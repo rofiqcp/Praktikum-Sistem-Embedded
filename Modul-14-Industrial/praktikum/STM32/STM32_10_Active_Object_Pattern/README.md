@@ -1,1 +1,0 @@
-# Program 62: Active_Object_Pattern\n\nIndustrial pattern implementation.\n

@@ -1,1 +1,0 @@
-# Program 63: Watchdog_Manager\n\nIndustrial pattern implementation.\n

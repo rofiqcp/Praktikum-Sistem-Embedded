@@ -1,1 +1,0 @@
-# Program 57: Simple_CLI\n\nIndustrial pattern implementation.\n

@@ -1,1 +1,0 @@
-# Program 29: Stream_Buffer_Basics (ESP32)\n\nESP32 version with ESP-IDF FreeRTOS.\n

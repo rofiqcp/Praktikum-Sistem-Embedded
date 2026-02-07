@@ -1,1 +1,0 @@
-# Program 36: Static_Memory_Allocation (ESP32)\n\nESP32 version with ESP-IDF FreeRTOS.\n

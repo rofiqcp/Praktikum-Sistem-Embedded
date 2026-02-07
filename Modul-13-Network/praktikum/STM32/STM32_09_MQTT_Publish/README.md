@@ -1,1 +1,0 @@
-# Program 47: MQTT Publish\n\nNetwork programming example.\n

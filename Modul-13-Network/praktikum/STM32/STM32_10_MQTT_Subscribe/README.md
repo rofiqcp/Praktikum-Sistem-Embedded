@@ -1,1 +1,0 @@
-# Program 48: MQTT Subscribe\n\nNetwork programming example.\n

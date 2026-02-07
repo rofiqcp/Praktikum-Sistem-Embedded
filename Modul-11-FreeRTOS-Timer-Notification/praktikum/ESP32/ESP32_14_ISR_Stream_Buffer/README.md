@@ -1,1 +1,0 @@
-# Program 32: ISR_Stream_Buffer (ESP32)\n\nESP32 version with ESP-IDF FreeRTOS.\n

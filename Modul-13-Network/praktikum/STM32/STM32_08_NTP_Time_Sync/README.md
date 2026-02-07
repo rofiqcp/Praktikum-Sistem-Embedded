@@ -1,1 +1,0 @@
-# Program 46: NTP Sync\n\nNetwork programming example.\n

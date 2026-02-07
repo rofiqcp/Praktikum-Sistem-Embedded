@@ -1,1 +1,0 @@
-# Program 27: Critical_Section_ISR (ESP32)\n\nESP32 version with ESP-IDF FreeRTOS.\n

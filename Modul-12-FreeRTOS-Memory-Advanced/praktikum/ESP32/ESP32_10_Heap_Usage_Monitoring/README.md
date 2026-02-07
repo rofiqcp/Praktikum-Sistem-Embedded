@@ -1,1 +1,0 @@
-# Program 34: Heap_Usage_Monitoring (ESP32)\n\nESP32 version with ESP-IDF FreeRTOS.\n

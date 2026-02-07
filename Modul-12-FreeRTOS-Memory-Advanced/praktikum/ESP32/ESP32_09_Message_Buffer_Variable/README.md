@@ -1,1 +1,0 @@
-# Program 33: Message_Buffer_Variable (ESP32)\n\nESP32 version with ESP-IDF FreeRTOS.\n

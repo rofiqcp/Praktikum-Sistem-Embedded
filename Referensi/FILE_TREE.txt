@@ -1,0 +1,127 @@
+📁 Praktikum Sistem Embedded/Referensi/
+│
+├── 📘 README.md (12 KB)
+│   └── Master index, cara penggunaan, progress tracking
+│
+├── 📗 MODUL_LENGKAP_14_BAB_STM32_vs_ESP32.md (178 KB) ⭐ MAIN DOCUMENT
+│   ├── 6457 baris konten lengkap
+│   ├── 14 Bab (Fase 1-5)
+│   ├── 350+ contoh program
+│   └── Format per bab:
+│       ├── 📖 Penjelasan Materi
+│       ├── 🔗 Common Ground (contoh program)
+│       ├── ⭐ STM32 Advantages (contoh program)
+│       ├── ⚡ ESP32 Advantages (contoh program)
+│       ├── 📊 Comparison Table
+│       └── 💼 Mini Project
+│
+├── 📙 00_PANDUAN_MODUL_14_BAB.md (14 KB)
+│   ├── Overview 14 bab
+│   ├── Struktur per fase
+│   ├── Daftar program per bab
+│   ├── Hardware requirements
+│   └── Learning timeline
+│
+├── 📒 QUICK_REFERENCE_STM32_vs_ESP32.md (14 KB)
+│   ├── Side-by-side syntax comparison
+│   ├── PlatformIO config
+│   ├── GPIO, UART, ADC, PWM
+│   ├── I²C, SPI, FreeRTOS
+│   └── Quick lookup reference
+│
+├── 📕 PLATFORMIO_SETUP_GUIDE.md (11 KB)
+│   ├── Installation checklist
+│   ├── USB drivers setup
+│   ├── Project structure
+│   ├── Template code
+│   └── Troubleshooting
+│
+├── 📓 PERBANDINGAN_FRAMEWORK_ESP32.md (6.3 KB)
+│   └── Arduino vs ESP-IDF comparison
+│
+├── 📔 RANGKUMAN_LENGKAP_STM32_vs_ESP32.md (104 KB)
+│   └── [Old version - Bab 1-3 only]
+│
+├── 💾 RANGKUMAN_LENGKAP_STM32_vs_ESP32_BACKUP.md (104 KB)
+│   └── [Backup file]
+│
+├── 🔧 APPEND_BAB_4_to_14.md (38 KB)
+│   └── [Intermediate file - development process]
+│
+├── 🔧 BAB_9_to_14_FINAL.md (36 KB)
+│   └── [Intermediate file - development process]
+│
+└── 📄 test.md (495 B)
+    └── [Test file]
+
+═══════════════════════════════════════════════════════
+
+📊 STATISTIK:
+   Total Files: 11 markdown files
+   Main Content: 178 KB (6457 lines)
+   Supporting Docs: 70 KB
+   Total Size: ~250 KB documentation
+
+🎯 ESSENTIAL FILES (5):
+   1. README.md                             - Start here!
+   2. MODUL_LENGKAP_14_BAB_STM32_vs_ESP32  - Main curriculum
+   3. 00_PANDUAN_MODUL_14_BAB              - Navigation guide
+   4. QUICK_REFERENCE                       - Syntax cheat sheet
+   5. PLATFORMIO_SETUP_GUIDE                - Installation
+
+═══════════════════════════════════════════════════════
+
+🚀 QUICK START:
+
+   For Instructors/Teachers:
+   ① Read: README.md
+   ② Plan: 00_PANDUAN_MODUL_14_BAB.md
+   ③ Setup: PLATFORMIO_SETUP_GUIDE.md
+   ④ Teach: MODUL_LENGKAP_14_BAB_STM32_vs_ESP32.md
+   ⑤ Quick Ref: QUICK_REFERENCE_STM32_vs_ESP32.md
+
+   For Students/Self-Learners:
+   ① Read: README.md
+   ② Setup: PLATFORMIO_SETUP_GUIDE.md
+   ③ Learn: MODUL_LENGKAP_14_BAB_STM32_vs_ESP32.md (Bab 1→14)
+   ④ Code: QUICK_REFERENCE_STM32_vs_ESP32.md (saat coding)
+
+═══════════════════════════════════════════════════════
+
+📚 14 BAB COVERAGE:
+
+   FASE 1: FONDASI (3 pertemuan)
+   ├── Bab 1: Arsitektur & Setup
+   ├── Bab 2: GPIO Programming
+   └── Bab 3: External Interrupts
+
+   FASE 2: KOMUNIKASI (3 pertemuan)
+   ├── Bab 4: UART/Serial
+   ├── Bab 5: ADC
+   └── Bab 6: Timer & PWM
+
+   FASE 3: PROTOKOL LANJUT (3 pertemuan)
+   ├── Bab 7: I²C Protocol
+   ├── Bab 8: SPI Protocol
+   └── Bab 9: DMA & Memory
+
+   FASE 4: SISTEM ADVANCED (3 pertemuan)
+   ├── Bab 10: Clock System
+   ├── Bab 11: FreeRTOS Basics
+   └── Bab 12: FreeRTOS IPC
+
+   FASE 5: APLIKASI PRAKTIS (2 pertemuan)
+   ├── Bab 13: Power Management
+   └── Bab 14: Wireless & IoT
+
+═══════════════════════════════════════════════════════
+
+✅ STATUS: COMPLETE & READY TO USE
+
+   Version: 1.0
+   Date: 6 Februari 2025
+   Language: Bahasa Indonesia
+   Platform: PlatformIO
+   Frameworks: STM32Cube (HAL) + ESP-IDF
+
+═══════════════════════════════════════════════════════

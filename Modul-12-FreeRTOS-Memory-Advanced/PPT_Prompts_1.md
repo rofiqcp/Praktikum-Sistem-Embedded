@@ -1,416 +1,105 @@
-# Prompt untuk Pembuatan PPT - Bagian 1
-## Modul 12: FreeRTOS Memory Management & Advanced Features
-
-### Instruksi Umum untuk AI Image Generator
-
-Gunakan prompt berikut untuk membuat slide presentasi yang profesional dan edukatif. Setiap slide harus memiliki visual yang jelas dan konsisten.
-
----
+# PPT Prompts FreeRTOS Modul 12: Memory Management & Advanced Features
 
 ## Slide 1: Judul
-
-**Prompt:**
-```
-Create a professional presentation title slide for "FreeRTOS Memory Management & Advanced Features". Include:
-- Modern tech aesthetic with blue and dark gray color scheme
-- Subtle circuit board pattern in background
-- Memory chip and microcontroller icons
-- University/educational style layout
-- Text placeholder for "Module 12" and "Embedded Systems Practicum"
-Clean, minimal design with gradient effects.
-```
-
----
-
-## Slide 2: Learning Objectives
-
-**Prompt:**
-```
-Create an educational slide showing learning objectives with:
-- Numbered list design (1-7 items)
-- Icons for each objective: memory chip, stack, events, buffer, debug, power, static
-- Checkmark or target icons
-- Light background with accent colors
-- Modern infographic style
-Title: "Capaian Pembelajaran"
-```
-
----
-
-## Slide 3: Memory Constraints in Embedded Systems
-
-**Prompt:**
-```
-Create an infographic comparing memory constraints of different microcontrollers:
-- STM32F103: 20KB RAM, 64KB Flash (small box)
-- ESP32: 520KB RAM, 4MB Flash (medium box)
-- Visual size comparison
-- RAM vs Flash color coding (RAM=green, Flash=blue)
-- Microcontroller chip images
-- Scale/ruler visualization
-Title: "Keterbatasan Memori Embedded Systems"
-```
-
----
-
-## Slide 4: Memory Map Visualization
-
-**Prompt:**
-```
-Create a detailed memory map diagram for microcontroller showing:
-- Flash section (Code, .rodata) at top - blue color
-- RAM section below - green color
-- RAM subdivisions: .data, .bss, HEAP (growing down), STACK (growing up)
-- Address labels on the left
-- Arrows showing growth direction
-- Clear section boundaries
-Professional technical diagram style.
-Title: "Memory Map Microcontroller"
-```
-
----
-
-## Slide 5: FreeRTOS Heap Schemes Overview
-
-**Prompt:**
-```
-Create a comparison infographic for 5 FreeRTOS heap schemes:
-- heap_1: Simple box, no free (red X)
-- heap_2: Multiple boxes, best fit
-- heap_3: Standard library wrapper
-- heap_4: Boxes merging together (coalescence)
-- heap_5: Multiple memory regions
-Each with icon, key feature, and use case
-Table or card layout
-Title: "FreeRTOS Heap Allocation Schemes"
-```
-
----
-
-## Slide 6: Heap_1 - No Free
-
-**Prompt:**
-```
-Create a diagram showing heap_1 allocation:
-- Linear memory bar
-- Sequential allocations (Task A, Queue B, Timer C)
-- No gaps, no fragmentation
-- "Used" section growing, "Free" section shrinking
-- Red X over "vPortFree()" 
-- Checkmarks: Simple, Deterministic, No fragmentation
-- X marks: Cannot free memory
-Title: "Heap_1: Paling Sederhana"
-```
-
----
-
-## Slide 7: Heap_4 - First Fit with Coalescence
-
-**Prompt:**
-```
-Create a step-by-step diagram showing heap_4 coalescence:
-- Step 1: Three used blocks [A][B][C]
-- Step 2: Free block B - [A][FREE][C]
-- Step 3: Free block A - [FREE (merged)][C]
-- Arrows showing merge process
-- Highlight the coalescence benefit
-- Before/After comparison
-Title: "Heap_4: First Fit dengan Coalescence"
-```
-
----
-
-## Slide 8: Heap_5 - Multiple Regions
-
-**Prompt:**
-```
-Create a diagram showing heap_5 with multiple memory regions:
-- Two separate memory blocks (different addresses)
-- Internal SRAM: 0x20000000
-- CCM RAM: 0x10000000 (or External PSRAM for ESP32)
-- Linked together conceptually
-- Arrow showing "vPortDefineHeapRegions()"
-- Benefits list: Use all available RAM
-Title: "Heap_5: Multiple Memory Regions"
-```
-
----
-
-## Slide 9: Heap Schemes Comparison Table
-
-**Prompt:**
-```
-Create a professional comparison table with 5 columns:
-- Scheme | Free Support | Coalescence | Determinism | Best Use Case
-- 5 rows for heap_1 through heap_5
-- Color coding: Green=Yes, Red=No, Yellow=Depends
-- Icons for each characteristic
-- Clean table design with alternating row colors
-Title: "Perbandingan Heap Schemes"
-```
-
----
-
-## Slide 10: Stack Overflow - The Silent Killer
-
-**Prompt:**
-```
-Create a dramatic visualization of stack overflow:
-- Stack growing downward into protected/heap area
-- Warning symbols and red danger zone
-- "Corrupted Data" explosion effect
-- Stack canary concept (bird/canary icon)
-- Before (safe) vs After (overflow) comparison
-- Skull or bug icon for "undefined behavior"
-Title: "Stack Overflow: Bug Tersembunyi"
-```
-
----
-
-## Slide 11: Stack Overflow Detection Methods
-
-**Prompt:**
-```
-Create a comparison diagram of two detection methods:
-Method 1 (left):
-- Context switch checking
-- Simple stack pointer check
-- Light bulb icon (lightweight)
-
-Method 2 (right):
-- Pattern checking (0xA5A5A5A5)
-- 20-byte canary zone at bottom
-- Shield icon (more protection)
-
-Central comparison: Speed vs Safety tradeoff
-Title: "Metode Deteksi Stack Overflow"
-```
-
----
-
-## Slide 12: Stack with Canary Pattern
-
-**Prompt:**
-```
-Create a detailed stack visualization with canary:
-- Stack area from top (high address) to bottom (low address)
-- Active stack data region
-- Downward growth arrow
-- 20-byte canary zone at bottom highlighted in yellow
-- Pattern: 0xA5 repeated
-- "If corrupted = OVERFLOW DETECTED" label
-Title: "Stack dengan Canary Pattern"
-```
-
----
-
-## Slide 13: Memory Debugging APIs
-
-**Prompt:**
-```
-Create an infographic showing FreeRTOS memory debugging APIs:
-- xPortGetFreeHeapSize() - pie chart icon
-- xPortGetMinimumEverFreeHeapSize() - graph trending
-- uxTaskGetStackHighWaterMark() - water level gauge
-- vTaskGetRunTimeStats() - CPU meter
-- vPortGetHeapStats() - detailed report icon
-Each with mini code snippet and visualization
-Title: "API untuk Memory Debugging"
-```
-
----
-
-## Slide 14: Heap Statistics Visualization
-
-**Prompt:**
-```
-Create a dashboard-style visualization showing heap statistics:
-- Total Heap: Large circle/gauge
-- Available: Percentage bar
-- Minimum Ever Free: Historical low marker
-- Largest Free Block: Size indicator
-- Number of Free Blocks: Counter
-- Fragmentation Warning indicator
-Modern monitoring dashboard style
-Title: "Heap Statistics Dashboard"
-```
-
----
-
-## Slide 15: Task Stack High Water Mark
-
-**Prompt:**
-```
-Create a visualization of high water mark concept:
-- Multiple vertical bars representing task stacks
-- Water level showing "highest usage"
-- Clear zone above water = "Available"
-- Used zone below water
-- Warning when water level too high
-- Multiple tasks side by side comparison
-Title: "Stack High Water Mark"
-```
-
----
-
-## Slide 16: Runtime Statistics Table
-
-**Prompt:**
-```
-Create a sample runtime statistics display:
-- Table with columns: Task, Abs Time, % CPU
-- Bar chart visualization of CPU usage per task
-- IDLE task showing largest percentage
-- Color coding by usage level
-- Pie chart alternative view
-- Real-time monitoring aesthetic
-Title: "Runtime Statistics - CPU Usage per Task"
-```
-
----
-
-## Slide 17: Event Groups Concept
-
-**Prompt:**
-```
-Create a visualization of Event Groups:
-- 24-bit register visualization (bit boxes)
-- Different colored bits for different events
-- Bit labels: SENSOR_READY, WIFI_OK, DATA_READY, etc.
-- Multiple tasks pointing to same event group
-- Set/Wait operations illustrated
-- Binary representation: 00000111 = 3 events set
-Title: "Event Groups: Sinkronisasi dengan Bit Flags"
-```
-
----
-
-## Slide 18: Event Groups - Wait Operations
-
-**Prompt:**
-```
-Create a flowchart showing Event Group wait operations:
-- Task waiting (sleeping)
-- Event bits being set
-- Wait for ANY (OR) - wake on first bit
-- Wait for ALL (AND) - wake when all bits set
-- Clear on exit option
-- Timeout handling
-Decision tree style diagram
-Title: "Event Groups: Wait Operations"
-```
-
----
-
-## Slide 19: Event Groups - Synchronization (Rendezvous)
-
-**Prompt:**
-```
-Create a diagram showing task synchronization:
-- Three tasks (Task1, Task2, Task3) as lanes
-- Each doing initialization (different times)
-- Converging at "Sync Point" barrier
-- All waiting until everyone arrives
-- xEventGroupSync() highlighted
-- After sync: All proceed together
-Swimlane/timeline diagram style
-Title: "Event Groups: Task Rendezvous"
-```
-
----
-
-## Slide 20: Stream Buffer Concept
-
-**Prompt:**
-```
-Create a visualization of Stream Buffer:
-- Circular buffer representation
-- Write pointer (producer arrow)
-- Read pointer (consumer arrow)
-- Continuous byte stream visualization
-- Single producer → Buffer → Single consumer
-- Trigger level indicator
-- UART data bytes flowing through
-Title: "Stream Buffer: Byte-Oriented Streaming"
-```
-
----
-
-## Slide 21: Message Buffer Concept
-
-**Prompt:**
-```
-Create a visualization of Message Buffer:
-- Buffer with discrete message packets
-- Each packet has: [Length Header][Data]
-- Different sized messages
-- Clear message boundaries
-- Producer sending structured data
-- Consumer receiving complete messages
-- Framing concept illustrated
-Title: "Message Buffer: Discrete Messages"
-```
-
----
-
-## Slide 22: Stream vs Message Buffer Comparison
-
-**Prompt:**
-```
-Create a side-by-side comparison:
-Stream Buffer (left):
-- Continuous flow (water pipe analogy)
-- No boundaries
-- Best for: UART, audio
-
-Message Buffer (right):
-- Discrete packets (mail analogy)
-- Length prefix
-- Best for: Commands, structured data
-
-Visual comparison with icons and use cases
-Title: "Stream Buffer vs Message Buffer"
-```
-
----
-
-## Slide 23: Summary Slide
-
-**Prompt:**
-```
-Create a summary infographic with key takeaways:
-- Memory Management: Choose right heap scheme
-- Stack Safety: Always enable overflow detection
-- Event Groups: Efficient multi-task sync
-- Buffers: Stream for bytes, Message for packets
-- Monitoring: Regular heap/stack checks
-- Best Practices checklist
-Modern summary layout with icons
-Title: "Ringkasan Materi"
-```
-
----
-
-## Slide 24: Q&A Slide
-
-**Prompt:**
-```
-Create a Q&A slide with:
-- Large question mark icon
-- "Questions?" or "Pertanyaan?" text
-- Subtle background with memory/embedded theme
-- Contact information placeholder
-- Light, inviting design
-- Discussion bubble icons
-Title: "Sesi Tanya Jawab"
-```
-
----
-
-## Catatan Desain
-
-1. **Warna Konsisten:** Gunakan palet biru-hijau untuk memory, merah untuk warning/error
-2. **Font:** Sans-serif modern (Roboto, Open Sans)
-3. **Diagram:** Gunakan gaya flat design dengan sedikit shadow
-4. **Code:** Gunakan monospace font dengan syntax highlighting
-5. **Icon:** Gunakan icon set yang konsisten (Material, Feather)
+- **Judul**: Memory Management & Advanced Features
+- **Subjudul**: Modul 12 - Praktikum Sistem Embedded
+- **Gambar**: Ilustrasi RAM, Heap, Stack, dan struktur Task Control Block (TCB).
+
+## Slide 2: Tujuan Pembelajaran
+- **Poin-poin**:
+  1.  Memahami manajemen memori di FreeRTOS (Static vs Dynamic).
+  2.  Mampu memilih skema Heap (Heap_1 sampai Heap_5).
+  3.  Mampu mendeteksi dan menangani Stack Overflow.
+  4.  Menguasai fitur lanjutan: Event Groups, Stream Buffer, dan Message Buffer.
+
+## Slide 3: Bagaimana FreeRTOS Menggunakan RAM?
+- **Isi**:
+  - Setiap kali Task, Queue, Semaphore, atau Timer dibuat, FreeRTOS membutuhkan RAM.
+  - **Dua metode alokasi**:
+    1.  **Dynamic Allocation**: Otomatis menggunakan `pvPortMalloc()`. Paling umum.
+    2.  **Static Allocation**: Manual menyediakan buffer global. Lebih aman/prediktif.
+- **Visual**: Diagram blok RAM terbagi menjadi Global Variables, Stack, dan Heap.
+
+## Slide 4: Dynamic Memory Allocation (Heap)
+- **Isi**:
+  - FreeRTOS tidak menggunakan `malloc()` bawaan C secara langsung.
+  - Memiliki *Memory Allocator* sendiri yang portabel.
+  - Fungsi: `pvPortMalloc()` dan `vPortFree()`.
+  - Dipanggil otomatis saat `xTaskCreate`, `xQueueCreate`, dll.
+
+## Slide 5: Pilihan Skema Heap (Heap_1.c)
+- **Judul**: Heap_1.c
+- **Karakteristik**:
+  - Paling sederhana.
+  - **Hanya bisa alokasi, TIDAK bisa free**.
+  - Cocok untuk sistem yang semua object-nya dibuat di awal dan tidak pernah dihapus.
+  - Deterministik dan aman.
+- **Visual**: Blok memori yang terisi berurutan dari bawah ke atas.
+
+## Slide 6: Pilihan Skema Heap (Heap_2.c)
+- **Judul**: Heap_2.c
+- **Karakteristik**:
+  - Bisa `malloc` dan `free`.
+  - Menggunakan algoritma *Best Fit*.
+  - **Masalah**: Tidak menggabungkan blok kosong yang berdekatan (Fragmentasi).
+  - Tidak direkomendasikan untuk alokasi/dealokasi acak yang sering.
+
+## Slide 7: Pilihan Skema Heap (Heap_3.c)
+- **Judul**: Heap_3.c
+- **Karakteristik**:
+  - Hanya *wrapper* untuk `malloc()` dan `free()` standar library C compiler.
+  - Thread-safe (menghentikan scheduler saat alokasi).
+  - Ukuran heap diatur via Linker/Startup file, bukan `configTOTAL_HEAP_SIZE`.
+
+## Slide 8: Pilihan Skema Heap (Heap_4.c) - The Best!
+- **Judul**: Heap_4.c (Recommended)
+- **Karakteristik**:
+  - Bisa `malloc` dan `free`.
+  - Menggunakan algoritma *First Fit*.
+  - **Coalescing**: Menggabungkan blok kosong yang bersebelahan untuk mencegah fragmentasi kecil.
+  - Bisa menempatkan heap di alamat memori tertentu.
+  - Paling sering digunakan di STM32/ESP32.
+
+## Slide 9: Stack Management
+- **Isi**:
+  - Setiap Task memiliki **Stack** sendiri.
+  - Ukuran ditentukan saat `xTaskCreate`.
+  - Stack menyimpan: Variabel lokal, Return Address, Register CPU context.
+  - **Bahaya**: Stack Overflow (Melebihi batas stack) -> Data korup / Crash.
+
+## Slide 10: Stack Overflow Detection (Method 1)
+- **Judul**: Stack Overflow Check Mode 1
+- **Konfigurasi**: `configCHECK_FOR_STACK_OVERFLOW = 1`
+- **Cara Kerja**:
+  - Memeriksa Stack Pointer saat *Context Switch*.
+  - Jika Stack Pointer keluar dari range stack task -> Panggil Hook.
+- **Kelemahan**: Tidak mendeteksi overflow yang terjadi *di antara* tick interrupts.
+
+## Slide 11: Stack Overflow Detection (Method 2)
+- **Judul**: Stack Overflow Check Mode 2
+- **Konfigurasi**: `configCHECK_FOR_STACK_OVERFLOW = 2`
+- **Cara Kerja**:
+  - Mengisi stack dengan pola (*watermarking*) saat task dibuat (0xA5A5A5A5).
+  - Memeriksa 20 bytes terakhir dari stack saat context switch.
+  - Jika pola berubah -> Overflow terjadi.
+- **Kelebihan**: Lebih akurat menangkap overflow sesaat.
+
+## Slide 12: Static Memory Allocation
+- **Isi**:
+  - Object dibuat tanpa menyentuh Heap sama sekali.
+  - Developer menyediakan struct dan buffer array secara global.
+  - API: `xTaskCreateStatic`, `xQueueCreateStatic`.
+- **Kelebihan**:
+  - Tidak ada fragmentasi.
+  - Alokasi memori pasti berhasil (jika compile success).
+  - Cocok untuk *Safety Critical Systems* (Automotive, Medical).
+
+## Slide 13: Kesimpulan Memory
+- **Poin Penting**:
+  1.  Gunakan `Heap_4.c` untuk kebutuhan umum.
+  2.  Selalu monitor `uxTaskGetStackHighWaterMark()` saat development.
+  3.  Aktifkan Stack Overflow Hook (`configCHECK_FOR_STACK_OVERFLOW`).
+  4.  Pertimbangkan Static Allocation jika memori sangat terbatas atau butuh determinisme tinggi.
+
+## Slide 14: Next Topic
+- **Isi**: Advanced FreeRTOS System Resources (Event Groups & Stream Buffers).

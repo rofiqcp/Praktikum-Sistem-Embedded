@@ -1,86 +1,114 @@
 /**
- * Program 28: Queue Sets Implementation
- * Concept: Core functionality demonstration (ESP32)
- * 
- * Learning Points:
- * - FreeRTOS integration with ESP-IDF
- * - ESP32-specific features & capabilities
- * - Hardware initialization
- * - Serial logging
+ * ESP32_09: Queue Sets Implementation
+ * =====================================
+ * Modul 10 - FreeRTOS Queue dan Semaphore
+ * Framework: ESP-IDF
+ *
+ * Konsep: Queue Set memungkinkan satu task menunggu data
+ *         dari multiple queue/semaphore sekaligus (multiplexing).
+ *
+ * Hardware: ESP32 DevKit V1 saja (serial via USB 115200)
  */
-
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
-#include "freertos/timers.h"
 #include "esp_system.h"
-#include "esp_spi_flash.h"
+#include "esp_random.h"
 #include "esp_log.h"
-#include "driver/uart.h"
-#include "config.h"
+#include "esp_timer.h"
 
-static const char *TAG = "PROG_28";
+static const char *TAG = "Q_SET";
 
-/* FreeRTOS objects */
-QueueHandle_t queue_handle = NULL;
-SemaphoreHandle_t semaphore_handle = NULL;
-TimerHandle_t timer_handle = NULL;
+static QueueHandle_t xTempQueue = NULL;
+static QueueHandle_t xHumQueue  = NULL;
+static SemaphoreHandle_t xAlertSem  = NULL;
+static QueueSetHandle_t  xQueueSet  = NULL;
+static SemaphoreHandle_t xPrintMutex = NULL;
 
-static void task_function_1(void *pvParameters)
+static void vTempSensorTask(void *pv)
 {
-    while(1)
-    {
-        ESP_LOGI(TAG, "Task 1 running");
+    float temp;
+    for (;;) {
+        temp = 20.0f + (float)(esp_random() % 200) / 10.0f;
+        xQueueSend(xTempQueue, &temp, 0);
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
-static void task_function_2(void *pvParameters)
+static void vHumSensorTask(void *pv)
 {
-    while(1)
-    {
-        ESP_LOGI(TAG, "Task 2 running");
-        vTaskDelay(pdMS_TO_TICKS(1000));
+    float hum;
+    for (;;) {
+        hum = 30.0f + (float)(esp_random() % 500) / 10.0f;
+        xQueueSend(xHumQueue, &hum, 0);
+        vTaskDelay(pdMS_TO_TICKS(800));
     }
 }
 
-static void timer_callback(TimerHandle_t xTimer)
+static void vAlertTask(void *pv)
 {
-    ESP_LOGI(TAG, "Timer callback");
+    for (;;) {
+        xSemaphoreGive(xAlertSem);
+        vTaskDelay(pdMS_TO_TICKS(3000));
+    }
+}
+
+/* Multiplexer: satu task menunggu data dari queue set */
+static void vMultiplexerTask(void *pv)
+{
+    QueueSetMemberHandle_t xActivated;
+    uint32_t temp_cnt = 0, hum_cnt = 0, alert_cnt = 0;
+
+    for (;;) {
+        xActivated = xQueueSelectFromSet(xQueueSet, portMAX_DELAY);
+
+        xSemaphoreTake(xPrintMutex, portMAX_DELAY);
+        if (xActivated == (QueueSetMemberHandle_t)xTempQueue) {
+            float temp;
+            xQueueReceive(xTempQueue, &temp, 0);
+            temp_cnt++;
+            printf("[Mux] TEMP=%.1fC  (#%lu)\n", temp, (unsigned long)temp_cnt);
+        }
+        else if (xActivated == (QueueSetMemberHandle_t)xHumQueue) {
+            float hum;
+            xQueueReceive(xHumQueue, &hum, 0);
+            hum_cnt++;
+            printf("[Mux] HUM=%.1f%%  (#%lu)\n", hum, (unsigned long)hum_cnt);
+        }
+        else if (xActivated == (QueueSetMemberHandle_t)xAlertSem) {
+            xSemaphoreTake(xAlertSem, 0);
+            alert_cnt++;
+            printf("[Mux] ALERT!  (#%lu)\n", (unsigned long)alert_cnt);
+        }
+        xSemaphoreGive(xPrintMutex);
+    }
 }
 
 void app_main(void)
 {
-    printf("\n=== Program 28: Queue Sets Implementation (ESP32) ===\n");
-    
-    /* Print chip information */
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
-    printf("Chip: %s\n", CHIP_NAME);
-    printf("Cores: %d\n", chip_info.cores);
-    printf("Free heap: %lu bytes\n", esp_get_free_heap_size());
-    
-    /* Create FreeRTOS objects */
-    queue_handle = xQueueCreate(10, sizeof(uint32_t));
-    semaphore_handle = xSemaphoreCreateBinary();
-    timer_handle = xTimerCreate("Timer", pdMS_TO_TICKS(1000), pdTRUE, NULL, timer_callback);
-    
-    /* Create tasks */
-    xTaskCreate(task_function_1, "Task1", 2048, NULL, 2, NULL);
-    xTaskCreate(task_function_2, "Task2", 2048, NULL, 1, NULL);
-    
-    /* Start timer */
-    if(timer_handle != NULL)
-        xTimerStart(timer_handle, 0);
-    
-    ESP_LOGI(TAG, "FreeRTOS scheduler running");
-    
-    /* Main task continues */
-    while(1)
-    {
-        vTaskDelay(pdMS_TO_TICKS(5000));
-    }
+    printf("\n=========================================================\n");
+    printf("  ESP32_09: Queue Sets Implementation\n");
+    printf("  Satu task multiplexing dari 2 queue + 1 semaphore\n");
+    printf("=========================================================\n\n");
+
+    xTempQueue = xQueueCreate(5, sizeof(float));
+    xHumQueue  = xQueueCreate(5, sizeof(float));
+    xAlertSem  = xSemaphoreCreateBinary();
+    xPrintMutex = xSemaphoreCreateMutex();
+
+    /* Queue set harus cukup besar: 5 + 5 + 1 = 11 */
+    xQueueSet = xQueueCreateSet(11);
+    xQueueAddToSet(xTempQueue, xQueueSet);
+    xQueueAddToSet(xHumQueue, xQueueSet);
+    xQueueAddToSet(xAlertSem, xQueueSet);
+
+    xTaskCreate(vTempSensorTask,  "TempSens", 4096, NULL, 2, NULL);
+    xTaskCreate(vHumSensorTask,   "HumSens",  4096, NULL, 2, NULL);
+    xTaskCreate(vAlertTask,       "Alert",    4096, NULL, 2, NULL);
+    xTaskCreate(vMultiplexerTask, "Mux",      4096, NULL, 3, NULL);
+
+    ESP_LOGI(TAG, "Queue set multiplexer started.");
 }

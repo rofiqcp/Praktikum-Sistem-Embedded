@@ -24,44 +24,43 @@ Buatkan outline slide presentasi yang mendalam tentang dasar manajemen daya pada
   - 3 Strategi: Turunkan frekuensi, turunkan tegangan, matikan modul.
 - **Visual**: Diagram pie chart sumber konsumsi daya di MCU.
 
-### Slide 4: STM32 Low-Power Modes
+### Slide 4: STM32 Low-Power Modes (STM32Cube HAL)
 - **Poin Utama**:
-  - **Sleep Mode**: CPU stop, peripheral jalan, ~10mA, bangun cepat (~1µs).
-  - **Stop Mode**: Semua clock stop, SRAM retained, ~20µA, bangun ~5µs.
-  - **Standby Mode**: Ultra-low ~2µA, SRAM hilang, seperti reset.
-  - Perbandingan: apa yang dipertahankan vs apa yang hilang di setiap mode.
+  - **Sleep Mode**: `HAL_PWR_EnterSLEEPMode()` — CPU stop, peripheral jalan, ~10mA, bangun cepat (~1µs).
+  - **Stop Mode**: `HAL_PWR_EnterSTOPMode()` — semua clock stop, SRAM retained, ~20µA. **Perlu reconfigure clock setelah wake-up**.
+  - **Standby Mode**: `HAL_PWR_EnterSTANDBYMode()` — ultra-low ~2µA, SRAM hilang, seperti reset. Data simpan di Backup Register.
 - **Visual**: Tabel perbandingan 3 mode dengan indikator warna (hijau/kuning/merah).
 
-### Slide 5: ESP32 Low-Power Modes
+### Slide 5: ESP32 Low-Power Modes (ESP-IDF)
 - **Poin Utama**:
   - **Active**: ~240mA (WiFi TX), full power.
-  - **Modem Sleep**: ~20mA, WiFi/BT off, CPU aktif.
-  - **Light Sleep**: ~0.8mA, CPU paused, SRAM retained.
-  - **Deep Sleep**: ~10µA, hanya RTC + ULP aktif.
-  - **Hibernation**: ~5µA, minimum absolute.
+  - **Modem Sleep**: ~20mA, `esp_wifi_stop()`.
+  - **Light Sleep**: ~0.8mA, `esp_light_sleep_start()`, SRAM retained.
+  - **Deep Sleep**: ~10µA, `esp_deep_sleep_start()`, hanya RTC + ULP aktif.
+  - **Hibernation**: ~5µA, `esp_sleep_pd_config()`.
 - **Visual**: Diagram level bertingkat (staircase) dari Active ke Hibernation.
 
 ### Slide 6: Wake-up Sources
 - **Poin Utama**:
-  - **Timer/RTC**: Paling umum, periodik wake-up.
-  - **External GPIO (EXTI)**: Button press, sensor interrupt.
-  - **Touch Pad (ESP32)**: Wake-up kapasitif tanpa tombol fisik.
-  - **ULP Co-processor (ESP32)**: Wake-up berdasarkan kondisi sensor.
-  - **Watchdog**: Safety wake-up jika sistem hang.
+  - **Timer/RTC**: `esp_sleep_enable_timer_wakeup()` / `HAL_RTC_SetAlarm_IT()`
+  - **External GPIO**: `esp_sleep_enable_ext0_wakeup()` / `HAL_PWR_EnableWakeUpPin()`
+  - **Touch Pad (ESP32)**: `esp_sleep_enable_touchpad_wakeup()`
+  - **ULP Co-processor (ESP32)**: `esp_sleep_enable_ulp_wakeup()`
+  - **Watchdog**: Safety wake-up.
 - **Visual**: Diagram MCU sleeping dengan panah-panah wake-up source.
 
 ### Slide 7: Clock Gating & Dynamic Frequency Scaling
 - **Poin Utama**:
-  - Clock Gating: Matikan clock peripheral tidak terpakai.
-  - DFS: Turunkan frekuensi saat idle, naikkan saat perlu performa.
-  - Contoh: ESP32 bisa 240MHz → 10MHz (hemat ~10x daya dinamis).
+  - Clock Gating: `__HAL_RCC_XXX_CLK_DISABLE()` / `periph_module_disable()`
+  - DFS ESP-IDF: `esp_pm_configure()` — CPU 240MHz ↔ 10MHz otomatis.
+  - DFS STM32: Switch HSI 8MHz ↔ PLL 72MHz manual.
   - Trade-off: Latency vs Power Saving.
-- **Visual**: Grafik timeline: frekuensi CPU vs waktu dengan label "processing" dan "idle".
+- **Visual**: Grafik timeline: frekuensi CPU vs waktu.
 
 ### Slide 8: Studi Kasus & Kesimpulan
 - **Poin Utama**:
-  - Contoh nyata: Sensor cuaca IoT dengan baterai 2000mAh.
+  - Contoh: Sensor cuaca IoT, baterai 2000mAh.
   - Tanpa optimasi: 8 jam. Dengan deep sleep duty cycling: 50+ hari.
   - Kunci: Pilih mode sleep tepat, minimalkan waktu aktif, matikan yang tidak perlu.
-  - Minggu depan: ULP, Battery Monitoring, dan Project Solar Weather Station.
+  - Minggu depan: ULP, Battery Monitoring, Solar Weather Station.
 - **Visual**: Before/After battery life comparison chart.

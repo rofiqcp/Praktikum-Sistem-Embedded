@@ -21,8 +21,8 @@ Dari rumus ini, ada 3 strategi utama:
 
 ## 2. Low-Power Modes
 
-### STM32 Low-Power Modes
-STM32 menyediakan beberapa level low-power yang progressif:
+### STM32 Low-Power Modes (STM32Cube HAL)
+STM32 menyediakan beberapa level low-power yang progressif, dikonfigurasi melalui **STM32Cube HAL Power API**:
 
 | Mode | Konsumsi | CPU | SRAM | Peripheral | Wake-up Time |
 |------|----------|-----|------|------------|--------------|
@@ -31,11 +31,12 @@ STM32 menyediakan beberapa level low-power yang progressif:
 | **Stop** | ~2-20 µA | Stop | Aktif (retained) | Stop | ~5 µs |
 | **Standby** | ~2-3 µA | Stop | Lost | Stop | ~50 µs (reset) |
 
-- **Sleep Mode**: CPU berhenti, peripheral tetap jalan. Dibangunkan oleh interrupt apapun.
-- **Stop Mode**: Semua clock berhenti, regulator low-power. SRAM & register dipertahankan. Dibangunkan oleh EXTI, RTC alarm.
-- **Standby Mode**: Daya terhemat, tapi SRAM hilang (seperti reset). Hanya wake-up pin, RTC alarm, atau IWDG reset yang bisa membangunkan.
+- **Sleep Mode**: CPU berhenti via `HAL_PWR_EnterSLEEPMode()`, peripheral tetap jalan. Dibangunkan oleh interrupt apapun.
+- **Stop Mode**: Semua clock berhenti via `HAL_PWR_EnterSTOPMode()`, regulator low-power. SRAM & register dipertahankan. Dibangunkan oleh EXTI, RTC alarm. **Setelah wake-up, clock harus dikonfigurasi ulang** karena PLL dimatikan.
+- **Standby Mode**: Daya terhemat via `HAL_PWR_EnterSTANDBYMode()`, tapi SRAM hilang (seperti reset). Hanya wake-up pin, RTC alarm, atau IWDG reset yang bisa membangunkan. Data bisa disimpan di **Backup Registers**.
 
-### ESP32 Low-Power Modes
+### ESP32 Low-Power Modes (ESP-IDF)
+ESP-IDF menyediakan API lengkap melalui header `esp_sleep.h` dan `esp_pm.h`:
 
 | Mode | Konsumsi | CPU | WiFi/BT | RTC | Wake-up Time |
 |------|----------|-----|---------|-----|--------------|
@@ -45,29 +46,29 @@ STM32 menyediakan beberapa level low-power yang progressif:
 | **Deep Sleep** | ~10 µA | Off | Off | Aktif | ~200 ms |
 | **Hibernation** | ~5 µA | Off | Off | Minimal | ~200 ms |
 
-- **Modem Sleep**: WiFi/BT radio dimatikan, CPU masih aktif. Cocok untuk processing tanpa komunikasi.
-- **Light Sleep**: CPU di-pause, RTC dan ULP masih jalan. SRAM dipertahankan.
-- **Deep Sleep**: Hanya RTC controller, RTC memory (8KB), dan ULP co-processor yang aktif. Main CPU dan sebagian besar RAM dimatikan.
-- **Hibernation**: RTC timer saja yang aktif, RTC memory juga dimatikan. Konsumsi terendah (~5µA).
+- **Modem Sleep**: WiFi/BT radio dimatikan via `esp_wifi_stop()`, CPU masih aktif.
+- **Light Sleep**: CPU di-pause via `esp_light_sleep_start()`, RTC dan ULP masih jalan. SRAM dipertahankan.
+- **Deep Sleep**: Hanya RTC controller, RTC memory (8KB), dan ULP co-processor yang aktif. Dikonfigurasi via `esp_deep_sleep_start()`. Entry point setelah wake-up adalah `app_main()` (seperti cold boot).
+- **Hibernation**: Dikonfigurasi dengan `esp_sleep_pd_config()` untuk mematikan RTC memory juga. Konsumsi terendah (~5µA).
 
 ---
 
 ## 3. Wake-up Sources (Sumber Pembangun)
 
-### STM32 Wake-up Sources
-1. **EXTI (External Interrupt)**: Pin tertentu (biasanya WKUP pin) dapat membangunkan dari Standby.
-2. **RTC Alarm**: Timer RTC bisa dijadwalkan untuk membangunkan MCU pada waktu tertentu.
+### STM32 Wake-up Sources (HAL API)
+1. **EXTI (External Interrupt)**: Pin tertentu (WKUP pin) via `HAL_PWR_EnableWakeUpPin()`.
+2. **RTC Alarm**: Timer RTC via `HAL_RTC_SetAlarm_IT()` bisa dijadwalkan untuk membangunkan MCU.
 3. **RTC Wakeup Timer**: Periodic wake-up menggunakan sub-second timer RTC.
 4. **IWDG (Independent Watchdog)**: Reset dari watchdog bisa membangunkan dari Standby.
 5. **NRST Pin**: Reset eksternal.
 
-### ESP32 Wake-up Sources
-1. **Timer**: RTC timer dengan resolusi microsecond — paling umum digunakan.
-2. **Touch Pad**: Sensor kapasitif bisa membangunkan dari deep sleep.
-3. **External Wake-up (ext0)**: Satu GPIO RTC tertentu, level HIGH/LOW.
-4. **External Wake-up (ext1)**: Beberapa GPIO RTC, mendukung logic ANY/ALL.
-5. **ULP Co-processor**: Program di ULP bisa membangunkan main CPU berdasarkan kondisi.
-6. **GPIO**: Light sleep bisa dibangunkan oleh perubahan GPIO.
+### ESP32 Wake-up Sources (ESP-IDF API)
+1. **Timer**: `esp_sleep_enable_timer_wakeup()` — RTC timer dengan resolusi microsecond.
+2. **Touch Pad**: `esp_sleep_enable_touchpad_wakeup()` — sensor kapasitif built-in.
+3. **External Wake-up ext0**: `esp_sleep_enable_ext0_wakeup()` — satu GPIO RTC, level HIGH/LOW.
+4. **External Wake-up ext1**: `esp_sleep_enable_ext1_wakeup()` — beberapa GPIO RTC, logic ANY/ALL.
+5. **ULP Co-processor**: `esp_sleep_enable_ulp_wakeup()` — program di ULP bisa membangunkan main CPU.
+6. **GPIO**: Light sleep bisa dibangunkan oleh perubahan GPIO via `gpio_wakeup_enable()`.
 
 ---
 
@@ -76,49 +77,83 @@ STM32 menyediakan beberapa level low-power yang progressif:
 ### Clock Gating
 Konsep: matikan clock peripheral yang tidak digunakan. Tanpa clock, transistor tidak switching, sehingga **tidak ada dynamic power consumption**.
 
-**STM32:**
+**STM32 (HAL):**
 ```c
 // Aktifkan clock hanya saat dibutuhkan
 __HAL_RCC_GPIOA_CLK_ENABLE();
 // ... gunakan GPIOA ...
 __HAL_RCC_GPIOA_CLK_DISABLE();  // Matikan saat tidak dipakai
+
+// Matikan clock ADC saat tidak dipakai
+__HAL_RCC_ADC1_CLK_DISABLE();
+// Matikan clock SPI saat tidak dipakai
+__HAL_RCC_SPI1_CLK_DISABLE();
 ```
 
-**ESP32:**
+**ESP32 (ESP-IDF):**
 ```c
-// Disable WiFi untuk hemat daya
+#include "driver/periph_ctrl.h"
+
+// Disable peripheral clock via periph_ctrl
+periph_module_disable(PERIPH_I2C0_MODULE);
+periph_module_disable(PERIPH_SPI2_MODULE);
+
+// Disable WiFi & Bluetooth
 esp_wifi_stop();
-// Disable Bluetooth
+esp_wifi_deinit();
 esp_bt_controller_disable();
 ```
 
 ### Dynamic Frequency Scaling (DFS)
 Menurunkan frekuensi CPU saat beban rendah, menaikkan saat butuh performa tinggi.
 
-**ESP32** mendukung DFS secara native dengan `esp_pm_configure()`:
-- CPU bisa turun ke 80MHz, 40MHz, bahkan 10MHz.
-- Frekuensi otomatis naik saat ada interrupt atau task aktif.
+**ESP32 (ESP-IDF)** mendukung DFS secara native:
+```c
+#include "esp_pm.h"
 
-**STM32** bisa menurunkan clock melalui PLL reconfiguration atau prescaler:
-- Dari 72MHz ke 8MHz (HSI) saat idle.
-- Peripheral clock bisa di-prescale independen.
+esp_pm_config_esp32_t pm_config = {
+    .max_freq_mhz = 240,
+    .min_freq_mhz = 10,
+    .light_sleep_enable = true
+};
+esp_pm_configure(&pm_config);
+```
+
+**STM32 (HAL)** bisa menurunkan clock melalui reconfiguration:
+```c
+// Switch dari PLL (72MHz) ke HSI (8MHz) untuk hemat daya
+RCC_ClkInitTypeDef clk = {0};
+clk.ClockType = RCC_CLOCKTYPE_SYSCLK;
+clk.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;  // 8MHz internal
+HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_0);
+```
 
 ---
 
 ## 5. ULP Co-Processor (ESP32)
-ESP32 memiliki **Ultra-Low Power co-processor** — sebuah prosesor kecil yang bisa berjalan saat main CPU dalam deep sleep.
+ESP32 memiliki **Ultra-Low Power co-processor** — sebuah prosesor kecil yang berjalan saat main CPU dalam deep sleep. Diprogram menggunakan assembly ULP atau ULP-RISC-V (pada ESP32-S2/S3).
 
 ### Kemampuan ULP:
-- Baca sensor via ADC
-- Baca GPIO
-- Kontrol GPIO
-- Operasi I2C (pada beberapa varian)
-- Akses RTC memory (8KB shared)
+- Baca sensor via ADC (`adc` instruction)
+- Baca/tulis GPIO (`reg_rd`, `reg_wr`)
+- Operasi aritmatika sederhana
+- Akses RTC memory (8KB shared dengan main CPU)
+- Wake-up main CPU berdasarkan kondisi (`wake` instruction)
 
-### Use Case:
-1. **Periodic sensor reading**: ULP baca suhu setiap 10 detik. Jika di atas threshold, bangunkan main CPU untuk kirim alarm via WiFi.
-2. **Battery monitoring**: ULP monitor tegangan baterai via ADC, bangunkan CPU jika low battery.
-3. **Motion detection**: ULP pantau accelerometer via I2C, bangunkan CPU saat gerakan terdeteksi.
+### Penggunaan via ESP-IDF:
+```c
+#include "esp_sleep.h"
+#include "ulp.h"
+
+// Load ULP program
+ulp_load_binary(0, ulp_main_bin_start, ...);
+// Set ULP wake-up period
+ulp_set_wakeup_period(0, 1000000);  // 1 detik
+// Enable ULP wake-up
+esp_sleep_enable_ulp_wakeup();
+// Start ULP program
+ulp_run(&ulp_entry - RTC_SLOW_MEM);
+```
 
 ### Konsumsi ULP:
 - ULP aktif: ~150 µA (jauh lebih hemat dari main CPU ~50mA)
@@ -128,21 +163,34 @@ ESP32 memiliki **Ultra-Low Power co-processor** — sebuah prosesor kecil yang b
 
 ## 6. RTC Memory & Data Persistence
 
-### ESP32 RTC Memory
-ESP32 memiliki **8KB RTC SLOW memory** yang tetap aktif selama deep sleep. Ini memungkinkan:
-- Menyimpan counter/variabel antar deep sleep cycle
-- Menyimpan state sensor terakhir
-- Menyimpan boot count untuk diagnostik
-
+### ESP32 RTC Memory (ESP-IDF)
+ESP32 memiliki **8KB RTC SLOW memory** yang tetap aktif selama deep sleep:
 ```c
-RTC_DATA_ATTR int bootCount = 0;  // Tetap tersimpan di deep sleep
+// Variabel di RTC memory — bertahan selama deep sleep
+RTC_DATA_ATTR int boot_count = 0;
+RTC_DATA_ATTR float last_temperature = 0.0f;
+RTC_DATA_ATTR uint8_t data_buffer[256];
 ```
+- Variabel dengan `RTC_DATA_ATTR` ditempatkan di RTC SLOW memory.
+- Hilang hanya saat power cycle atau hibernation mode (jika RTC memory dimatikan).
 
-### STM32 Backup Domain
-STM32 memiliki **Backup registers** (20 x 16-bit pada F1, lebih banyak pada F4/H7) dan **VBAT domain**:
-- Backup registers tetap tersimpan selama VBAT ada tegangan
-- RTC tetap berjalan dengan baterai coin cell di VBAT pin
-- Data hilang hanya jika VBAT dan VDD sama-sama hilang
+### STM32 Backup Domain (HAL)
+STM32 memiliki **Backup registers** dan **VBAT domain**:
+```c
+// Aktifkan akses Backup Domain
+__HAL_RCC_PWR_CLK_ENABLE();
+__HAL_RCC_BKP_CLK_ENABLE();
+HAL_PWR_EnableBkpAccess();
+
+// Tulis ke backup register
+HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, boot_count);
+
+// Baca dari backup register
+uint32_t saved = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1);
+```
+- Backup registers (20 x 16-bit pada F1) tetap tersimpan selama VBAT ada tegangan.
+- RTC tetap berjalan dengan baterai coin cell di VBAT pin.
+- Data hilang hanya jika VBAT dan VDD sama-sama hilang.
 
 ---
 
@@ -150,15 +198,15 @@ STM32 memiliki **Backup registers** (20 x 16-bit pada F1, lebih banyak pada F4/H
 
 ### Teknik Monitoring Baterai:
 1. **Voltage Divider + ADC**: Bagi tegangan baterai dengan resistor divider, baca via ADC.
-2. **Internal VREFINT (STM32)**: Bandingkan Vref internal untuk kalibrasi pengukuran.
-3. **ESP32 ADC**: Gunakan ADC dengan attenuation yang tepat (max 3.3V input).
+2. **Internal VREFINT (STM32)**: Bandingkan Vref internal (1.2V) via `HAL_ADC_Start()` untuk kalibrasi.
+3. **ESP32 ADC (ESP-IDF)**: Gunakan `adc1_get_raw()` dengan attenuation dan kalibrasi eFuse via `esp_adc_cal`.
 
 ### Strategi Optimasi Baterai:
-1. **Duty Cycling**: Aktif sebentar, tidur lama (contoh: 10 detik aktif, 5 menit tidur).
+1. **Duty Cycling**: Aktif sebentar, tidur lama (contoh: 2 detik aktif, 5 menit tidur).
 2. **Adaptive Sampling**: Tingkatkan frekuensi sampling hanya saat ada event penting.
-3. **Data Batching**: Kumpulkan beberapa pembacaan sensor, kirim sekaligus via WiFi.
+3. **Data Batching**: Kumpulkan beberapa pembacaan sensor di RTC memory, kirim sekaligus.
 4. **WiFi Power Save**: Gunakan DTIM interval tinggi, modem sleep antar transmisi.
-5. **Peripheral Power Control**: Matikan sensor/modul eksternal via MOSFET switch saat tidak dipakai.
+5. **Peripheral Power Control**: Matikan sensor/modul eksternal via MOSFET switch.
 
 ### Estimasi Umur Baterai:
 $$T_{battery} = \frac{C_{battery}}{I_{avg}}$$
@@ -175,15 +223,23 @@ $$I_{avg} = \frac{I_{active} \times t_{active} + I_{sleep} \times t_{sleep}}{t_{
 
 ## 8. Hardware Implementation
 
-### ESP32 (Built-in Power Management)
-ESP32 memiliki power management unit (PMU) internal yang mengelola semua domain daya. Konfigurasi cukup melalui software API (`esp_sleep`, `esp_pm`).
+### ESP32 (ESP-IDF Framework via PlatformIO)
+- **Platform**: `espressif32`
+- **Framework**: `esp-idf`
+- **Board**: `esp32doit-devkit-v1`
+- Entry point: `void app_main(void)`
+- FreeRTOS terintegrasi dan otomatis berjalan
+- Power API: `esp_sleep.h`, `esp_pm.h`, `driver/rtc_io.h`
+- Logging: `ESP_LOGI()`, `ESP_LOGW()`, `ESP_LOGE()`
 
-### STM32 (HAL Power API)
-STM32 menggunakan HAL Power API:
-- `HAL_PWR_EnterSLEEPMode()` — Sleep mode
-- `HAL_PWR_EnterSTOPMode()` — Stop mode  
-- `HAL_PWR_EnterSTANDBYMode()` — Standby mode
-- `HAL_PWREx_EnableLowPowerRunMode()` — Low-power run (pada L-series)
+### STM32 (STM32Cube HAL Framework via PlatformIO)
+- **Platform**: `ststm32`
+- **Framework**: `stm32cube`
+- **Board**: `bluepill_f103c8`
+- Entry point: `int main(void)` → `vTaskStartScheduler()`
+- FreeRTOS dikompilasi via `extra_script_F103.py`
+- Power API: `stm32f1xx_hal_pwr.h`, `stm32f1xx_hal_rtc.h`
+- Logging: `UART_SendString()` via USART1
 
 ### Pertimbangan Hardware:
 - **Decoupling capacitor** pada VBAT untuk backup domain STM32

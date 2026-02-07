@@ -1,102 +1,119 @@
 /**
- * @file main.cpp
- * @brief Program 01: LED Blink - Dasar GPIO Output ESP32
- * 
+ * @file main.c
+ * @brief Program 01: LED Blink - Dasar GPIO Output (ESP-IDF)
+ *
  * Deskripsi:
- * Program dasar untuk mengendalikan LED menggunakan GPIO.
+ * Program dasar untuk mengendalikan LED menggunakan GPIO ESP-IDF driver.
  * LED akan berkedip dengan interval yang dapat dikonfigurasi.
- * 
+ * Menggunakan ESP-IDF native API: gpio_config(), gpio_set_level()
+ *
  * Hardware:
- * - ESP32 DevKitC
- * - LED Built-in (GPIO2) atau LED External dengan resistor 220Ω
- * 
+ * - ESP32 DOIT DevKit V1 (GPIO2 = LED built-in)
+ * - Wemos Lolin S2 Mini  (GPIO15 = LED built-in)
+ * - ESP32-S3 DevKitC-1   (GPIO48 = RGB LED / user LED)
+ * - LED External dengan resistor 220Ω (opsional)
+ *
+ * Referensi:
+ * - Kolban's ESP32 Book, hal 251-257 (GPIO)
+ * - ESP-IDF GPIO API: esp_idf/components/driver/gpio
+ *
  * @author Praktikum Sistem Embedded
  * @date 2026
  */
 
-#include <Arduino.h>
-#include "config.h"
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
 
-// ==================== VARIABEL GLOBAL ====================
-unsigned long previousMillis = 0;   // Waktu sebelumnya
-bool ledState = false;              // Status LED
-uint32_t blinkCount = 0;            // Counter blink
+static const char *TAG = "LED_BLINK";
 
-// ==================== SETUP ====================
-void setup() {
-    // Inisialisasi Serial
-    Serial.begin(SERIAL_BAUD);
-    delay(1000);  // Tunggu serial ready
-    
-    Serial.println("\n========================================");
-    Serial.println("Program 01: LED Blink - ESP32");
-    Serial.println("Praktikum Sistem Embedded");
-    Serial.println("========================================\n");
-    
-    // Konfigurasi GPIO sebagai OUTPUT
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, LOW);  // Mulai dengan LED mati
-    
-    Serial.printf("LED Pin: GPIO%d\n", LED_PIN);
-    Serial.printf("Blink Interval: %d ms\n", BLINK_DELAY_MS);
-    Serial.println("Program dimulai...\n");
-}
+/* ==================== KONFIGURASI ==================== */
+#ifndef CONFIG_LED_GPIO
+#define CONFIG_LED_GPIO    2        // Default: ESP32 DOIT DevKit built-in LED
+#endif
 
-// ==================== LOOP ====================
-void loop() {
-    unsigned long currentMillis = millis();
-    
-    // Non-blocking blink menggunakan millis()
-    if (currentMillis - previousMillis >= BLINK_DELAY_MS) {
-        previousMillis = currentMillis;
-        
-        // Toggle LED state
-        ledState = !ledState;
-        digitalWrite(LED_PIN, ledState);
-        
-        // Increment counter
-        blinkCount++;
-        
-        // Debug output
-        #if DEBUG_SERIAL
-        Serial.printf("[%lu ms] LED: %s | Blink #%lu\n", 
-                      currentMillis, 
-                      ledState ? "ON " : "OFF",
-                      blinkCount);
-        #endif
+#define BLINK_DELAY_MS     500      // Interval blink (ms)
+
+/* ==================== VARIABEL GLOBAL ==================== */
+static bool led_state = false;
+static uint32_t blink_count = 0;
+
+/* ==================== MAIN ==================== */
+void app_main(void)
+{
+    ESP_LOGI(TAG, "========================================");
+    ESP_LOGI(TAG, "Program 01: LED Blink - ESP-IDF");
+    ESP_LOGI(TAG, "Praktikum Sistem Embedded");
+    ESP_LOGI(TAG, "========================================");
+
+    /* Konfigurasi GPIO menggunakan gpio_config_t struct */
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << CONFIG_LED_GPIO),   // Bitmask pin
+        .mode = GPIO_MODE_OUTPUT,                     // Mode output
+        .pull_up_en = GPIO_PULLUP_DISABLE,            // Tidak perlu pull-up
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,        // Tidak perlu pull-down
+        .intr_type = GPIO_INTR_DISABLE,               // Tidak pakai interrupt
+    };
+    gpio_config(&io_conf);
+
+    ESP_LOGI(TAG, "LED Pin: GPIO%d", CONFIG_LED_GPIO);
+    ESP_LOGI(TAG, "Blink Interval: %d ms", BLINK_DELAY_MS);
+    ESP_LOGI(TAG, "Program dimulai...");
+
+    /* Loop utama - non-blocking blink menggunakan vTaskDelay */
+    while (1) {
+        /* Toggle LED state */
+        led_state = !led_state;
+        gpio_set_level(CONFIG_LED_GPIO, led_state);
+
+        blink_count++;
+
+        ESP_LOGI(TAG, "[%lld ms] LED: %s | Blink #%lu",
+                 esp_timer_get_time() / 1000,
+                 led_state ? "ON " : "OFF",
+                 (unsigned long)blink_count);
+
+        /* Delay menggunakan FreeRTOS (non-blocking, yield ke task lain) */
+        vTaskDelay(pdMS_TO_TICKS(BLINK_DELAY_MS));
     }
 }
 
 /**
+ * PENJELASAN ESP-IDF GPIO API:
+ *
+ * 1. gpio_config_t struct:
+ *    - pin_bit_mask : Bitmask GPIO yang akan dikonfigurasi (bisa multi-pin)
+ *    - mode         : GPIO_MODE_INPUT / GPIO_MODE_OUTPUT / GPIO_MODE_INPUT_OUTPUT
+ *    - pull_up_en   : Internal pull-up resistor
+ *    - pull_down_en : Internal pull-down resistor
+ *    - intr_type    : Interrupt type (disable/rising/falling/both/low/high)
+ *
+ * 2. gpio_set_level(gpio_num, level):
+ *    - Set pin HIGH (1) atau LOW (0)
+ *
+ * 3. vTaskDelay(pdMS_TO_TICKS(ms)):
+ *    - Delay yang cooperative (yield CPU ke task lain)
+ *    - Berbeda dengan delay() Arduino yang blocking
+ *
  * WIRING DIAGRAM:
- * 
- *   ESP32 DevKitC
+ *
+ *   ESP32 DOIT DevKit V1
  *   ┌─────────────┐
+ *   │        GPIO2 ├───[LED built-in]  (Active HIGH)
  *   │             │
- *   │         3V3 ├───[LED Built-in sudah ada di GPIO2]
- *   │             │
- *   │        GPIO2├───┬───[220Ω]───[LED]───┐
- *   │             │   │                    │
- *   │         GND ├───┴────────────────────┘
- *   │             │
+ *   │             ├───[220Ω]───[LED]───GND  (External)
+ *   │         GND ├───────────────────┘
  *   └─────────────┘
- * 
- * Catatan:
- * - GPIO2 adalah LED built-in pada sebagian besar ESP32 DevKitC
- * - Untuk LED external, gunakan resistor 220Ω - 330Ω
- * 
- * EXPECTED OUTPUT (Serial Monitor):
- * ========================================
- * Program 01: LED Blink - ESP32
- * Praktikum Sistem Embedded
- * ========================================
- * 
- * LED Pin: GPIO2
- * Blink Interval: 500 ms
- * Program dimulai...
- * 
- * [500 ms] LED: ON  | Blink #1
- * [1000 ms] LED: OFF | Blink #2
- * [1500 ms] LED: ON  | Blink #3
- * ...
+ *
+ *   Wemos Lolin S2 Mini
+ *   ┌─────────────┐
+ *   │       GPIO15 ├───[LED built-in]
+ *   └─────────────┘
+ *
+ *   ESP32-S3 DevKitC-1
+ *   ┌─────────────┐
+ *   │       GPIO48 ├───[RGB LED / User LED]
+ *   └─────────────┘
  */

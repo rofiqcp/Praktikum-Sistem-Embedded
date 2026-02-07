@@ -1,86 +1,103 @@
 /**
- * Program 26: Flow Control & Back-pressure
- * Concept: Core functionality demonstration (ESP32)
- * 
- * Learning Points:
- * - FreeRTOS integration with ESP-IDF
- * - ESP32-specific features & capabilities
- * - Hardware initialization
- * - Serial logging
+ * ESP32_07: Flow Control with Backpressure
+ * ==========================================
+ * Modul 10 - FreeRTOS Queue dan Semaphore
+ * Framework: ESP-IDF
+ *
+ * Konsep: Producer memeriksa ruang queue tersisa. Jika queue
+ *         hampir penuh, kurangi rate produksi (backpressure).
+ *         Counting semaphore untuk membatasi concurrent producers.
+ *
+ * Hardware: ESP32 DevKit V1 saja (serial via USB 115200)
  */
-
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
-#include "freertos/timers.h"
 #include "esp_system.h"
-#include "esp_spi_flash.h"
 #include "esp_log.h"
-#include "driver/uart.h"
-#include "config.h"
+#include "esp_timer.h"
 
-static const char *TAG = "PROG_26";
+static const char *TAG = "BACKPRES";
+#define QUEUE_SIZE 10
+#define MAX_PRODUCERS 3
 
-/* FreeRTOS objects */
-QueueHandle_t queue_handle = NULL;
-SemaphoreHandle_t semaphore_handle = NULL;
-TimerHandle_t timer_handle = NULL;
+static QueueHandle_t xDataQueue = NULL;
+static SemaphoreHandle_t xPrintMutex = NULL;
+static SemaphoreHandle_t xProducerSlots = NULL; /* counting semaphore */
 
-static void task_function_1(void *pvParameters)
+typedef struct {
+    uint8_t  producer_id;
+    uint32_t seq_num;
+    uint32_t delay_ms;
+} DataItem_t;
+
+static void vProducerTask(void *pv)
 {
-    while(1)
-    {
-        ESP_LOGI(TAG, "Task 1 running");
-        vTaskDelay(pdMS_TO_TICKS(500));
+    int id = (int)(intptr_t)pv;
+    uint32_t seq = 0;
+    uint32_t base_delay = 100;
+    DataItem_t item;
+
+    for (;;) {
+        /* Ambil slot producer (counting semaphore) */
+        if (xSemaphoreTake(xProducerSlots, pdMS_TO_TICKS(1000)) == pdTRUE) {
+            seq++;
+            /* Backpressure: cek ruang tersisa */
+            UBaseType_t spaces = uxQueueSpacesAvailable(xDataQueue);
+            uint32_t delay = base_delay;
+            if (spaces < 3) delay = base_delay * 4; /* slow down */
+            else if (spaces < 5) delay = base_delay * 2;
+
+            item.producer_id = id;
+            item.seq_num = seq;
+            item.delay_ms = delay;
+
+            if (xQueueSend(xDataQueue, &item, pdMS_TO_TICKS(500)) == pdPASS) {
+                xSemaphoreTake(xPrintMutex, portMAX_DELAY);
+                printf("[P%d] Sent #%lu | spaces=%lu | delay=%lu ms\n",
+                       id, (unsigned long)seq, (unsigned long)spaces,
+                       (unsigned long)delay);
+                xSemaphoreGive(xPrintMutex);
+            }
+            xSemaphoreGive(xProducerSlots);
+            vTaskDelay(pdMS_TO_TICKS(delay));
+        }
     }
 }
 
-static void task_function_2(void *pvParameters)
+static void vConsumerTask(void *pv)
 {
-    while(1)
-    {
-        ESP_LOGI(TAG, "Task 2 running");
-        vTaskDelay(pdMS_TO_TICKS(1000));
+    DataItem_t item;
+    for (;;) {
+        if (xQueueReceive(xDataQueue, &item, portMAX_DELAY) == pdPASS) {
+            xSemaphoreTake(xPrintMutex, portMAX_DELAY);
+            printf("[Consumer] P%d seq#%lu (produced at %lu ms delay)\n",
+                   item.producer_id, (unsigned long)item.seq_num,
+                   (unsigned long)item.delay_ms);
+            xSemaphoreGive(xPrintMutex);
+            /* Simulasi processing lambat */
+            vTaskDelay(pdMS_TO_TICKS(300));
+        }
     }
-}
-
-static void timer_callback(TimerHandle_t xTimer)
-{
-    ESP_LOGI(TAG, "Timer callback");
 }
 
 void app_main(void)
 {
-    printf("\n=== Program 26: Flow Control & Back-pressure (ESP32) ===\n");
-    
-    /* Print chip information */
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
-    printf("Chip: %s\n", CHIP_NAME);
-    printf("Cores: %d\n", chip_info.cores);
-    printf("Free heap: %lu bytes\n", esp_get_free_heap_size());
-    
-    /* Create FreeRTOS objects */
-    queue_handle = xQueueCreate(10, sizeof(uint32_t));
-    semaphore_handle = xSemaphoreCreateBinary();
-    timer_handle = xTimerCreate("Timer", pdMS_TO_TICKS(1000), pdTRUE, NULL, timer_callback);
-    
-    /* Create tasks */
-    xTaskCreate(task_function_1, "Task1", 2048, NULL, 2, NULL);
-    xTaskCreate(task_function_2, "Task2", 2048, NULL, 1, NULL);
-    
-    /* Start timer */
-    if(timer_handle != NULL)
-        xTimerStart(timer_handle, 0);
-    
-    ESP_LOGI(TAG, "FreeRTOS scheduler running");
-    
-    /* Main task continues */
-    while(1)
-    {
-        vTaskDelay(pdMS_TO_TICKS(5000));
-    }
+    printf("\n=========================================================\n");
+    printf("  ESP32_07: Flow Control with Backpressure\n");
+    printf("  Counting semaphore + queue space monitoring\n");
+    printf("=========================================================\n\n");
+
+    xDataQueue     = xQueueCreate(QUEUE_SIZE, sizeof(DataItem_t));
+    xPrintMutex    = xSemaphoreCreateMutex();
+    xProducerSlots = xSemaphoreCreateCounting(MAX_PRODUCERS, MAX_PRODUCERS);
+
+    for (int i = 0; i < 4; i++) /* 4 producers, but max 3 concurrent */
+        xTaskCreate(vProducerTask, "Producer", 4096, (void*)(intptr_t)i, 2, NULL);
+    xTaskCreate(vConsumerTask, "Consumer", 4096, NULL, 3, NULL);
+
+    ESP_LOGI(TAG, "Backpressure demo started.");
 }

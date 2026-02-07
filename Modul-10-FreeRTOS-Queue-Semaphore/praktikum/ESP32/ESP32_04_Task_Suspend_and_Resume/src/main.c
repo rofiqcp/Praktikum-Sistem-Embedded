@@ -1,86 +1,113 @@
 /**
- * Program 23: Task Suspend & Resume
- * Concept: Core functionality demonstration (ESP32)
- * 
- * Learning Points:
- * - FreeRTOS integration with ESP-IDF
- * - ESP32-specific features & capabilities
- * - Hardware initialization
- * - Serial logging
+ * ESP32_04: Task Suspend and Resume with Queue
+ * ==============================================
+ * Modul 10 - FreeRTOS Queue dan Semaphore
+ * Framework: ESP-IDF
+ *
+ * Konsep: Suspend/resume task berdasarkan command yang
+ *         dikirim via Queue. Binary semaphore untuk sync.
+ *
+ * Hardware: ESP32 DevKit V1 + USB Serial (115200)
  */
-
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
-#include "freertos/timers.h"
 #include "esp_system.h"
-#include "esp_spi_flash.h"
 #include "esp_log.h"
-#include "driver/uart.h"
-#include "config.h"
+#include "esp_timer.h"
+#include "driver/gpio.h"
 
-static const char *TAG = "PROG_23";
+static const char *TAG = "SUSP_RES";
 
-/* FreeRTOS objects */
-QueueHandle_t queue_handle = NULL;
-SemaphoreHandle_t semaphore_handle = NULL;
-TimerHandle_t timer_handle = NULL;
+typedef enum { CMD_SUSPEND, CMD_RESUME, CMD_STATUS } CmdType_t;
+typedef struct { CmdType_t cmd; uint8_t target_task; } Command_t;
 
-static void task_function_1(void *pvParameters)
+static QueueHandle_t xCmdQueue = NULL;
+static SemaphoreHandle_t xPrintMutex = NULL;
+static TaskHandle_t xWorkerHandles[3] = {NULL};
+static const char *worker_names[] = {"WorkerA", "WorkerB", "WorkerC"};
+
+static void vWorkerTask(void *pv)
 {
-    while(1)
-    {
-        ESP_LOGI(TAG, "Task 1 running");
-        vTaskDelay(pdMS_TO_TICKS(500));
+    int id = (int)(intptr_t)pv;
+    uint32_t cnt = 0;
+    for (;;) {
+        cnt++;
+        xSemaphoreTake(xPrintMutex, portMAX_DELAY);
+        printf("[%s] running #%lu\n", worker_names[id], (unsigned long)cnt);
+        xSemaphoreGive(xPrintMutex);
+        vTaskDelay(pdMS_TO_TICKS(500 + id * 200));
     }
 }
 
-static void task_function_2(void *pvParameters)
+static void vControlTask(void *pv)
 {
-    while(1)
-    {
-        ESP_LOGI(TAG, "Task 2 running");
-        vTaskDelay(pdMS_TO_TICKS(1000));
+    /* Auto-generate commands to demo suspend/resume */
+    Command_t cmds[] = {
+        {CMD_STATUS, 0}, {CMD_SUSPEND, 0}, {CMD_STATUS, 0},
+        {CMD_SUSPEND, 1}, {CMD_STATUS, 0}, {CMD_RESUME, 0},
+        {CMD_STATUS, 0}, {CMD_RESUME, 1}, {CMD_STATUS, 0}
+    };
+    int idx = 0;
+    for (;;) {
+        Command_t c = cmds[idx % (sizeof(cmds)/sizeof(cmds[0]))];
+        xQueueSend(xCmdQueue, &c, portMAX_DELAY);
+        idx++;
+        vTaskDelay(pdMS_TO_TICKS(3000));
     }
 }
 
-static void timer_callback(TimerHandle_t xTimer)
+static void vCommandHandler(void *pv)
 {
-    ESP_LOGI(TAG, "Timer callback");
+    Command_t c;
+    for (;;) {
+        if (xQueueReceive(xCmdQueue, &c, portMAX_DELAY) == pdPASS) {
+            xSemaphoreTake(xPrintMutex, portMAX_DELAY);
+            switch (c.cmd) {
+                case CMD_SUSPEND:
+                    if (c.target_task < 3 && xWorkerHandles[c.target_task]) {
+                        vTaskSuspend(xWorkerHandles[c.target_task]);
+                        printf(">>> SUSPENDED %s\n", worker_names[c.target_task]);
+                    }
+                    break;
+                case CMD_RESUME:
+                    if (c.target_task < 3 && xWorkerHandles[c.target_task]) {
+                        vTaskResume(xWorkerHandles[c.target_task]);
+                        printf(">>> RESUMED %s\n", worker_names[c.target_task]);
+                    }
+                    break;
+                case CMD_STATUS:
+                    printf("\n--- Task Status ---\n");
+                    for (int i = 0; i < 3; i++) {
+                        eTaskState st = eTaskGetState(xWorkerHandles[i]);
+                        printf("  %s: %s\n", worker_names[i],
+                               st == eSuspended ? "SUSPENDED" : "RUNNING/READY");
+                    }
+                    printf("-------------------\n");
+                    break;
+            }
+            xSemaphoreGive(xPrintMutex);
+        }
+    }
 }
 
 void app_main(void)
 {
-    printf("\n=== Program 23: Task Suspend & Resume (ESP32) ===\n");
-    
-    /* Print chip information */
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
-    printf("Chip: %s\n", CHIP_NAME);
-    printf("Cores: %d\n", chip_info.cores);
-    printf("Free heap: %lu bytes\n", esp_get_free_heap_size());
-    
-    /* Create FreeRTOS objects */
-    queue_handle = xQueueCreate(10, sizeof(uint32_t));
-    semaphore_handle = xSemaphoreCreateBinary();
-    timer_handle = xTimerCreate("Timer", pdMS_TO_TICKS(1000), pdTRUE, NULL, timer_callback);
-    
-    /* Create tasks */
-    xTaskCreate(task_function_1, "Task1", 2048, NULL, 2, NULL);
-    xTaskCreate(task_function_2, "Task2", 2048, NULL, 1, NULL);
-    
-    /* Start timer */
-    if(timer_handle != NULL)
-        xTimerStart(timer_handle, 0);
-    
-    ESP_LOGI(TAG, "FreeRTOS scheduler running");
-    
-    /* Main task continues */
-    while(1)
-    {
-        vTaskDelay(pdMS_TO_TICKS(5000));
-    }
+    printf("\n=========================================================\n");
+    printf("  ESP32_04: Task Suspend and Resume\n");
+    printf("  Queue-based command dispatch for suspend/resume\n");
+    printf("=========================================================\n\n");
+
+    xCmdQueue = xQueueCreate(10, sizeof(Command_t));
+    xPrintMutex = xSemaphoreCreateMutex();
+
+    for (int i = 0; i < 3; i++)
+        xTaskCreate(vWorkerTask, worker_names[i], 4096, (void*)(intptr_t)i, 1, &xWorkerHandles[i]);
+    xTaskCreate(vControlTask, "Control", 4096, NULL, 3, NULL);
+    xTaskCreate(vCommandHandler, "CmdHandler", 4096, NULL, 2, NULL);
+
+    ESP_LOGI(TAG, "All tasks created.");
 }

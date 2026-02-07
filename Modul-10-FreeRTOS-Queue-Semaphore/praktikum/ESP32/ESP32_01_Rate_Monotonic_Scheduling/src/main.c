@@ -1,12 +1,16 @@
 /**
- * Program 20: Rate Monotonic Scheduling
- * Concept: Core functionality demonstration (ESP32)
- * 
- * Learning Points:
- * - FreeRTOS integration with ESP-IDF
- * - ESP32-specific features & capabilities
- * - Hardware initialization
- * - Serial logging
+ * ESP32_01: Rate Monotonic Scheduling (RMS)
+ * ===========================================
+ * Modul 10 - FreeRTOS Queue dan Semaphore
+ * Framework: ESP-IDF
+ * Board: ESP32 DOIT DevKit V1
+ *
+ * Konsep: RMS memberikan prioritas lebih tinggi ke task
+ *         dengan periode eksekusi lebih pendek.
+ *
+ * Hardware yang dibutuhkan:
+ *   - ESP32 DevKit V1 (hanya board, tanpa komponen tambahan)
+ *   - USB untuk Serial Monitor (115200 baud)
  */
 
 #include <stdio.h>
@@ -15,72 +19,119 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
-#include "freertos/timers.h"
 #include "esp_system.h"
-#include "esp_spi_flash.h"
 #include "esp_log.h"
-#include "driver/uart.h"
-#include "config.h"
+#include "esp_timer.h"
 
-static const char *TAG = "PROG_20";
+static const char *TAG = "RMS";
 
-/* FreeRTOS objects */
-QueueHandle_t queue_handle = NULL;
-SemaphoreHandle_t semaphore_handle = NULL;
-TimerHandle_t timer_handle = NULL;
+typedef struct {
+    char     task_name[16];
+    uint32_t count;
+    int64_t  timestamp_us;
+    uint32_t period_ms;
+} TaskLog_t;
 
-static void task_function_1(void *pvParameters)
+static QueueHandle_t      xLogQueue   = NULL;
+static SemaphoreHandle_t  xPrintMutex = NULL;
+
+/* Task periode 10ms -> Prioritas 5 (tertinggi) */
+static void vFastTask(void *pv)
 {
-    while(1)
-    {
-        ESP_LOGI(TAG, "Task 1 running");
-        vTaskDelay(pdMS_TO_TICKS(500));
+    uint32_t cnt = 0;
+    TaskLog_t lg;
+    TickType_t xLast = xTaskGetTickCount();
+    for (;;) {
+        cnt++;
+        for (volatile int i = 0; i < 100; i++); /* simulasi kerja */
+        if (cnt % 100 == 0) {
+            strncpy(lg.task_name, "FastTask", 16);
+            lg.count = cnt; lg.timestamp_us = esp_timer_get_time(); lg.period_ms = 10;
+            xQueueSend(xLogQueue, &lg, 0);
+        }
+        vTaskDelayUntil(&xLast, pdMS_TO_TICKS(10));
     }
 }
 
-static void task_function_2(void *pvParameters)
+/* Task periode 50ms -> Prioritas 3 */
+static void vMediumTask(void *pv)
 {
-    while(1)
-    {
-        ESP_LOGI(TAG, "Task 2 running");
-        vTaskDelay(pdMS_TO_TICKS(1000));
+    uint32_t cnt = 0;
+    TaskLog_t lg;
+    TickType_t xLast = xTaskGetTickCount();
+    for (;;) {
+        cnt++;
+        for (volatile int i = 0; i < 500; i++);
+        if (cnt % 20 == 0) {
+            strncpy(lg.task_name, "MediumTask", 16);
+            lg.count = cnt; lg.timestamp_us = esp_timer_get_time(); lg.period_ms = 50;
+            xQueueSend(xLogQueue, &lg, 0);
+        }
+        vTaskDelayUntil(&xLast, pdMS_TO_TICKS(50));
     }
 }
 
-static void timer_callback(TimerHandle_t xTimer)
+/* Task periode 200ms -> Prioritas 1 (terendah) */
+static void vSlowTask(void *pv)
 {
-    ESP_LOGI(TAG, "Timer callback");
+    uint32_t cnt = 0;
+    TaskLog_t lg;
+    TickType_t xLast = xTaskGetTickCount();
+    for (;;) {
+        cnt++;
+        for (volatile int i = 0; i < 2000; i++);
+        strncpy(lg.task_name, "SlowTask", 16);
+        lg.count = cnt; lg.timestamp_us = esp_timer_get_time(); lg.period_ms = 200;
+        xQueueSend(xLogQueue, &lg, 0);
+        vTaskDelayUntil(&xLast, pdMS_TO_TICKS(200));
+    }
+}
+
+/* Monitor: terima log dari queue dan print */
+static void vMonitorTask(void *pv)
+{
+    TaskLog_t lg;
+    for (;;) {
+        if (xQueueReceive(xLogQueue, &lg, portMAX_DELAY) == pdPASS) {
+            xSemaphoreTake(xPrintMutex, portMAX_DELAY);
+            printf("[%10lld us] %-12s | cnt=%5lu | T=%3lu ms\n",
+                   lg.timestamp_us, lg.task_name,
+                   (unsigned long)lg.count, (unsigned long)lg.period_ms);
+            xSemaphoreGive(xPrintMutex);
+        }
+    }
+}
+
+static void vStatusTask(void *pv)
+{
+    for (;;) {
+        xSemaphoreTake(xPrintMutex, portMAX_DELAY);
+        printf("\n=== RMS Status ===\n");
+        printf("Heap free: %lu bytes\n", (unsigned long)esp_get_free_heap_size());
+        printf("Queue    : %lu/20 items\n", (unsigned long)uxQueueMessagesWaiting(xLogQueue));
+        printf("==================\n\n");
+        xSemaphoreGive(xPrintMutex);
+        vTaskDelay(pdMS_TO_TICKS(5000));
+    }
 }
 
 void app_main(void)
 {
-    printf("\n=== Program 20: Rate Monotonic Scheduling (ESP32) ===\n");
-    
-    /* Print chip information */
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
-    printf("Chip: %s\n", CHIP_NAME);
-    printf("Cores: %d\n", chip_info.cores);
-    printf("Free heap: %lu bytes\n", esp_get_free_heap_size());
-    
-    /* Create FreeRTOS objects */
-    queue_handle = xQueueCreate(10, sizeof(uint32_t));
-    semaphore_handle = xSemaphoreCreateBinary();
-    timer_handle = xTimerCreate("Timer", pdMS_TO_TICKS(1000), pdTRUE, NULL, timer_callback);
-    
-    /* Create tasks */
-    xTaskCreate(task_function_1, "Task1", 2048, NULL, 2, NULL);
-    xTaskCreate(task_function_2, "Task2", 2048, NULL, 1, NULL);
-    
-    /* Start timer */
-    if(timer_handle != NULL)
-        xTimerStart(timer_handle, 0);
-    
-    ESP_LOGI(TAG, "FreeRTOS scheduler running");
-    
-    /* Main task continues */
-    while(1)
-    {
-        vTaskDelay(pdMS_TO_TICKS(5000));
-    }
+    printf("\n=========================================================\n");
+    printf("  ESP32_01: Rate Monotonic Scheduling\n");
+    printf("  Modul 10 - FreeRTOS Queue & Semaphore\n");
+    printf("  RMS: periode kecil = prioritas tinggi\n");
+    printf("=========================================================\n\n");
+
+    xLogQueue   = xQueueCreate(20, sizeof(TaskLog_t));
+    xPrintMutex = xSemaphoreCreateMutex();
+    if (!xLogQueue || !xPrintMutex) { ESP_LOGE(TAG, "Alloc fail!"); return; }
+
+    xTaskCreate(vFastTask,    "Fast",    4096, NULL, 5, NULL);
+    xTaskCreate(vMediumTask,  "Medium",  4096, NULL, 3, NULL);
+    xTaskCreate(vSlowTask,    "Slow",    4096, NULL, 1, NULL);
+    xTaskCreate(vMonitorTask, "Monitor", 4096, NULL, 2, NULL);
+    xTaskCreate(vStatusTask,  "Status",  4096, NULL, 1, NULL);
+
+    ESP_LOGI(TAG, "All tasks created.");
 }

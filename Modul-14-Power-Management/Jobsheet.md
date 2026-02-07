@@ -1,7 +1,7 @@
 # Jobsheet Modul 14: Power Management & Low-Power Design
 
 ## 🎯 Tujuan Praktikum
-1. Mahasiswa mampu mengkonfigurasi berbagai mode low-power pada STM32 dan ESP32.
+1. Mahasiswa mampu mengkonfigurasi berbagai mode low-power pada STM32 (HAL) dan ESP32 (ESP-IDF).
 2. Mahasiswa memahami perbedaan konsumsi daya pada setiap sleep mode.
 3. Mahasiswa mampu mengimplementasikan wake-up sources (RTC, EXTI, Timer, Touch).
 4. Mahasiswa dapat mendesain sistem embedded hemat daya dengan teknik duty cycling.
@@ -14,454 +14,336 @@
 - Beberapa mode sleep akan memutus koneksi Serial — amati output sebelum tidur.
 - Pada STM32 Standby mode, SRAM hilang — seperti reset. Jangan simpan data penting di RAM.
 - Pada ESP32 Deep Sleep, WiFi dan Bluetooth harus di-inisialisasi ulang setelah bangun.
+- **ESP32**: Menggunakan framework **ESP-IDF** (bukan Arduino). Entry point adalah `app_main()`.
+- **STM32**: Menggunakan framework **STM32Cube HAL** dengan FreeRTOS. Entry point adalah `main()`.
 
 ---
 
-## 🛠️ Percobaan 1: Basic Sleep Mode
-**Tujuan:** Memahami perbedaan antara mode active dan sleep pada kedua platform.
+## 🛠️ Percobaan 1: ESP32 Deep Sleep dengan Timer Wake-up (ESP-IDF)
+**Tujuan:** Memahami deep sleep dan timer wake-up pada ESP32 menggunakan ESP-IDF API.
 
-### A. ESP32 — Light Sleep & Deep Sleep
-```cpp
-#include <Arduino.h>
+### Kode Program
+```c
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_sleep.h"
+#include "esp_log.h"
+#include "driver/gpio.h"
 
-#define LED_PIN 2
-#define SLEEP_DURATION_US  5000000  // 5 detik
+#define LED_GPIO    GPIO_NUM_2
+#define SLEEP_US    5000000  // 5 detik
 
-RTC_DATA_ATTR int bootCount = 0;
+static const char *TAG = "DEEP_SLEEP";
 
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    bootCount++;
-    Serial.printf("\n=== Boot #%d ===\n", bootCount);
-    Serial.printf("Wake-up cause: %d\n", esp_sleep_get_wakeup_cause());
-    
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, HIGH);
-    delay(1000);
-    digitalWrite(LED_PIN, LOW);
-    
+RTC_DATA_ATTR int boot_count = 0;
+
+void app_main(void)
+{
+    boot_count++;
+    ESP_LOGI(TAG, "=== Boot #%d ===", boot_count);
+
+    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+    switch (cause) {
+        case ESP_SLEEP_WAKEUP_TIMER:
+            ESP_LOGI(TAG, "Wake-up cause: TIMER");
+            break;
+        default:
+            ESP_LOGI(TAG, "Wake-up cause: POWER ON / RESET (%d)", cause);
+            break;
+    }
+
+    // Blink LED
+    gpio_reset_pin(LED_GPIO);
+    gpio_set_direction(LED_GPIO, GPIO_MODE_OUTPUT);
+    gpio_set_level(LED_GPIO, 1);
+    vTaskDelay(pdMS_TO_TICKS(500));
+    gpio_set_level(LED_GPIO, 0);
+
     // Konfigurasi timer wake-up
-    esp_sleep_enable_timer_wakeup(SLEEP_DURATION_US);
-    
-    Serial.println("Entering deep sleep for 5 seconds...");
-    Serial.flush();
-    
-    esp_deep_sleep_start();
-}
+    esp_sleep_enable_timer_wakeup(SLEEP_US);
+    ESP_LOGI(TAG, "Entering deep sleep for %d seconds...", SLEEP_US / 1000000);
 
-void loop() {
-    // Tidak pernah sampai sini pada deep sleep
+    esp_deep_sleep_start();
+    // Tidak pernah sampai sini
 }
 ```
 
-### B. STM32 — Sleep & Stop Mode
+---
+
+## 🛠️ Percobaan 2: STM32 Sleep & Stop Mode (STM32Cube HAL)
+**Tujuan:** Mengkonfigurasi Sleep dan Stop mode pada STM32 menggunakan HAL Power API.
+
+### Kode Program
 ```c
 #include "stm32f1xx_hal.h"
-#include <stdio.h>
+#include "FreeRTOS.h"
+#include "task.h"
 #include <string.h>
+#include <stdio.h>
 
 static UART_HandleTypeDef huart1;
 
+void SystemClock_Config(void);
+void UART_SendString(const char *str);
+
 void UART_SendString(const char *str) {
     HAL_UART_Transmit(&huart1, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
-}
-
-// Konfigurasi RTC Alarm sebagai wake-up source
-void Enter_Stop_Mode(void) {
-    UART_SendString("[PWR] Entering STOP mode...\r\n");
-    HAL_Delay(100);
-    
-    // Suspend SysTick
-    HAL_SuspendTick();
-    
-    // Enter Stop mode, wake via EXTI
-    HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
-    
-    // Setelah bangun, konfigurasi ulang clock
-    SystemClock_Config();
-    HAL_ResumeTick();
-    
-    UART_SendString("[PWR] Woke up from STOP mode!\r\n");
 }
 
 void Enter_Sleep_Mode(void) {
     UART_SendString("[PWR] Entering SLEEP mode...\r\n");
     HAL_Delay(100);
-    
     HAL_SuspendTick();
     HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
     HAL_ResumeTick();
-    
     UART_SendString("[PWR] Woke up from SLEEP mode!\r\n");
 }
+
+void Enter_Stop_Mode(void) {
+    UART_SendString("[PWR] Entering STOP mode...\r\n");
+    HAL_Delay(100);
+    HAL_SuspendTick();
+    HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+    // Setelah wake-up dari STOP, reconfigure system clock
+    SystemClock_Config();
+    HAL_ResumeTick();
+    UART_SendString("[PWR] Woke up from STOP mode!\r\n");
+}
 ```
+*Lihat program lengkap di folder praktikum STM32_01 dan STM32_02.*
 
 ---
 
-## 🛠️ Percobaan 2: Wake-up Sources
-**Tujuan:** Mengkonfigurasi berbagai sumber wake-up untuk membangunkan MCU dari mode sleep.
+## 🛠️ Percobaan 3: ESP32 Multiple Wake-up Sources (ESP-IDF)
+**Tujuan:** Mengkonfigurasi timer + GPIO external wake-up pada ESP32.
 
-### A. ESP32 — Timer + External GPIO Wake-up
-```cpp
-#include <Arduino.h>
+### Kode Program
+```c
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_sleep.h"
+#include "esp_log.h"
+#include "driver/rtc_io.h"
 
-#define WAKEUP_PIN GPIO_NUM_33  // Touch atau button
-#define LED_PIN 2
+#define WAKEUP_GPIO  GPIO_NUM_33
+#define SLEEP_US     10000000  // 10 detik
 
-RTC_DATA_ATTR int bootCount = 0;
+static const char *TAG = "MULTI_WAKE";
+RTC_DATA_ATTR int boot_count = 0;
 
-void print_wakeup_reason() {
-    esp_sleep_wakeup_cause_t reason = esp_sleep_get_wakeup_cause();
-    switch(reason) {
-        case ESP_SLEEP_WAKEUP_EXT0:
-            Serial.println("Wake-up: External signal (ext0)");
-            break;
-        case ESP_SLEEP_WAKEUP_EXT1:
-            Serial.println("Wake-up: External signal (ext1)");
-            break;
+static void print_wakeup_reason(void)
+{
+    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+    switch (cause) {
         case ESP_SLEEP_WAKEUP_TIMER:
-            Serial.println("Wake-up: Timer");
-            break;
+            ESP_LOGI(TAG, "Wake-up: TIMER"); break;
+        case ESP_SLEEP_WAKEUP_EXT0:
+            ESP_LOGI(TAG, "Wake-up: EXT0 (GPIO%d)", WAKEUP_GPIO); break;
         case ESP_SLEEP_WAKEUP_TOUCHPAD:
-            Serial.println("Wake-up: Touchpad");
-            break;
+            ESP_LOGI(TAG, "Wake-up: TOUCHPAD"); break;
         default:
-            Serial.printf("Wake-up: Other (%d)\n", reason);
-            break;
+            ESP_LOGI(TAG, "Wake-up: OTHER (%d)", cause); break;
     }
 }
 
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    bootCount++;
-    Serial.printf("\n=== Boot #%d ===\n", bootCount);
+void app_main(void)
+{
+    boot_count++;
+    ESP_LOGI(TAG, "=== Boot #%d ===", boot_count);
     print_wakeup_reason();
-    
+
     // Konfigurasi multiple wake-up sources
-    esp_sleep_enable_timer_wakeup(10 * 1000000);    // 10 detik timer
-    esp_sleep_enable_ext0_wakeup(WAKEUP_PIN, LOW);  // GPIO LOW trigger
-    
-    Serial.println("Going to deep sleep (wake: timer 10s OR GPIO33 LOW)...");
-    Serial.flush();
-    
+    esp_sleep_enable_timer_wakeup(SLEEP_US);
+    esp_sleep_enable_ext0_wakeup(WAKEUP_GPIO, 0);  // LOW trigger
+
+    ESP_LOGI(TAG, "Going to deep sleep (timer 10s OR GPIO33 LOW)...");
     esp_deep_sleep_start();
 }
-
-void loop() {}
-```
-
-### B. ESP32 — Touch Pad Wake-up
-```cpp
-#include <Arduino.h>
-
-#define TOUCH_PIN T0       // GPIO4
-#define TOUCH_THRESHOLD 40
-#define LED_PIN 2
-
-RTC_DATA_ATTR int bootCount = 0;
-
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    bootCount++;
-    Serial.printf("\n=== Touch Wake-up Boot #%d ===\n", bootCount);
-    
-    if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TOUCHPAD) {
-        Serial.printf("Woke up by touch pad! Pin: %d\n", 
-                      esp_sleep_get_touchpad_wakeup_status());
-    }
-    
-    // Blink LED
-    pinMode(LED_PIN, OUTPUT);
-    for (int i = 0; i < 5; i++) {
-        digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-        delay(200);
-    }
-    
-    // Setup touch wake-up
-    touchAttachInterrupt(TOUCH_PIN, [](){}, TOUCH_THRESHOLD);
-    esp_sleep_enable_touchpad_wakeup();
-    
-    Serial.println("Going to deep sleep... Touch GPIO4 to wake up!");
-    Serial.flush();
-    
-    esp_deep_sleep_start();
-}
-
-void loop() {}
 ```
 
 ---
 
-## 🛠️ Percobaan 3: Clock Gating & Frequency Scaling
-**Tujuan:** Mengoptimalkan konsumsi daya dengan menonaktifkan peripheral clock dan menurunkan frekuensi CPU.
+## 🛠️ Percobaan 4: ESP32 Touch Pad Wake-up (ESP-IDF)
+**Tujuan:** Membangunkan ESP32 dari deep sleep menggunakan sensor kapasitif (touch pad).
 
-### ESP32 — Dynamic Frequency Scaling
-```cpp
-#include <Arduino.h>
+### Kode Program
+```c
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_sleep.h"
+#include "esp_log.h"
+#include "driver/touch_pad.h"
+
+#define TOUCH_PAD_NO    TOUCH_PAD_NUM0  // GPIO4
+#define TOUCH_THRESHOLD 400
+
+static const char *TAG = "TOUCH_WAKE";
+RTC_DATA_ATTR int boot_count = 0;
+
+void app_main(void)
+{
+    boot_count++;
+    ESP_LOGI(TAG, "=== Touch Wake-up Boot #%d ===", boot_count);
+
+    if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TOUCHPAD) {
+        ESP_LOGI(TAG, "Woke up by TOUCH PAD!");
+    }
+
+    // Init touch pad
+    touch_pad_init();
+    touch_pad_config(TOUCH_PAD_NO, TOUCH_THRESHOLD);
+    touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
+    touch_pad_filter_start(10);
+
+    // Enable touch wake-up
+    esp_sleep_enable_touchpad_wakeup();
+
+    ESP_LOGI(TAG, "Touch GPIO4 to wake up! Sleeping...");
+    vTaskDelay(pdMS_TO_TICKS(100));
+    esp_deep_sleep_start();
+}
+```
+
+---
+
+## 🛠️ Percobaan 5: ESP32 Dynamic Frequency Scaling (ESP-IDF)
+**Tujuan:** Mengoptimalkan daya dengan menurunkan frekuensi CPU saat idle.
+
+### Kode Program
+```c
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_pm.h"
-#include "esp_wifi.h"
+#include "esp_log.h"
+#include "esp_timer.h"
+#include "esp_system.h"
 
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    Serial.println("=== Dynamic Frequency Scaling Demo ===");
-    Serial.printf("CPU Frequency: %d MHz\n", getCpuFrequencyMhz());
-    
-    // Test dengan frekuensi berbeda
-    Serial.println("\n--- Test CPU 240MHz ---");
-    setCpuFrequencyMhz(240);
-    unsigned long start = micros();
+static const char *TAG = "DFS";
+
+static void benchmark(const char *label)
+{
+    int64_t start = esp_timer_get_time();
     volatile long sum = 0;
     for (long i = 0; i < 1000000; i++) sum += i;
-    unsigned long elapsed = micros() - start;
-    Serial.printf("1M iterations @ 240MHz: %lu us\n", elapsed);
-    
-    Serial.println("\n--- Test CPU 80MHz ---");
-    setCpuFrequencyMhz(80);
-    start = micros();
-    sum = 0;
-    for (long i = 0; i < 1000000; i++) sum += i;
-    elapsed = micros() - start;
-    Serial.printf("1M iterations @ 80MHz: %lu us\n", elapsed);
-    
-    Serial.println("\n--- Test CPU 10MHz ---");
-    setCpuFrequencyMhz(10);
-    start = micros();
-    sum = 0;
-    for (long i = 0; i < 1000000; i++) sum += i;
-    elapsed = micros() - start;
-    Serial.printf("1M iterations @ 10MHz: %lu us\n", elapsed);
-    
-    // Kembalikan ke 240MHz
-    setCpuFrequencyMhz(240);
-    Serial.println("\nCPU restored to 240MHz");
+    int64_t elapsed = esp_timer_get_time() - start;
+    ESP_LOGI(TAG, "%s: 1M iterations in %lld us", label, elapsed);
 }
 
-void loop() {
-    delay(5000);
-    Serial.printf("Running at %d MHz\n", getCpuFrequencyMhz());
+void app_main(void)
+{
+    ESP_LOGI(TAG, "=== Dynamic Frequency Scaling Demo ===");
+
+    // Benchmark at different frequencies
+    esp_pm_config_esp32_t pm_240 = { .max_freq_mhz = 240, .min_freq_mhz = 240 };
+    esp_pm_configure(&pm_240);
+    vTaskDelay(pdMS_TO_TICKS(100));
+    benchmark("240 MHz");
+
+    esp_pm_config_esp32_t pm_80 = { .max_freq_mhz = 80, .min_freq_mhz = 80 };
+    esp_pm_configure(&pm_80);
+    vTaskDelay(pdMS_TO_TICKS(100));
+    benchmark("80 MHz");
+
+    ESP_LOGI(TAG, "Done. Observe the speed difference!");
 }
 ```
 
 ---
 
-## 🛠️ Percobaan 4: RTC Memory & Data Persistence
-**Tujuan:** Menyimpan data yang bertahan melewati siklus deep sleep.
+## 🛠️ Percobaan 6: ESP32 RTC Memory Data Logger (ESP-IDF)
+**Tujuan:** Menyimpan data yang bertahan melewati siklus deep sleep menggunakan RTC memory.
 
-### ESP32 — RTC Memory Data Logger
-```cpp
-#include <Arduino.h>
+### Kode Program
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_sleep.h"
+#include "esp_log.h"
 
-#define MAX_READINGS 50
-#define SLEEP_SECONDS 10
+#define MAX_READINGS 20
+#define SLEEP_SEC    10
 
-// Data di RTC memory - bertahan selama deep sleep
-RTC_DATA_ATTR int bootCount = 0;
+static const char *TAG = "RTC_LOG";
+
+RTC_DATA_ATTR int boot_count = 0;
 RTC_DATA_ATTR float readings[MAX_READINGS];
-RTC_DATA_ATTR int readingIndex = 0;
+RTC_DATA_ATTR int reading_idx = 0;
 
-float readBatteryVoltage() {
-    // Simulasi pembacaan baterai (gunakan ADC untuk real hardware)
-    return 3.3 + (random(-30, 30) / 100.0);
-}
+void app_main(void)
+{
+    boot_count++;
+    ESP_LOGI(TAG, "=== RTC Logger Boot #%d ===", boot_count);
 
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    bootCount++;
-    Serial.printf("\n=== RTC Memory Logger - Boot #%d ===\n", bootCount);
-    
-    // Baca sensor
-    float voltage = readBatteryVoltage();
-    
-    // Simpan ke RTC memory
-    if (readingIndex < MAX_READINGS) {
-        readings[readingIndex] = voltage;
-        readingIndex++;
+    // Simulasi pembacaan sensor
+    float value = 20.0f + (esp_random() % 200) / 10.0f;
+
+    if (reading_idx < MAX_READINGS) {
+        readings[reading_idx] = value;
+        reading_idx++;
     }
-    
-    Serial.printf("Current reading: %.2f V (stored at index %d)\n", 
-                  voltage, readingIndex - 1);
-    
-    // Tampilkan semua readings yang tersimpan
-    Serial.println("\nStored readings:");
-    for (int i = 0; i < readingIndex; i++) {
-        Serial.printf("  [%02d] %.2f V\n", i, readings[i]);
+    ESP_LOGI(TAG, "Reading: %.1f (index %d)", value, reading_idx - 1);
+
+    // Tampilkan semua data
+    ESP_LOGI(TAG, "--- Stored Data ---");
+    for (int i = 0; i < reading_idx; i++) {
+        printf("  [%02d] %.1f\n", i, readings[i]);
     }
-    
-    // Jika buffer penuh, dump dan reset
-    if (readingIndex >= MAX_READINGS) {
-        Serial.println("\n*** Buffer full! Dumping data... ***");
-        // Di sini bisa kirim data via WiFi atau simpan ke SD card
-        readingIndex = 0;
+
+    if (reading_idx >= MAX_READINGS) {
+        ESP_LOGW(TAG, "Buffer full! Resetting...");
+        reading_idx = 0;
     }
-    
-    // Konfigurasi wake-up timer
-    esp_sleep_enable_timer_wakeup(SLEEP_SECONDS * 1000000ULL);
-    
-    Serial.printf("Sleeping for %d seconds...\n", SLEEP_SECONDS);
-    Serial.flush();
-    
+
+    esp_sleep_enable_timer_wakeup(SLEEP_SEC * 1000000ULL);
+    ESP_LOGI(TAG, "Sleeping for %d seconds...", SLEEP_SEC);
     esp_deep_sleep_start();
 }
-
-void loop() {}
 ```
 
 ---
 
-## 🛠️ Percobaan 5: Battery Monitoring
-**Tujuan:** Membaca tegangan baterai dan mengestimasi sisa kapasitas.
+## 🛠️ Percobaan 7: STM32 Standby Mode + RTC Alarm Wake-up (HAL)
+**Tujuan:** Mode daya terendah STM32 dengan RTC alarm sebagai sumber wake-up. Setelah Standby, MCU melakukan full reset.
 
-### ESP32 — Battery Voltage Monitor
-```cpp
-#include <Arduino.h>
-
-#define BATTERY_ADC_PIN  34   // GPIO34 (ADC1_CH6)
-#define VOLTAGE_DIVIDER_RATIO 2.0  // R1=R2 voltage divider
-#define ADC_RESOLUTION 4095
-#define ADC_VREF 3.3
-
-// Battery lookup table (Li-Ion typical)
-struct BatteryLevel {
-    float voltage;
-    int percentage;
-};
-
-BatteryLevel batteryTable[] = {
-    {4.20, 100}, {4.15, 95}, {4.11, 90}, {4.08, 85},
-    {4.02, 80},  {3.98, 75}, {3.95, 70}, {3.91, 65},
-    {3.87, 60},  {3.85, 55}, {3.84, 50}, {3.82, 45},
-    {3.80, 40},  {3.79, 35}, {3.77, 30}, {3.75, 25},
-    {3.73, 20},  {3.71, 15}, {3.69, 10}, {3.61, 5},
-    {3.27, 0}
-};
-
-int getBatteryPercentage(float voltage) {
-    if (voltage >= 4.20) return 100;
-    if (voltage <= 3.27) return 0;
-    
-    for (int i = 0; i < 20; i++) {
-        if (voltage >= batteryTable[i + 1].voltage) {
-            float range = batteryTable[i].voltage - batteryTable[i + 1].voltage;
-            float diff = voltage - batteryTable[i + 1].voltage;
-            int pctRange = batteryTable[i].percentage - batteryTable[i + 1].percentage;
-            return batteryTable[i + 1].percentage + (int)(diff / range * pctRange);
-        }
-    }
-    return 0;
-}
-
-float readBatteryVoltage() {
-    long sum = 0;
-    for (int i = 0; i < 64; i++) {
-        sum += analogRead(BATTERY_ADC_PIN);
-    }
-    float avgADC = sum / 64.0;
-    float voltage = (avgADC / ADC_RESOLUTION) * ADC_VREF * VOLTAGE_DIVIDER_RATIO;
-    return voltage;
-}
-
-void setup() {
-    Serial.begin(115200);
-    analogSetAttenuation(ADC_11db);
-    
-    Serial.println("=== Battery Monitor ===");
-}
-
-void loop() {
-    float voltage = readBatteryVoltage();
-    int percentage = getBatteryPercentage(voltage);
-    
-    Serial.printf("Battery: %.2fV (%d%%)", voltage, percentage);
-    
-    if (percentage > 75) Serial.println(" [FULL]");
-    else if (percentage > 50) Serial.println(" [GOOD]");
-    else if (percentage > 25) Serial.println(" [LOW]");
-    else if (percentage > 10) Serial.println(" [CRITICAL]");
-    else Serial.println(" [SHUTDOWN IMMINENT!]");
-    
-    // Visualisasi bar
-    Serial.print("[");
-    int bars = percentage / 5;
-    for (int i = 0; i < 20; i++) {
-        Serial.print(i < bars ? "█" : "░");
-    }
-    Serial.printf("] %d%%\n\n", percentage);
-    
-    delay(2000);
-}
-```
+*Lihat program lengkap di folder praktikum STM32_03_Standby_RTC_Wakeup.*
 
 ---
 
-## 🛠️ Percobaan 6: STM32 Standby Mode dengan RTC Wake-up
-**Tujuan:** Mengkonfigurasi mode daya terendah STM32 dengan RTC alarm sebagai wake-up source.
+## 🛠️ Percobaan 8: ESP32 Battery Monitoring (ESP-IDF)
+**Tujuan:** Membaca tegangan baterai via ADC dan mengestimasi sisa kapasitas.
 
-### STM32 — Standby Mode + RTC Alarm
+### Kode Program (Ringkasan)
 ```c
-#include "stm32f1xx_hal.h"
-#include <stdio.h>
-#include <string.h>
+#include "driver/adc.h"
+#include "esp_adc_cal.h"
 
-static UART_HandleTypeDef huart1;
-static RTC_HandleTypeDef hrtc;
+#define BATT_ADC_CH    ADC1_CHANNEL_6   // GPIO34
+#define V_DIV_RATIO    2.0f
 
-void UART_SendString(const char *str) {
-    HAL_UART_Transmit(&huart1, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
-}
+static esp_adc_cal_characteristics_t adc_chars;
 
-void RTC_Config(void) {
-    __HAL_RCC_PWR_CLK_ENABLE();
-    __HAL_RCC_BKP_CLK_ENABLE();
-    HAL_PWR_EnableBkpAccess();
-    
-    hrtc.Instance = RTC;
-    hrtc.Init.AsynchPrediv = RTC_AUTO_1_SECOND;
-    HAL_RTC_Init(&hrtc);
-}
-
-void Enter_Standby_With_RTC_Alarm(uint32_t seconds) {
-    char buf[64];
-    snprintf(buf, sizeof(buf), "[PWR] Standby for %lu seconds...\r\n", seconds);
-    UART_SendString(buf);
-    HAL_Delay(100);
-    
-    // Set RTC Alarm
-    RTC_AlarmTypeDef alarm = {0};
-    RTC_TimeTypeDef time;
-    HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
-    
-    uint32_t totalSec = time.Hours * 3600 + time.Minutes * 60 + time.Seconds + seconds;
-    alarm.AlarmTime.Hours = (totalSec / 3600) % 24;
-    alarm.AlarmTime.Minutes = (totalSec % 3600) / 60;
-    alarm.AlarmTime.Seconds = totalSec % 60;
-    HAL_RTC_SetAlarm_IT(&hrtc, &alarm, RTC_FORMAT_BIN);
-    
-    // Clear wake-up flag
-    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
-    
-    // Enter Standby
-    HAL_PWR_EnterSTANDBYMode();
-    // Tidak akan kembali ke sini - MCU reset setelah wake-up
+float read_battery_voltage(void)
+{
+    uint32_t raw = adc1_get_raw(BATT_ADC_CH);
+    uint32_t mv = esp_adc_cal_raw_to_voltage(raw, &adc_chars);
+    return (mv / 1000.0f) * V_DIV_RATIO;
 }
 ```
+*Lihat program lengkap di folder praktikum ESP32_07_Battery_Monitor.*
 
 ---
 
 ## 📝 Tugas Percobaan
-1. **Ukur** konsumsi daya pada setiap mode sleep (gunakan multimeter jika tersedia, atau amati perilaku LED/Serial).
-2. **Bandingkan** waktu wake-up dari berbagai mode (catat timestamp Serial).
-3. **Implementasikan** duty cycling: baca sensor setiap 30 detik, tidur di antaranya.
-4. **Hitung** estimasi umur baterai untuk skenario: baterai 1000mAh, aktif 2 detik setiap 5 menit.
+1. **Ukur** konsumsi daya pada setiap mode sleep (gunakan multimeter jika tersedia).
+2. **Bandingkan** waktu wake-up dari berbagai mode (catat timestamp via `esp_timer_get_time()` atau `HAL_GetTick()`).
+3. **Implementasikan** duty cycling: baca sensor setiap 30 detik, deep sleep di antaranya.
+4. **Hitung** estimasi umur baterai: baterai 1000mAh, aktif 2 detik setiap 5 menit.
 5. **Kombinasikan** multiple wake-up sources: timer + external button pada ESP32.
 
 ---

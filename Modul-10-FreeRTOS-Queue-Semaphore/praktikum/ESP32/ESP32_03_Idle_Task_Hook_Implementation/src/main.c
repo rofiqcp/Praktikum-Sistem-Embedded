@@ -1,86 +1,92 @@
 /**
- * Program 22: Idle Task Hook
- * Concept: Core functionality demonstration (ESP32)
- * 
- * Learning Points:
- * - FreeRTOS integration with ESP-IDF
- * - ESP32-specific features & capabilities
- * - Hardware initialization
- * - Serial logging
+ * ESP32_03: Idle Task Hook Implementation
+ * ========================================
+ * Modul 10 - FreeRTOS Queue dan Semaphore
+ * Framework: ESP-IDF
+ *
+ * Konsep: Idle hook berjalan saat tidak ada task aktif.
+ *         Digunakan untuk monitoring idle time via Queue.
+ *
+ * Hardware: ESP32 DevKit V1 saja (serial via USB 115200)
  */
-
 #include <stdio.h>
-#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
-#include "freertos/timers.h"
 #include "esp_system.h"
-#include "esp_spi_flash.h"
 #include "esp_log.h"
-#include "driver/uart.h"
-#include "config.h"
+#include "esp_timer.h"
 
-static const char *TAG = "PROG_22";
+static const char *TAG = "IDLE_HOOK";
+static volatile uint32_t idle_counter_core0 = 0;
+static volatile uint32_t idle_counter_core1 = 0;
+static SemaphoreHandle_t xPrintMutex = NULL;
 
-/* FreeRTOS objects */
-QueueHandle_t queue_handle = NULL;
-SemaphoreHandle_t semaphore_handle = NULL;
-TimerHandle_t timer_handle = NULL;
-
-static void task_function_1(void *pvParameters)
+/* Idle hook - called by ESP-IDF idle hook mechanism */
+static bool idle_hook_core0(void)
 {
-    while(1)
-    {
-        ESP_LOGI(TAG, "Task 1 running");
-        vTaskDelay(pdMS_TO_TICKS(500));
+    idle_counter_core0++;
+    return true;
+}
+
+static bool idle_hook_core1(void)
+{
+    idle_counter_core1++;
+    return true;
+}
+
+/* Work task - simulasi beban CPU variabel */
+static void vWorkTask(void *pv)
+{
+    int load_percent = (int)(intptr_t)pv;
+    for (;;) {
+        int64_t start = esp_timer_get_time();
+        while ((esp_timer_get_time() - start) < (load_percent * 100)) {
+            /* busy */
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
-static void task_function_2(void *pvParameters)
+/* Monitor task - track idle rates */
+static void vMonitorTask(void *pv)
 {
-    while(1)
-    {
-        ESP_LOGI(TAG, "Task 2 running");
+    uint32_t last0 = 0, last1 = 0;
+    for (;;) {
+        uint32_t cur0 = idle_counter_core0;
+        uint32_t cur1 = idle_counter_core1;
+        uint32_t d0 = cur0 - last0;
+        uint32_t d1 = cur1 - last1;
+        last0 = cur0; last1 = cur1;
+
+        xSemaphoreTake(xPrintMutex, portMAX_DELAY);
+        printf("[Monitor] Core0 idle: %lu/s | Core1 idle: %lu/s | heap=%lu\n",
+               (unsigned long)d0, (unsigned long)d1,
+               (unsigned long)esp_get_free_heap_size());
+        xSemaphoreGive(xPrintMutex);
+
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
-static void timer_callback(TimerHandle_t xTimer)
-{
-    ESP_LOGI(TAG, "Timer callback");
-}
-
 void app_main(void)
 {
-    printf("\n=== Program 22: Idle Task Hook (ESP32) ===\n");
-    
-    /* Print chip information */
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
-    printf("Chip: %s\n", CHIP_NAME);
-    printf("Cores: %d\n", chip_info.cores);
-    printf("Free heap: %lu bytes\n", esp_get_free_heap_size());
-    
-    /* Create FreeRTOS objects */
-    queue_handle = xQueueCreate(10, sizeof(uint32_t));
-    semaphore_handle = xSemaphoreCreateBinary();
-    timer_handle = xTimerCreate("Timer", pdMS_TO_TICKS(1000), pdTRUE, NULL, timer_callback);
-    
-    /* Create tasks */
-    xTaskCreate(task_function_1, "Task1", 2048, NULL, 2, NULL);
-    xTaskCreate(task_function_2, "Task2", 2048, NULL, 1, NULL);
-    
-    /* Start timer */
-    if(timer_handle != NULL)
-        xTimerStart(timer_handle, 0);
-    
-    ESP_LOGI(TAG, "FreeRTOS scheduler running");
-    
-    /* Main task continues */
-    while(1)
-    {
-        vTaskDelay(pdMS_TO_TICKS(5000));
-    }
+    printf("\n=========================================================\n");
+    printf("  ESP32_03: Idle Task Hook Implementation\n");
+    printf("  Monitor idle cycles & CPU load per core\n");
+    printf("=========================================================\n\n");
+
+    xPrintMutex = xSemaphoreCreateMutex();
+
+    /* Register idle hooks per core */
+    esp_register_freertos_idle_hook_for_cpu(idle_hook_core0, 0);
+    esp_register_freertos_idle_hook_for_cpu(idle_hook_core1, 1);
+
+    /* Work tasks with different loads, pinned to different cores */
+    xTaskCreatePinnedToCore(vWorkTask, "Work30", 4096, (void*)30, 1, NULL, 0);
+    xTaskCreatePinnedToCore(vWorkTask, "Work50", 4096, (void*)50, 1, NULL, 1);
+    xTaskCreate(vMonitorTask, "Monitor", 4096, NULL, 2, NULL);
+
+    ESP_LOGI(TAG, "Idle hooks registered. Tasks created.");
 }

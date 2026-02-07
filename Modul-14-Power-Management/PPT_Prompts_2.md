@@ -8,28 +8,27 @@ Buatkan outline slide presentasi tentang teknik advanced power management dan de
 - **Subjudul**: ULP Co-Processor, Battery Monitoring, dan Solar-Powered Design
 - **Visual**: Diagram sistem solar → baterai → MCU → sensor → cloud.
 
-### Slide 2: ULP Co-Processor (ESP32)
+### Slide 2: ULP Co-Processor (ESP32 / ESP-IDF)
 - **Poin Utama**:
   - Apa itu ULP? Prosesor kecil 8MHz yang berjalan saat main CPU tidur.
   - Kemampuan: Baca ADC, kontrol GPIO, operasi I2C.
   - Konsumsi: ~150µA saat aktif (vs main CPU ~50mA).
-  - Use case: Periodic sensor check tanpa bangunkan main CPU.
-- **Visual**: Diagram blok ESP32 internal, highlight RTC domain (ULP, RTC memory, RTC GPIO).
+  - ESP-IDF API: `ulp_load_binary()`, `ulp_set_wakeup_period()`, `ulp_run()`
+- **Visual**: Diagram blok ESP32 internal, highlight RTC domain.
 
 ### Slide 3: RTC Memory & Data Persistence
 - **Poin Utama**:
-  - **ESP32 RTC Memory**: 8KB yang bertahan di deep sleep.
-  - **STM32 Backup Registers**: 20x16-bit, bertahan selama VBAT ada.
+  - **ESP32**: `RTC_DATA_ATTR` — 8KB yang bertahan di deep sleep.
+  - **STM32**: Backup Registers via `HAL_RTCEx_BKUPWrite()` / `HAL_RTCEx_BKUPRead()`.
   - Penggunaan: Boot counter, sensor readings buffer, state machine.
-  - Keyword: `RTC_DATA_ATTR` (ESP32), Backup Domain (STM32).
-- **Analogi**: RTC memory seperti "catatan kecil di saku" sebelum tidur — masih ada saat bangun.
+- **Analogi**: RTC memory seperti "catatan kecil di saku" sebelum tidur.
 
 ### Slide 4: Battery Monitoring Techniques
 - **Poin Utama**:
   - **Voltage Divider + ADC**: Metode paling umum dan murah.
+  - **ESP-IDF**: `adc1_get_raw()` + `esp_adc_cal_raw_to_voltage()` dengan kalibrasi eFuse.
+  - **STM32 HAL**: `HAL_ADC_Start()` + VREFINT kalibrasi internal.
   - **Lookup Table**: Konversi voltage → percentage berdasarkan kurva discharge Li-Ion.
-  - **Coulomb Counting**: Metode akurat, hitung arus masuk/keluar.
-  - **Kalibrasi**: ESP32 eFuse calibration, STM32 VREFINT.
 - **Visual**: Grafik kurva discharge Li-Ion (voltage vs capacity %).
 
 ### Slide 5: Adaptive Duty Cycling
@@ -54,7 +53,6 @@ Buatkan outline slide presentasi tentang teknik advanced power management dan de
   - Langkah 2: Tentukan duty cycle (berapa lama di setiap state).
   - Langkah 3: Hitung I_avg dan estimasi battery life.
   - Langkah 4: Bandingkan dengan energy input (solar).
-  - Tool: Spreadsheet kalkulator power budget.
 - **Visual**: Tabel power budget dengan contoh angka.
 
 ### Slide 8: Best Practices & Kesimpulan

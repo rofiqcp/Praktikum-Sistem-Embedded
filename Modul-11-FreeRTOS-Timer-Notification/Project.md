@@ -87,8 +87,164 @@ Tombol **Pause** dapat ditekan sewaktu-waktu untuk menghentikan timer sementara 
 3.  **Timer ID**: Jika menggunakan satu timer handle untuk berbagai durasi, gunakan `xTimerChangePeriod()` untuk mengubah durasi sebelum memulai timer untuk tahap berikutnya. Atau, gunakan *Timer ID* (`pvTimerGetTimerID`) jika Anda membuat banyak timer instance.
 
 ## ⛔ Larangan
-- Menggunakan `HAL_Delay()` atau `delay()` (Arduino) yang bersifat blocking di dalam Task utama lebih dari 10ms. Gunakan `vTaskDelay()`.
+- Menggunakan `HAL_Delay()` atau `delay()` yang bersifat blocking di dalam Task utama lebih dari 10ms. Gunakan `vTaskDelay()`.
 - Melakukan `printf` atau operasi String di dalam **ISR** atau **Timer Callback**. Lakukan operasi berat tersebut di Task biasa.
+
+---
+
+## 🏗️ Skeleton Code Reference
+
+### ESP32 (ESP-IDF)
+```c
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/timers.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
+
+static const char *TAG = "MESIN_CUCI";
+
+/* Pin Definitions */
+#define BUTTON_START    GPIO_NUM_0
+#define BUTTON_RESET    GPIO_NUM_4
+#define LED_STATUS      GPIO_NUM_2
+
+/* State Machine */
+typedef enum {
+    STATE_IDLE = 0,
+    STATE_WASH,
+    STATE_RINSE,
+    STATE_SPIN,
+    STATE_PAUSED,
+    STATE_FINISH
+} MachineState_t;
+
+/* Duration per state (ms) */
+#define WASH_DURATION_MS    5000
+#define RINSE_DURATION_MS   3000
+#define SPIN_DURATION_MS    4000
+
+volatile MachineState_t currentState = STATE_IDLE;
+volatile MachineState_t pausedState = STATE_IDLE;
+
+TaskHandle_t xControllerTask = NULL;
+TimerHandle_t xProcessTimer = NULL;
+TimerHandle_t xBlinkTimer = NULL;
+
+/* Notification Bits */
+#define NOTIF_BUTTON_START  (1 << 0)
+#define NOTIF_BUTTON_RESET  (1 << 1)
+#define NOTIF_TIMER_EXPIRE  (1 << 2)
+
+/* ISR Handlers */
+static void IRAM_ATTR startISR(void *arg) {
+    BaseType_t woken = pdFALSE;
+    xTaskNotifyFromISR(xControllerTask, NOTIF_BUTTON_START, eSetBits, &woken);
+    if(woken) portYIELD_FROM_ISR();
+}
+
+static void IRAM_ATTR resetISR(void *arg) {
+    BaseType_t woken = pdFALSE;
+    xTaskNotifyFromISR(xControllerTask, NOTIF_BUTTON_RESET, eSetBits, &woken);
+    if(woken) portYIELD_FROM_ISR();
+}
+
+/* Timer Callbacks */
+void vProcessTimerCallback(TimerHandle_t xTimer) {
+    xTaskNotify(xControllerTask, NOTIF_TIMER_EXPIRE, eSetBits);
+}
+
+/* TODO: Implement ControllerTask, StatusTask, app_main */
+void app_main(void) {
+    // 1. Configure GPIO pins
+    // 2. Create tasks
+    // 3. Create timers
+    // 4. Install ISR service
+    ESP_LOGI(TAG, "Sistem Mesin Cuci Otomatis Ready!");
+}
+```
+
+### STM32 (STM32Cube HAL)
+```c
+#include "main.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "timers.h"
+#include <stdio.h>
+#include <string.h>
+
+/* Pin Definitions - Blue Pill */
+#define LED_PORT        GPIOC
+#define LED_PIN         GPIO_PIN_13     // Active LOW
+#define BTN_START_PORT  GPIOA
+#define BTN_START_PIN   GPIO_PIN_0
+#define BTN_RESET_PORT  GPIOA
+#define BTN_RESET_PIN   GPIO_PIN_1
+
+typedef enum {
+    STATE_IDLE = 0,
+    STATE_WASH,
+    STATE_RINSE,
+    STATE_SPIN,
+    STATE_PAUSED,
+    STATE_FINISH
+} MachineState_t;
+
+volatile MachineState_t currentState = STATE_IDLE;
+
+TaskHandle_t xControllerTask = NULL;
+TimerHandle_t xProcessTimer = NULL;
+
+#define NOTIF_BUTTON_START  (1 << 0)
+#define NOTIF_BUTTON_RESET  (1 << 1)
+#define NOTIF_TIMER_EXPIRE  (1 << 2)
+
+/* EXTI Callback (HAL ISR) */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    BaseType_t woken = pdFALSE;
+    if(GPIO_Pin == BTN_START_PIN) {
+        xTaskNotifyFromISR(xControllerTask, NOTIF_BUTTON_START, eSetBits, &woken);
+    } else if(GPIO_Pin == BTN_RESET_PIN) {
+        xTaskNotifyFromISR(xControllerTask, NOTIF_BUTTON_RESET, eSetBits, &woken);
+    }
+    portYIELD_FROM_ISR(woken);
+}
+
+/* TODO: Implement ControllerTask, StatusTask, main */
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+    // GPIO, UART init...
+    
+    printf("[SISTEM] Mesin Cuci Otomatis Ready!\r\n");
+    
+    // Create tasks and timers
+    // ...
+    
+    vTaskStartScheduler();
+    while(1) {}
+}
+```
+
+---
+
+## 📊 Kriteria Penilaian
+
+| Komponen | Bobot | Kriteria |
+| :--- | :---: | :--- |
+| **State Machine** | 25% | Alur IDLE→WASH→RINSE→SPIN→FINISH berjalan benar dan otomatis |
+| **Software Timer** | 25% | Timer one-shot mengatur durasi tiap tahap, timer auto-reload untuk LED blink |
+| **Task Notification** | 20% | Button ISR mengirim notifikasi dengan benar, tidak ada logic berat di ISR |
+| **Pause/Resume** | 15% | Fitur pause/resume bekerja di semua state, timer di-stop/start dengan benar |
+| **Emergency Stop** | 10% | Reset langsung ke IDLE, semua timer dihentikan, LED mati |
+| **Kode & Dokumentasi** | 5% | Kode rapi, komentar jelas, README/laporan lengkap |
+
+### Penilaian Bonus (+10%)
+- Implementasi debounce menggunakan software timer (bukan delay)
+- Menampilkan countdown timer di serial monitor
+- Dual-platform (ESP32 + STM32) dengan fitur lengkap
+- Menambahkan buzzer notification saat state berubah
 
 ---
 **Selamat Mengerjakan!**

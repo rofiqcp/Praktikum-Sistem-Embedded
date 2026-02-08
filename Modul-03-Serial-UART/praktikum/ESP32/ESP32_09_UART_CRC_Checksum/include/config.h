@@ -19,3 +19,9 @@
 
 /* Buffer Sizes */
 #define MAX_DATA_SIZE       128
+#define MAX_PACKET_SIZE     256
+
+/* Timing */
+#define SEND_INTERVAL_MS    3000    /**< Interval kirim data test (ms) */
+
+#endif /* CONFIG_H */

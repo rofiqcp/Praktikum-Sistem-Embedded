@@ -691,15 +691,19 @@ Karena keterbatasan ruang, program 6-10 STM32 mencakup:
 ## Program 1: Basic Queue ESP32
 
 ### Kode Program
-```cpp
-/* main.cpp - Basic Queue ESP32 */
-#include <Arduino.h>
+```c
+/* main.c - Basic Queue ESP32 */
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
 
-#define LED_SENDER    4
-#define LED_RECEIVER  5
+static const char *TAG = "QUEUE_BASIC";
+
+#define LED_SENDER    GPIO_NUM_4
+#define LED_RECEIVER  GPIO_NUM_5
 
 QueueHandle_t xQueue;
 
@@ -710,10 +714,10 @@ void SenderTask(void *pvParameters) {
         value++;
         
         if(xQueueSend(xQueue, &value, pdMS_TO_TICKS(100)) == pdPASS) {
-            Serial.printf("[Sender@Core%d] Sent: %d\n", xPortGetCoreID(), value);
-            digitalWrite(LED_SENDER, !digitalRead(LED_SENDER));
+            ESP_LOGI(TAG, "[Sender@Core%d] Sent: %ld", xPortGetCoreID(), value);
+            gpio_set_level(LED_SENDER, !gpio_get_level(LED_SENDER));
         } else {
-            Serial.println("[Sender] Queue Full!");
+            ESP_LOGW(TAG, "[Sender] Queue Full!");
         }
         
         vTaskDelay(pdMS_TO_TICKS(500));
@@ -725,31 +729,31 @@ void ReceiverTask(void *pvParameters) {
     
     for(;;) {
         if(xQueueReceive(xQueue, &value, portMAX_DELAY) == pdPASS) {
-            Serial.printf("[Receiver@Core%d] Received: %d\n", xPortGetCoreID(), value);
-            digitalWrite(LED_RECEIVER, !digitalRead(LED_RECEIVER));
+            ESP_LOGI(TAG, "[Receiver@Core%d] Received: %ld", xPortGetCoreID(), value);
+            gpio_set_level(LED_RECEIVER, !gpio_get_level(LED_RECEIVER));
         }
     }
 }
 
 void MonitorTask(void *pvParameters) {
     for(;;) {
-        Serial.println("\n=== Queue Status ===");
-        Serial.printf("Messages: %d\n", uxQueueMessagesWaiting(xQueue));
-        Serial.printf("Spaces: %d\n", uxQueueSpacesAvailable(xQueue));
-        Serial.printf("Free Heap: %d\n", ESP.getFreeHeap());
-        Serial.println("====================\n");
+        ESP_LOGI(TAG, "\n=== Queue Status ===");
+        ESP_LOGI(TAG, "Messages: %d", uxQueueMessagesWaiting(xQueue));
+        ESP_LOGI(TAG, "Spaces: %d", uxQueueSpacesAvailable(xQueue));
+        ESP_LOGI(TAG, "Free Heap: %lu", esp_get_free_heap_size());
+        ESP_LOGI(TAG, "====================\n");
         
         vTaskDelay(pdMS_TO_TICKS(3000));
     }
 }
 
-void setup() {
-    Serial.begin(115200);
+void app_main(void) {
+    gpio_reset_pin(LED_SENDER);
+    gpio_set_direction(LED_SENDER, GPIO_MODE_OUTPUT);
+    gpio_reset_pin(LED_RECEIVER);
+    gpio_set_direction(LED_RECEIVER, GPIO_MODE_OUTPUT);
     
-    pinMode(LED_SENDER, OUTPUT);
-    pinMode(LED_RECEIVER, OUTPUT);
-    
-    Serial.println("\n=== ESP32 Basic Queue Demo ===\n");
+    ESP_LOGI(TAG, "=== ESP32 Basic Queue Demo ===");
     
     xQueue = xQueueCreate(5, sizeof(int32_t));
     
@@ -762,10 +766,6 @@ void setup() {
         xTaskCreatePinnedToCore(MonitorTask, "Monitor", 4096, NULL, 1, NULL, 0);
     }
 }
-
-void loop() {
-    vTaskDelay(portMAX_DELAY);
-}
 ```
 
 ---
@@ -776,12 +776,17 @@ void loop() {
 Memanfaatkan dual-core ESP32 dengan queue communication.
 
 ### Kode Program
-```cpp
-/* main.cpp - Queue Dual-Core ESP32 */
-#include <Arduino.h>
+```c
+/* main.c - Queue Dual-Core ESP32 */
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
+#include "esp_log.h"
+#include "esp_timer.h"
+
+static const char *TAG = "QUEUE_DUALCORE";
 
 typedef struct {
     uint8_t  sourceCore;
@@ -810,7 +815,7 @@ void Core0Task(void *pvParameters) {
     for(;;) {
         msg.sourceCore = 0;
         msg.data = value++;
-        msg.timestamp = millis();
+        msg.timestamp = (uint32_t)(esp_timer_get_time() / 1000);
         
         xQueueSend(xCoreQueue, &msg, pdMS_TO_TICKS(100));
         safePrint("[Core0] Sent: %.1f\n", msg.data);
@@ -827,7 +832,7 @@ void Core1Task(void *pvParameters) {
     for(;;) {
         msg.sourceCore = 1;
         msg.data = value++;
-        msg.timestamp = millis();
+        msg.timestamp = (uint32_t)(esp_timer_get_time() / 1000);
         
         xQueueSend(xCoreQueue, &msg, pdMS_TO_TICKS(100));
         safePrint("[Core1] Sent: %.1f\n", msg.data);
@@ -851,11 +856,10 @@ void ConsumerTask(void *pvParameters) {
     }
 }
 
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
+void app_main(void) {
+    vTaskDelay(pdMS_TO_TICKS(1000));
     
-    Serial.println("\n=== ESP32 Dual-Core Queue Demo ===\n");
+    ESP_LOGI(TAG, "=== ESP32 Dual-Core Queue Demo ===");
     
     xCoreQueue = xQueueCreate(20, sizeof(CoreMessage_t));
     xSerialMutex = xSemaphoreCreateMutex();
@@ -866,49 +870,49 @@ void setup() {
         xTaskCreatePinnedToCore(ConsumerTask, "Consumer", 8192, NULL, 3, NULL, 1);
     }
 }
-
-void loop() {
-    vTaskDelay(portMAX_DELAY);
-}
 ```
 
 ---
 
 ## Program 3: Binary Semaphore dengan Button Interrupt (ESP32)
 
-```cpp
-/* main.cpp - Binary Semaphore ESP32 */
-#include <Arduino.h>
+```c
+/* main.c - Binary Semaphore ESP32 */
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
 
-#define BUTTON_PIN  15
-#define LED_PIN     4
+static const char *TAG = "BINARY_SEM";
+
+#define BUTTON_PIN  GPIO_NUM_15
+#define LED_PIN     GPIO_NUM_4
 
 SemaphoreHandle_t xButtonSemaphore;
 volatile uint32_t pressCount = 0;
 
 // ISR Handler
-void IRAM_ATTR buttonISR() {
+static void IRAM_ATTR buttonISR(void *arg) {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     pressCount++;
     xSemaphoreGiveFromISR(xButtonSemaphore, &xHigherPriorityTaskWoken);
     if(xHigherPriorityTaskWoken) {
-        portYIELD_FROM_ISR();
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
 }
 
 void ButtonHandlerTask(void *pvParameters) {
     for(;;) {
         if(xSemaphoreTake(xButtonSemaphore, portMAX_DELAY) == pdTRUE) {
-            Serial.printf("[Handler] Button pressed #%d!\n", pressCount);
+            ESP_LOGI(TAG, "[Handler] Button pressed #%ld!", pressCount);
             
             // Blink LED
             for(int i = 0; i < 3; i++) {
-                digitalWrite(LED_PIN, HIGH);
+                gpio_set_level(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(100));
-                digitalWrite(LED_PIN, LOW);
+                gpio_set_level(LED_PIN, 0);
                 vTaskDelay(pdMS_TO_TICKS(100));
             }
         }
@@ -917,30 +921,33 @@ void ButtonHandlerTask(void *pvParameters) {
 
 void BackgroundTask(void *pvParameters) {
     for(;;) {
-        Serial.println("[Background] Running...");
+        ESP_LOGI(TAG, "[Background] Running...");
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
-void setup() {
-    Serial.begin(115200);
+void app_main(void) {
+    // Configure button pin
+    gpio_reset_pin(BUTTON_PIN);
+    gpio_set_direction(BUTTON_PIN, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(BUTTON_PIN, GPIO_PULLUP_ONLY);
+    gpio_set_intr_type(BUTTON_PIN, GPIO_INTR_NEGEDGE);
     
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
-    pinMode(LED_PIN, OUTPUT);
+    // Configure LED pin
+    gpio_reset_pin(LED_PIN);
+    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
     
     xButtonSemaphore = xSemaphoreCreateBinary();
     
-    attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonISR, FALLING);
+    // Install GPIO ISR service and add handler
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(BUTTON_PIN, buttonISR, NULL);
     
     xTaskCreate(ButtonHandlerTask, "BtnHandler", 4096, NULL, 3, NULL);
     xTaskCreate(BackgroundTask, "Background", 2048, NULL, 1, NULL);
     
-    Serial.println("=== Binary Semaphore Demo ===");
-    Serial.println("Press button to trigger handler");
-}
-
-void loop() {
-    vTaskDelay(portMAX_DELAY);
+    ESP_LOGI(TAG, "=== Binary Semaphore Demo ===");
+    ESP_LOGI(TAG, "Press button to trigger handler");
 }
 ```
 

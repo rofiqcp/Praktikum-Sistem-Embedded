@@ -149,7 +149,7 @@ static void history_recall(void)
  */
 static void process_command(const char *cmd)
 {
-    ESP_LOGI(TAG, "Command diterima: \"%s\" (len=%d)", cmd, strlen(cmd));
+    ESP_LOGI(TAG, "Command diterima: \"%s\" (len=%d)", cmd, (int)strlen(cmd));
 
     if (strcmp(cmd, "help") == 0) {
         uart_send_str("\r\n--- Bantuan ---\r\n");
@@ -160,7 +160,7 @@ static void process_command(const char *cmd)
     } else if (strcmp(cmd, "history") == 0) {
         uart_send_str("\r\n--- Command History ---\r\n");
         for (int i = 0; i < history_count; i++) {
-            char buf[MAX_LINE_LEN + 16];
+            char buf[MAX_LINE_LEN + 32];
             snprintf(buf, sizeof(buf), "  [%d] %s\r\n", i, history[i]);
             uart_send_str(buf);
         }
@@ -168,7 +168,7 @@ static void process_command(const char *cmd)
         uart_send_str("\033[2J\033[H");
     } else if (strcmp(cmd, "info") == 0) {
         uart_send_str("\r\nESP32 UART Line Editor\r\n");
-        char buf[64];
+        char buf[80];
         snprintf(buf, sizeof(buf), "  Max line length : %d\r\n", MAX_LINE_LEN);
         uart_send_str(buf);
         snprintf(buf, sizeof(buf), "  History size    : %d\r\n", HISTORY_SIZE);

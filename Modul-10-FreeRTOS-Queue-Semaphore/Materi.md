@@ -1062,12 +1062,15 @@ int main(void)
 
 ### 6.1 ESP32 dengan Dual-Core Queue
 
-```cpp
-#include <Arduino.h>
+```c
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
+#include "esp_log.h"
+
+static const char *TAG = "DUAL_CORE";
 
 // Queue handles
 QueueHandle_t xSensorQueue;
@@ -1172,9 +1175,7 @@ void MonitorTask(void *pvParameters) {
     }
 }
 
-void setup() {
-    Serial.begin(115200);
-    
+void app_main(void) {
     // Create queues
     xSensorQueue = xQueueCreate(20, sizeof(SensorReading_t));
     xDisplayQueue = xQueueCreate(10, sizeof(SensorReading_t));
@@ -1198,11 +1199,7 @@ void setup() {
     // Create monitor task
     xTaskCreatePinnedToCore(MonitorTask, "Monitor", 4096, NULL, 1, NULL, 0);
     
-    Serial.println("System started!");
-}
-
-void loop() {
-    vTaskDelay(portMAX_DELAY);  // Arduino loop tidak digunakan
+    ESP_LOGI(TAG, "System started!");
 }
 ```
 
@@ -1217,7 +1214,7 @@ QueueSetHandle_t xQueueSet;
 QueueHandle_t xQueue1, xQueue2;
 SemaphoreHandle_t xSemaphore;
 
-void setup() {
+void app_main(void) {
     // Create queue set yang bisa hold 20 items total
     xQueueSet = xQueueCreateSet(20);
     

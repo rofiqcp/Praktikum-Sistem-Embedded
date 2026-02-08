@@ -672,71 +672,76 @@ int main(void)
 
 ### 7.1 Software Timer ESP32
 
-```cpp
-/* main.cpp - Software Timer ESP32 */
-#include <Arduino.h>
+```c
+/* main.c - Software Timer ESP32 (ESP-IDF) */
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
+#include "driver/gpio.h"
+#include "driver/uart.h"
+#include "esp_log.h"
+#include "esp_timer.h"
 
-#define LED_PIN   4
+static const char *TAG = "SW_TIMER";
+
+#define LED_PIN   GPIO_NUM_4
 
 TimerHandle_t xLedTimer;
 TimerHandle_t xOneShotTimer;
 
 // Periodic timer callback
 void vLedTimerCallback(TimerHandle_t xTimer) {
-    static bool ledState = false;
+    static int ledState = 0;
     ledState = !ledState;
-    digitalWrite(LED_PIN, ledState);
-    Serial.printf("[Timer@%lu] LED %s\n", millis(), ledState ? "ON" : "OFF");
+    gpio_set_level(LED_PIN, ledState);
+    printf("[Timer@%lld] LED %s\n", esp_timer_get_time()/1000, ledState ? "ON" : "OFF");
 }
 
 // One-shot timer callback
 void vOneShotCallback(TimerHandle_t xTimer) {
-    Serial.println("[OneShot] Timer expired!");
+    printf("[OneShot] Timer expired!\n");
     
     // Do something once
     for(int i = 0; i < 5; i++) {
-        digitalWrite(LED_PIN, HIGH);
+        gpio_set_level(LED_PIN, 1);
         vTaskDelay(pdMS_TO_TICKS(50));
-        digitalWrite(LED_PIN, LOW);
+        gpio_set_level(LED_PIN, 0);
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
 
 // Control task
 void ControlTask(void *pvParameters) {
+    uint8_t cmd;
     for(;;) {
-        if(Serial.available()) {
-            char cmd = Serial.read();
-            
-            switch(cmd) {
+        if(uart_read_bytes(UART_NUM_0, &cmd, 1, pdMS_TO_TICKS(10)) > 0) {
+            switch((char)cmd) {
                 case '1':
                     xTimerStart(xLedTimer, pdMS_TO_TICKS(100));
-                    Serial.println("Periodic timer started");
+                    printf("Periodic timer started\n");
                     break;
                     
                 case '2':
                     xTimerStop(xLedTimer, pdMS_TO_TICKS(100));
-                    Serial.println("Periodic timer stopped");
+                    printf("Periodic timer stopped\n");
                     break;
                     
                 case '3':
                     xTimerStart(xOneShotTimer, pdMS_TO_TICKS(100));
-                    Serial.println("One-shot timer started (3s)");
+                    printf("One-shot timer started (3s)\n");
                     break;
                     
                 case 'f':
                     xTimerChangePeriod(xLedTimer, pdMS_TO_TICKS(100), 
                                        pdMS_TO_TICKS(100));
-                    Serial.println("Fast: 100ms period");
+                    printf("Fast: 100ms period\n");
                     break;
                     
                 case 's':
                     xTimerChangePeriod(xLedTimer, pdMS_TO_TICKS(1000), 
                                        pdMS_TO_TICKS(100));
-                    Serial.println("Slow: 1000ms period");
+                    printf("Slow: 1000ms period\n");
                     break;
             }
         }
@@ -744,13 +749,13 @@ void ControlTask(void *pvParameters) {
     }
 }
 
-void setup() {
-    Serial.begin(115200);
-    pinMode(LED_PIN, OUTPUT);
+void app_main(void) {
+    gpio_reset_pin(LED_PIN);
+    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
     
-    Serial.println("\n=== ESP32 Software Timer Demo ===");
-    Serial.println("Commands: 1=start periodic, 2=stop, 3=one-shot");
-    Serial.println("         f=fast, s=slow\n");
+    printf("\n=== ESP32 Software Timer Demo ===\n");
+    printf("Commands: 1=start periodic, 2=stop, 3=one-shot\n");
+    printf("         f=fast, s=slow\n\n");
     
     // Create periodic timer
     xLedTimer = xTimerCreate(
@@ -772,22 +777,24 @@ void setup() {
     
     xTaskCreate(ControlTask, "Control", 4096, NULL, 2, NULL);
 }
-
-void loop() {
-    vTaskDelay(portMAX_DELAY);
-}
 ```
 
 ### 7.2 Task Notification ESP32
 
-```cpp
-/* main.cpp - Task Notification ESP32 */
-#include <Arduino.h>
+```c
+/* main.c - Task Notification ESP32 (ESP-IDF) */
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/timers.h"
+#include "driver/gpio.h"
+#include "driver/uart.h"
+#include "esp_log.h"
 
-#define BUTTON_PIN  15
-#define LED_PIN     4
+static const char *TAG = "TASK_NOTIF";
+
+#define BUTTON_PIN  GPIO_NUM_15
+#define LED_PIN     GPIO_NUM_4
 
 // Event bits
 #define EVENT_BUTTON  (1 << 0)
@@ -798,7 +805,7 @@ TaskHandle_t xHandlerTask = NULL;
 TimerHandle_t xPeriodicTimer;
 
 // Button ISR
-void IRAM_ATTR buttonISR() {
+static void IRAM_ATTR buttonISR(void *arg) {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     xTaskNotifyFromISR(xHandlerTask, EVENT_BUTTON, eSetBits, 
                        &xHigherPriorityTaskWoken);
@@ -825,21 +832,21 @@ void HandlerTask(void *pvParameters) {
             
             if(notification & EVENT_BUTTON) {
                 buttonCount++;
-                Serial.printf("[Handler] Button event! Count: %lu\n", buttonCount);
+                printf("[Handler] Button event! Count: %lu\n", buttonCount);
                 
                 // Blink LED
-                digitalWrite(LED_PIN, HIGH);
+                gpio_set_level(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(100));
-                digitalWrite(LED_PIN, LOW);
+                gpio_set_level(LED_PIN, 0);
             }
             
             if(notification & EVENT_TIMER) {
                 timerCount++;
-                Serial.printf("[Handler] Timer event! Count: %lu\n", timerCount);
+                printf("[Handler] Timer event! Count: %lu\n", timerCount);
             }
             
             if(notification & EVENT_SERIAL) {
-                Serial.println("[Handler] Serial event!");
+                printf("[Handler] Serial event!\n");
             }
         }
     }
@@ -847,10 +854,10 @@ void HandlerTask(void *pvParameters) {
 
 // Serial monitor task
 void SerialTask(void *pvParameters) {
+    uint8_t cmd;
     for(;;) {
-        if(Serial.available()) {
-            char cmd = Serial.read();
-            if(cmd == 's') {
+        if(uart_read_bytes(UART_NUM_0, &cmd, 1, pdMS_TO_TICKS(10)) > 0) {
+            if((char)cmd == 's') {
                 xTaskNotify(xHandlerTask, EVENT_SERIAL, eSetBits);
             }
         }
@@ -858,13 +865,17 @@ void SerialTask(void *pvParameters) {
     }
 }
 
-void setup() {
-    Serial.begin(115200);
+void app_main(void) {
+    // Configure GPIO
+    gpio_reset_pin(BUTTON_PIN);
+    gpio_set_direction(BUTTON_PIN, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(BUTTON_PIN, GPIO_PULLUP_ONLY);
+    gpio_set_intr_type(BUTTON_PIN, GPIO_INTR_NEGEDGE);
     
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
-    pinMode(LED_PIN, OUTPUT);
+    gpio_reset_pin(LED_PIN);
+    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
     
-    Serial.println("\n=== ESP32 Task Notification Demo ===\n");
+    printf("\n=== ESP32 Task Notification Demo ===\n\n");
     
     // Create handler task first
     xTaskCreate(HandlerTask, "Handler", 4096, NULL, 3, &xHandlerTask);
@@ -872,19 +883,16 @@ void setup() {
     // Create serial task
     xTaskCreate(SerialTask, "Serial", 2048, NULL, 1, NULL);
     
-    // Attach button interrupt
-    attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonISR, FALLING);
+    // Install GPIO ISR service and add handler
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(BUTTON_PIN, buttonISR, NULL);
     
     // Create periodic timer
     xPeriodicTimer = xTimerCreate("Periodic", pdMS_TO_TICKS(5000), 
                                    pdTRUE, NULL, vTimerCallback);
     xTimerStart(xPeriodicTimer, 0);
     
-    Serial.println("Press button or send 's' via serial\n");
-}
-
-void loop() {
-    vTaskDelay(portMAX_DELAY);
+    printf("Press button or send 's' via serial\n\n");
 }
 ```
 

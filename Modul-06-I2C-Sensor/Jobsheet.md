@@ -838,7 +838,58 @@ print("Scan complete.")
 
 ---
 
-## 8. Referensi
+## 8. Percobaan Spesial — Fitur Unik Platform
+
+### ⚡ Percobaan 13 ESP32: I2C GPIO Matrix Pin Remapping
+
+**Folder:** `praktikum/ESP32/ESP32_13_I2C_GPIO_Matrix/`
+
+**Fitur Unik ESP32** yang tidak dimiliki STM32:
+
+1. **GPIO Matrix** — ESP32 dapat meng-assign sinyal I2C (SDA/SCL) ke hampir semua pin GPIO melalui GPIO Matrix. STM32 terbatas pada pin alternate function tertentu (misalnya I2C1 hanya PB6/PB7 pada F103).
+
+2. **Runtime Pin Remapping** — I2C bus dapat di-delete dan di-recreate pada pin berbeda tanpa reboot:
+   ```
+   i2c_del_master_bus(bus_handle);  // hapus bus lama
+   // ubah pin SDA/SCL di config
+   i2c_new_master_bus(&new_config, &bus_handle);  // buat bus baru
+   ```
+
+3. **Dual Bus Simultan** — Menggunakan I2C_NUM_0 dan I2C_NUM_1 secara bersamaan pada pin berbeda untuk 2 bus I2C independen.
+
+**4 Demo yang tersedia:**
+- Demo 1: I2C scanner pada 3 pasang pin berbeda
+- Demo 2: Runtime pin remapping (tanpa reboot)
+- Demo 3: Dual bus simultaneous operation
+- Demo 4: Tabel perbandingan ESP32 vs STM32 pin flexibility
+
+---
+
+### ⚡ Percobaan 13 STM32: I2C DMA Transfer
+
+**Folder:** `praktikum/STM32/STM32_13_I2C_DMA_Transfer/`
+
+**Fitur Unik STM32** yang tidak dimiliki ESP32:
+
+1. **Hardware DMA untuk I2C** — STM32 memiliki DMA (Direct Memory Access) yang dapat mentransfer data I2C tanpa melibatkan CPU sama sekali:
+   - `HAL_I2C_Mem_Write_DMA()` — tulis ke device via DMA
+   - `HAL_I2C_Mem_Read_DMA()` — baca dari device via DMA
+   - ESP32 I2C tidak memiliki mode DMA
+
+2. **CPU Freedom** — Selama DMA transfer berlangsung, CPU bebas melakukan pekerjaan lain. Demo menghitung bilangan prima sambil DMA mentransfer data 256 byte.
+
+3. **Transfer Mode Benchmark** — Membandingkan 3 mode transfer:
+   | Mode | CPU Usage | Kecepatan |
+   |------|-----------|-----------|
+   | Polling | 100% | Baseline |
+   | Interrupt | Rendah | ~Sama |
+   | DMA | ~0% | Tercepat |
+
+4. **HAL_I2C_IsDeviceReady()** — Fungsi convenience bawaan STM32 untuk deteksi device (ESP32 harus probe manual).
+
+---
+
+## 9. Referensi
 
 1. NXP I2C-bus Specification and User Manual (UM10204)
 2. ESP32 Technical Reference Manual — I2C Controller chapter

@@ -340,13 +340,13 @@ Judul: "Tips Implementasi ESP32"
    
    void safePrint(const char* msg) {
        xSemaphoreTake(xSerialMutex, portMAX_DELAY);
-       Serial.println(msg);
+       printf("%s\n", msg);
        xSemaphoreGive(xSerialMutex);
    }
 
 3. Heap monitoring:
-   Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
-   Serial.printf("Min free: %d\n", ESP.getMinFreeHeap());
+   printf("Free heap: %lu\n", esp_get_free_heap_size());
+   printf("Min free: %lu\n", esp_get_minimum_free_heap_size());
 
 4. ISR dalam IRAM:
    void IRAM_ATTR buttonISR() { ... }

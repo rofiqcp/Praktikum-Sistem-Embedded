@@ -714,7 +714,53 @@ plt.show()
 
 ---
 
-## 8. Referensi
+## 8. Percobaan Spesial — Fitur Unik Platform
+
+### ⚡ Percobaan 13 ESP32: PWM LEDC Hardware Fade
+
+**Folder:** `praktikum/ESP32/ESP32_13_PWM_LEDC_Fade/`
+
+**Fitur Unik ESP32** yang tidak dimiliki STM32:
+
+1. **LEDC Hardware Fade** — Peripheral LEDC ESP32 memiliki fitur fade bawaan yang dapat mengubah duty cycle LED secara otomatis tanpa campur tangan CPU:
+   - `ledc_set_fade_with_time()` — set durasi fade dalam milidetik
+   - `ledc_fade_start(LEDC_FADE_NO_WAIT)` — mulai fade tanpa blocking
+   - `ledc_fade_start(LEDC_FADE_WAIT_DONE)` — tunggu sampai fade selesai
+   - STM32 harus menggunakan software timer + update register secara manual
+
+2. **GPIO Matrix Flexibility** — ESP32 dapat assign output LEDC ke GPIO manapun melalui GPIO Matrix. STM32 PWM terikat pada pin alternate function tertentu.
+
+3. **CPU Load Comparison** — Demo membandingkan software fade (CPU sibuk update duty) vs hardware fade (CPU bebas, 0% overhead).
+
+**5 Demo yang tersedia:**
+- Demo 1: Linear fade on/off
+- Demo 2: Breathing effect (inhale/exhale)
+- Demo 3: Cascading 3-channel fade (parallel hardware)
+- Demo 4: Software vs hardware CPU usage comparison
+- Demo 5: GPIO matrix — LEDC output di berbagai pin
+
+---
+
+### ⚡ Percobaan 13 STM32: DAC Hardware Waveform Generator
+
+**Folder:** `praktikum/STM32/STM32_13_DAC_Hardware_Waveform/`
+
+**Fitur Unik STM32** yang tidak dimiliki ESP32:
+
+1. **Hardware Triangle Wave Generator** — STM32 DAC dapat menghasilkan gelombang segitiga murni di hardware menggunakan `HAL_DACEx_TriangleWaveGenerate()`:
+   - 0% CPU overhead — waveform dihasilkan otomatis oleh hardware DAC
+   - Amplitude dapat dipilih: `DAC_TRIANGLEAMPLITUDE_1` sampai `DAC_TRIANGLEAMPLITUDE_4095`
+   - ESP32 harus menggunakan software + timer untuk gelombang serupa
+
+2. **Hardware Noise Generator (LFSR)** — `HAL_DACEx_NoiseWaveGenerate()` menghasilkan noise pseudo-random menggunakan Linear Feedback Shift Register bawaan DAC.
+
+3. **Timer-Triggered DAC** — Output DAC dapat dipicu otomatis oleh timer (TIM6) untuk frekuensi terkontrol.
+
+> **Catatan:** F103 tidak memiliki DAC — program ini menggunakan PWM fallback dengan software waveform. Untuk demo penuh gunakan F401/F411.
+
+---
+
+## 9. Referensi
 
 1. ESP32 Technical Reference Manual — DAC & LEDC Controller chapters
 2. STM32F4 Reference Manual (RM0090) — DAC & Timer chapters

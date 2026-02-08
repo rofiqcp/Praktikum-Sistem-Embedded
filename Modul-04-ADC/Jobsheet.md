@@ -13,7 +13,7 @@
 Setelah menyelesaikan praktikum ini, mahasiswa diharapkan mampu:
 
 1. **Memahami prinsip kerja ADC** — Menjelaskan proses konversi analog ke digital meliputi tahapan sampling, kuantisasi, dan encoding serta parameter penting seperti resolusi, atenuasi, dan referensi tegangan.
-2. **Mengkonfigurasi dan membaca ADC pada ESP32 dan STM32** — Menggunakan API ESP-IDF (`adc1_get_raw()`, `esp_adc_cal`) dan HAL STM32 (`HAL_ADC_Start()`, `HAL_ADC_GetValue()`) untuk membaca nilai analog dari sensor dan potensiometer.
+2. **Mengkonfigurasi dan membaca ADC pada ESP32 dan STM32** — Menggunakan API ESP-IDF v5.x (`adc_oneshot_read()`, `adc_cali_raw_to_voltage()`) dan HAL STM32 (`HAL_ADC_Start()`, `HAL_ADC_GetValue()`) untuk membaca nilai analog dari sensor dan potensiometer.
 3. **Menerapkan teknik pemrosesan sinyal ADC** — Mengimplementasikan filter moving average, kalibrasi ADC, pembacaan multi-channel, dan analisis statistik untuk meningkatkan akurasi dan keandalan hasil pembacaan ADC.
 4. **Merancang sistem monitoring berbasis ADC** — Membangun aplikasi monitoring tegangan baterai, sensor cahaya (LDR), sensor suhu internal, dan sistem peringatan berbasis ambang batas (threshold alert) menggunakan ADC.
 5. **Menganalisis performa ADC** — Mengukur kecepatan sampling, mengevaluasi linearitas, menghitung SNR (Signal-to-Noise Ratio), dan menggunakan mode continuous DMA untuk akuisisi data berkecepatan tinggi.
@@ -128,7 +128,7 @@ Catat dalam tabel berikut:
 
 1. Berapa rentang nilai raw ADC yang Anda amati? Apakah sesuai dengan resolusi 12-bit (0–4095)?
 2. Apakah nilai ADC berubah linear terhadap posisi potensiometer? Jelaskan!
-3. Apa fungsi `adc1_config_width()` dan `adc1_config_channel_atten()` pada ESP32?
+3. Apa fungsi `adc_oneshot_new_unit()` dan `adc_oneshot_config_channel()` pada ESP32?
 
 ---
 
@@ -172,7 +172,7 @@ Catat dalam tabel berikut:
 
 1. Berapa rata-rata error konversi ADC terhadap pembacaan multimeter?
 2. Pada rentang tegangan berapa error paling besar? Mengapa demikian?
-3. Apa perbedaan pendekatan konversi tegangan antara ESP32 (menggunakan `esp_adc_cal`) dan STM32 (rumus manual)?
+3. Apa perbedaan pendekatan konversi tegangan antara ESP32 (menggunakan `adc_cali_raw_to_voltage()`) dan STM32 (rumus manual)?
 
 ---
 
@@ -288,7 +288,7 @@ Catat dalam tabel berikut:
 
 1. Gunakan rangkaian potensiometer yang sama.
 2. Buka project `ESP32_05_ADC_Calibration` atau `STM32_05_ADC_Calibration`.
-3. Pada kode ESP32, perhatikan penggunaan `esp_adc_cal_characterize()` dan `esp_adc_cal_raw_to_voltage()`.
+3. Pada kode ESP32, perhatikan penggunaan `adc_cali_create_scheme_curve_fitting()` dan `adc_cali_raw_to_voltage()`.
 4. Compile, upload, dan buka Serial Monitor.
 5. Amati output yang menampilkan: nilai raw, tegangan tanpa kalibrasi, dan tegangan setelah kalibrasi.
 6. Atur potensiometer ke beberapa posisi tetap — gunakan multimeter sebagai referensi.
@@ -480,7 +480,7 @@ Catat dalam tabel berikut:
 
 | Platform | Keterangan |
 |----------|------------|
-| ESP32 | Menggunakan API `temp_sensor` (ESP32-S2/S3) atau `esp_adc_cal` (ESP32 original) |
+| ESP32 | Menggunakan API `temperature_sensor` (ESP32-S2/S3) atau `adc_cali` (ESP32 original) |
 | STM32 | Membaca ADC channel 16 (internal temperature sensor) |
 
 #### Langkah Kerja
@@ -825,6 +825,49 @@ Setiap project percobaan menyertakan script Python `debug_analysis.py` di dalam 
 | CH9 | PB1 | Analog input |
 | CH16 | Internal | Sensor suhu |
 | CH17 | Internal | Vrefint (1.2V) |
+
+---
+
+## 10. Percobaan Spesial — Fitur Unik Platform
+
+### ⚡ Percobaan 13 ESP32: ADC Attenuation & WiFi Conflict
+
+**Folder:** `praktikum/ESP32/ESP32_13_ADC_Attenuation_WiFi/`
+
+**Fitur Unik ESP32** yang tidak dimiliki STM32:
+
+1. **Programmable Input Attenuation** — ESP32 memiliki 4 level atenuasi yang mengatur rentang tegangan input ADC:
+   - `ADC_ATTEN_DB_0` → 0–750 mV
+   - `ADC_ATTEN_DB_2_5` → 0–1050 mV
+   - `ADC_ATTEN_DB_6` → 0–1300 mV
+   - `ADC_ATTEN_DB_12` → 0–3100 mV
+   - STM32 hanya memiliki rentang tetap 0–3.3V
+
+2. **ADC2 + WiFi Conflict** — Pada ESP32 klasik, ADC2 tidak dapat digunakan bersamaan dengan WiFi karena berbagi hardware. Percobaan ini membuktikan:
+   - ADC1 tetap berfungsi saat WiFi aktif ✅
+   - ADC2 gagal (return error) saat WiFi aktif ❌
+   - ADC2 kembali normal setelah WiFi dimatikan ✅
+
+**Yang dipelajari:** Pemilihan atenuasi optimal, pemahaman arsitektur ADC ESP32, debugging konflik WiFi+ADC.
+
+---
+
+### ⚡ Percobaan 13 STM32: Hardware Analog Watchdog
+
+**Folder:** `praktikum/STM32/STM32_13_ADC_Analog_Watchdog/`
+
+**Fitur Unik STM32** yang tidak dimiliki ESP32:
+
+1. **Hardware Analog Watchdog (AWD)** — STM32 memiliki monitor hardware khusus yang mengawasi nilai ADC dan memicu interrupt secara otomatis saat nilai keluar dari ambang batas (window mode).
+   - Threshold High: 3000 (dari 4095)
+   - Threshold Low: 1000 (dari 4095)
+   - ESP32 harus menggunakan software polling (kurang efisien, latency lebih tinggi)
+
+2. **Zero CPU Overhead** — AWD berjalan sepenuhnya di hardware, CPU hanya terlibat saat interrupt terjadi.
+
+3. **HAL_ADC_LevelOutOfWindowCallback()** — Callback otomatis saat nilai ADC keluar dari jendela threshold.
+
+**Yang dipelajari:** Konfigurasi Analog Watchdog, interrupt ADC hardware, perbandingan respons hardware vs software monitoring.
 
 ---
 

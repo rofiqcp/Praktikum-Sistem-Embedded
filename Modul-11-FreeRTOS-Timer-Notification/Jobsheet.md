@@ -941,23 +941,27 @@ Mengimplementasikan debounce menggunakan software timer.
 [env:esp32dev]
 platform = espressif32
 board = esp32dev
-framework = arduino
+framework = espidf
 monitor_speed = 115200
 ```
 
 ### Program 5: Button Debounce dengan Timer
 
-```cpp
+```c
 /* Percobaan 5: Debounce Timer Pattern ESP32
- * File: src/main.cpp
+ * File: src/main.c
  */
-#include <Arduino.h>
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
 
-#define BUTTON_PIN      15
-#define LED_PIN         4
+static const char *TAG = "DEBOUNCE";
+
+#define BUTTON_PIN      GPIO_NUM_15
+#define LED_PIN         GPIO_NUM_4
 #define DEBOUNCE_MS     50
 
 TimerHandle_t xDebounceTimer;
@@ -970,15 +974,15 @@ void vDebounceCallback(TimerHandle_t xTimer) {
     // Timer expired without retriggering = stable input
     
     // Read actual button state
-    if(digitalRead(BUTTON_PIN) == LOW) {
+    if(gpio_get_level(BUTTON_PIN) == 0) {
         confirmedPressCount++;
         buttonPressConfirmed = true;
-        Serial.printf("[Debounce] Button CONFIRMED! (#%lu)\n", confirmedPressCount);
+        printf("[Debounce] Button CONFIRMED! (#%lu)\n", confirmedPressCount);
     }
 }
 
 /* Button ISR */
-void IRAM_ATTR buttonISR() {
+static void IRAM_ATTR buttonISR(void *arg) {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     rawPressCount++;
     
@@ -997,10 +1001,11 @@ void LedTask(void *pvParameters) {
             buttonPressConfirmed = false;
             
             // Toggle LED
-            digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+            static int ledState = 0;
+            ledState = !ledState;
+            gpio_set_level(LED_PIN, ledState);
             
-            Serial.printf("[LED] Toggled! State: %s\n", 
-                         digitalRead(LED_PIN) ? "ON" : "OFF");
+            printf("[LED] Toggled! State: %s\n", ledState ? "ON" : "OFF");
         }
         
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -1014,14 +1019,14 @@ void StatsTask(void *pvParameters) {
     
     for(;;) {
         if(rawPressCount != lastRaw || confirmedPressCount != lastConfirmed) {
-            Serial.println("\n=== Debounce Statistics ===");
-            Serial.printf("Raw ISR triggers:     %lu\n", rawPressCount);
-            Serial.printf("Confirmed presses:    %lu\n", confirmedPressCount);
-            Serial.printf("Noise filtered:       %lu (%.1f%%)\n",
+            printf("\n=== Debounce Statistics ===\n");
+            printf("Raw ISR triggers:     %lu\n", rawPressCount);
+            printf("Confirmed presses:    %lu\n", confirmedPressCount);
+            printf("Noise filtered:       %lu (%.1f%%)\n",
                          rawPressCount - confirmedPressCount,
                          rawPressCount > 0 ? 
                          100.0f * (rawPressCount - confirmedPressCount) / rawPressCount : 0);
-            Serial.println("===========================\n");
+            printf("===========================\n\n");
             
             lastRaw = rawPressCount;
             lastConfirmed = confirmedPressCount;
@@ -1031,14 +1036,18 @@ void StatsTask(void *pvParameters) {
     }
 }
 
-void setup() {
-    Serial.begin(115200);
+void app_main(void) {
+    // Configure GPIO
+    gpio_reset_pin(BUTTON_PIN);
+    gpio_set_direction(BUTTON_PIN, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(BUTTON_PIN, GPIO_PULLUP_ONLY);
+    gpio_set_intr_type(BUTTON_PIN, GPIO_INTR_NEGEDGE);
     
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
-    pinMode(LED_PIN, OUTPUT);
+    gpio_reset_pin(LED_PIN);
+    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
     
-    Serial.println("\n=== ESP32 Debounce Timer Demo ===");
-    Serial.printf("Debounce time: %d ms\n\n", DEBOUNCE_MS);
+    printf("\n=== ESP32 Debounce Timer Demo ===\n");
+    printf("Debounce time: %d ms\n\n", DEBOUNCE_MS);
     
     // Create debounce timer (one-shot)
     xDebounceTimer = xTimerCreate(
@@ -1049,18 +1058,15 @@ void setup() {
         vDebounceCallback
     );
     
-    // Attach button interrupt
-    attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonISR, FALLING);
+    // Install GPIO ISR service and add handler
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(BUTTON_PIN, buttonISR, NULL);
     
     // Create tasks
     xTaskCreate(LedTask, "LED", 2048, NULL, 2, NULL);
     xTaskCreate(StatsTask, "Stats", 2048, NULL, 1, NULL);
     
-    Serial.println("Press button to test debounce...\n");
-}
-
-void loop() {
-    vTaskDelay(portMAX_DELAY);
+    printf("Press button to test debounce...\n\n");
 }
 ```
 
@@ -1078,17 +1084,22 @@ Mengimplementasikan timeout watchdog menggunakan software timer.
 
 ### Program 6: Communication Watchdog
 
-```cpp
+```c
 /* Percobaan 6: Watchdog Timer Pattern ESP32
- * File: src/main.cpp
+ * File: src/main.c
  */
-#include <Arduino.h>
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
+#include "driver/gpio.h"
+#include "driver/uart.h"
+#include "esp_log.h"
 
-#define LED_ALIVE       4
-#define LED_TIMEOUT     16
+static const char *TAG = "WATCHDOG";
+
+#define LED_ALIVE       GPIO_NUM_4
+#define LED_TIMEOUT     GPIO_NUM_16
 #define WATCHDOG_MS     3000
 
 TimerHandle_t xWatchdogTimer;
@@ -1101,23 +1112,23 @@ void vWatchdogCallback(TimerHandle_t xTimer) {
     timeoutCount++;
     communicationActive = false;
     
-    Serial.println("\n!!! WATCHDOG TIMEOUT !!!");
-    Serial.printf("No data for %d ms\n", WATCHDOG_MS);
-    Serial.printf("Total timeouts: %lu\n\n", timeoutCount);
+    printf("\n!!! WATCHDOG TIMEOUT !!!\n");
+    printf("No data for %d ms\n", WATCHDOG_MS);
+    printf("Total timeouts: %lu\n\n", timeoutCount);
     
     // Visual indication
-    digitalWrite(LED_TIMEOUT, HIGH);
-    digitalWrite(LED_ALIVE, LOW);
+    gpio_set_level(LED_TIMEOUT, 1);
+    gpio_set_level(LED_ALIVE, 0);
 }
 
 /* Simulated Communication Task */
 void CommTask(void *pvParameters) {
-    Serial.println("[Comm] Waiting for data...");
-    Serial.println("Send any character to simulate incoming data\n");
+    printf("[Comm] Waiting for data...\n");
+    printf("Send any character to simulate incoming data\n\n");
     
+    uint8_t c;
     for(;;) {
-        if(Serial.available()) {
-            char c = Serial.read();
+        if(uart_read_bytes(UART_NUM_0, &c, 1, pdMS_TO_TICKS(10)) > 0) {
             messageCount++;
             
             // Reset watchdog
@@ -1126,11 +1137,11 @@ void CommTask(void *pvParameters) {
             // Mark communication as active
             if(!communicationActive) {
                 communicationActive = true;
-                digitalWrite(LED_TIMEOUT, LOW);
-                Serial.println("[Comm] Communication RESTORED!");
+                gpio_set_level(LED_TIMEOUT, 0);
+                printf("[Comm] Communication RESTORED!\n");
             }
             
-            Serial.printf("[Comm] Received: '%c' (msg #%lu)\n", c, messageCount);
+            printf("[Comm] Received: '%c' (msg #%lu)\n", (char)c, messageCount);
         }
         
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -1139,9 +1150,11 @@ void CommTask(void *pvParameters) {
 
 /* Heartbeat Task - Visual feedback when alive */
 void HeartbeatTask(void *pvParameters) {
+    static int aliveState = 0;
     for(;;) {
         if(communicationActive) {
-            digitalWrite(LED_ALIVE, !digitalRead(LED_ALIVE));
+            aliveState = !aliveState;
+            gpio_set_level(LED_ALIVE, aliveState);
         }
         
         vTaskDelay(pdMS_TO_TICKS(250));
@@ -1151,31 +1164,32 @@ void HeartbeatTask(void *pvParameters) {
 /* Status Task */
 void StatusTask(void *pvParameters) {
     for(;;) {
-        Serial.println("\n--- Status ---");
-        Serial.printf("Messages received: %lu\n", messageCount);
-        Serial.printf("Timeouts: %lu\n", timeoutCount);
-        Serial.printf("Communication: %s\n", 
+        printf("\n--- Status ---\n");
+        printf("Messages received: %lu\n", messageCount);
+        printf("Timeouts: %lu\n", timeoutCount);
+        printf("Communication: %s\n", 
                      communicationActive ? "ACTIVE" : "INACTIVE");
-        Serial.printf("Timer active: %s\n",
+        printf("Timer active: %s\n",
                      xTimerIsTimerActive(xWatchdogTimer) ? "YES" : "NO");
-        Serial.println("--------------\n");
+        printf("--------------\n\n");
         
         vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
 
-void setup() {
-    Serial.begin(115200);
+void app_main(void) {
+    // Configure GPIO
+    gpio_reset_pin(LED_ALIVE);
+    gpio_set_direction(LED_ALIVE, GPIO_MODE_OUTPUT);
+    gpio_reset_pin(LED_TIMEOUT);
+    gpio_set_direction(LED_TIMEOUT, GPIO_MODE_OUTPUT);
     
-    pinMode(LED_ALIVE, OUTPUT);
-    pinMode(LED_TIMEOUT, OUTPUT);
+    gpio_set_level(LED_ALIVE, 0);
+    gpio_set_level(LED_TIMEOUT, 1);  // Start in timeout state
     
-    digitalWrite(LED_ALIVE, LOW);
-    digitalWrite(LED_TIMEOUT, HIGH);  // Start in timeout state
-    
-    Serial.println("\n=== ESP32 Watchdog Timer Demo ===");
-    Serial.printf("Watchdog timeout: %d ms\n", WATCHDOG_MS);
-    Serial.println("Send characters to keep communication alive\n");
+    printf("\n=== ESP32 Watchdog Timer Demo ===\n");
+    printf("Watchdog timeout: %d ms\n", WATCHDOG_MS);
+    printf("Send characters to keep communication alive\n\n");
     
     // Create watchdog timer (one-shot)
     xWatchdogTimer = xTimerCreate(
@@ -1194,10 +1208,6 @@ void setup() {
     xTaskCreate(HeartbeatTask, "Heartbeat", 2048, NULL, 1, NULL);
     xTaskCreate(StatusTask, "Status", 2048, NULL, 1, NULL);
 }
-
-void loop() {
-    vTaskDelay(portMAX_DELAY);
-}
 ```
 
 ### ✅ Tugas Percobaan 6
@@ -1214,20 +1224,26 @@ Mengkombinasikan software timer dengan task notification untuk event-driven syst
 
 ### Program 7: Multi-Source Event Handler
 
-```cpp
+```c
 /* Percobaan 7: Timer + Notification Kombinasi ESP32
- * File: src/main.cpp
+ * File: src/main.c
  */
-#include <Arduino.h>
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
+#include "driver/gpio.h"
+#include "driver/uart.h"
+#include "esp_log.h"
+#include "esp_timer.h"
 
-#define BUTTON_PIN  15
-#define LED1_PIN    4
-#define LED2_PIN    16
-#define LED3_PIN    17
-#define LED4_PIN    5
+static const char *TAG = "EVT_HANDLER";
+
+#define BUTTON_PIN  GPIO_NUM_15
+#define LED1_PIN    GPIO_NUM_4
+#define LED2_PIN    GPIO_NUM_16
+#define LED3_PIN    GPIO_NUM_17
+#define LED4_PIN    GPIO_NUM_5
 
 /* Event definitions */
 #define EVT_BUTTON      (1 << 0)
@@ -1262,14 +1278,14 @@ void vTimer5sCallback(TimerHandle_t xTimer) {
 
 /* Debounce Timer Callback */
 void vDebounceCallback(TimerHandle_t xTimer) {
-    if(digitalRead(BUTTON_PIN) == LOW) {
+    if(gpio_get_level(BUTTON_PIN) == 0) {
         eventCounts.button++;
         xTaskNotify(xEventHandler, EVT_BUTTON, eSetBits);
     }
 }
 
 /* Button ISR */
-void IRAM_ATTR buttonISR() {
+static void IRAM_ATTR buttonISR(void *arg) {
     BaseType_t woken = pdFALSE;
     xTimerResetFromISR(xDebounceTimer, &woken);
     if(woken) portYIELD_FROM_ISR();
@@ -1279,38 +1295,41 @@ void IRAM_ATTR buttonISR() {
 void EventHandlerTask(void *pvParameters) {
     uint32_t events;
     
-    Serial.println("[Handler] Started - waiting for events...\n");
+    printf("[Handler] Started - waiting for events...\n\n");
     
     for(;;) {
         if(xTaskNotifyWait(0, 0xFFFFFFFF, &events, portMAX_DELAY) == pdTRUE) {
             
-            Serial.printf("\n[Event@%lu] Flags: 0x%02lX\n", millis(), events);
+            printf("\n[Event@%lld] Flags: 0x%02lX\n", esp_timer_get_time()/1000, events);
             
             if(events & EVT_BUTTON) {
-                Serial.printf("  [BUTTON] Press #%lu\n", eventCounts.button);
-                digitalWrite(LED1_PIN, !digitalRead(LED1_PIN));
+                printf("  [BUTTON] Press #%lu\n", eventCounts.button);
+                static int led1 = 0; led1 = !led1;
+                gpio_set_level(LED1_PIN, led1);
             }
             
             if(events & EVT_TIMER_1S) {
-                Serial.printf("  [1S] Tick #%lu\n", eventCounts.timer1s);
-                digitalWrite(LED2_PIN, !digitalRead(LED2_PIN));
+                printf("  [1S] Tick #%lu\n", eventCounts.timer1s);
+                static int led2 = 0; led2 = !led2;
+                gpio_set_level(LED2_PIN, led2);
             }
             
             if(events & EVT_TIMER_5S) {
-                Serial.printf("  [5S] Tick #%lu\n", eventCounts.timer5s);
+                printf("  [5S] Tick #%lu\n", eventCounts.timer5s);
                 
                 // Flash LED3 rapidly
                 for(int i = 0; i < 5; i++) {
-                    digitalWrite(LED3_PIN, HIGH);
+                    gpio_set_level(LED3_PIN, 1);
                     vTaskDelay(pdMS_TO_TICKS(50));
-                    digitalWrite(LED3_PIN, LOW);
+                    gpio_set_level(LED3_PIN, 0);
                     vTaskDelay(pdMS_TO_TICKS(50));
                 }
             }
             
             if(events & EVT_SERIAL) {
-                Serial.printf("  [SERIAL] Event #%lu\n", eventCounts.serial);
-                digitalWrite(LED4_PIN, !digitalRead(LED4_PIN));
+                printf("  [SERIAL] Event #%lu\n", eventCounts.serial);
+                static int led4 = 0; led4 = !led4;
+                gpio_set_level(LED4_PIN, led4);
             }
         }
     }
@@ -1318,11 +1337,10 @@ void EventHandlerTask(void *pvParameters) {
 
 /* Serial Monitor Task */
 void SerialTask(void *pvParameters) {
+    uint8_t cmd;
     for(;;) {
-        if(Serial.available()) {
-            char cmd = Serial.read();
-            
-            switch(cmd) {
+        if(uart_read_bytes(UART_NUM_0, &cmd, 1, pdMS_TO_TICKS(10)) > 0) {
+            switch((char)cmd) {
                 case 's':
                     eventCounts.serial++;
                     xTaskNotify(xEventHandler, EVT_SERIAL, eSetBits);
@@ -1331,43 +1349,43 @@ void SerialTask(void *pvParameters) {
                 case '1':
                     if(xTimerIsTimerActive(xTimer1s)) {
                         xTimerStop(xTimer1s, pdMS_TO_TICKS(100));
-                        Serial.println("[Cmd] 1s timer STOPPED");
+                        printf("[Cmd] 1s timer STOPPED\n");
                     } else {
                         xTimerStart(xTimer1s, pdMS_TO_TICKS(100));
-                        Serial.println("[Cmd] 1s timer STARTED");
+                        printf("[Cmd] 1s timer STARTED\n");
                     }
                     break;
                     
                 case '5':
                     if(xTimerIsTimerActive(xTimer5s)) {
                         xTimerStop(xTimer5s, pdMS_TO_TICKS(100));
-                        Serial.println("[Cmd] 5s timer STOPPED");
+                        printf("[Cmd] 5s timer STOPPED\n");
                     } else {
                         xTimerStart(xTimer5s, pdMS_TO_TICKS(100));
-                        Serial.println("[Cmd] 5s timer STARTED");
+                        printf("[Cmd] 5s timer STARTED\n");
                     }
                     break;
                     
                 case 'i':
-                    Serial.println("\n=== Event Statistics ===");
-                    Serial.printf("Button events:  %lu\n", eventCounts.button);
-                    Serial.printf("1s timer ticks: %lu\n", eventCounts.timer1s);
-                    Serial.printf("5s timer ticks: %lu\n", eventCounts.timer5s);
-                    Serial.printf("Serial events:  %lu\n", eventCounts.serial);
-                    Serial.printf("\nTimer1s: %s\n", 
+                    printf("\n=== Event Statistics ===\n");
+                    printf("Button events:  %lu\n", eventCounts.button);
+                    printf("1s timer ticks: %lu\n", eventCounts.timer1s);
+                    printf("5s timer ticks: %lu\n", eventCounts.timer5s);
+                    printf("Serial events:  %lu\n", eventCounts.serial);
+                    printf("\nTimer1s: %s\n", 
                                  xTimerIsTimerActive(xTimer1s) ? "ACTIVE" : "STOPPED");
-                    Serial.printf("Timer5s: %s\n", 
+                    printf("Timer5s: %s\n", 
                                  xTimerIsTimerActive(xTimer5s) ? "ACTIVE" : "STOPPED");
-                    Serial.println("========================\n");
+                    printf("========================\n\n");
                     break;
                     
                 case 'h':
-                    Serial.println("\n=== Commands ===");
-                    Serial.println("s - Send serial event");
-                    Serial.println("1 - Toggle 1s timer");
-                    Serial.println("5 - Toggle 5s timer");
-                    Serial.println("i - Info/statistics");
-                    Serial.println("================\n");
+                    printf("\n=== Commands ===\n");
+                    printf("s - Send serial event\n");
+                    printf("1 - Toggle 1s timer\n");
+                    printf("5 - Toggle 5s timer\n");
+                    printf("i - Info/statistics\n");
+                    printf("================\n\n");
                     break;
             }
         }
@@ -1376,17 +1394,21 @@ void SerialTask(void *pvParameters) {
     }
 }
 
-void setup() {
-    Serial.begin(115200);
+void app_main(void) {
+    // Configure GPIO
+    gpio_reset_pin(BUTTON_PIN);
+    gpio_set_direction(BUTTON_PIN, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(BUTTON_PIN, GPIO_PULLUP_ONLY);
+    gpio_set_intr_type(BUTTON_PIN, GPIO_INTR_NEGEDGE);
     
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
-    pinMode(LED1_PIN, OUTPUT);
-    pinMode(LED2_PIN, OUTPUT);
-    pinMode(LED3_PIN, OUTPUT);
-    pinMode(LED4_PIN, OUTPUT);
+    gpio_num_t leds[] = {LED1_PIN, LED2_PIN, LED3_PIN, LED4_PIN};
+    for(int i = 0; i < 4; i++) {
+        gpio_reset_pin(leds[i]);
+        gpio_set_direction(leds[i], GPIO_MODE_OUTPUT);
+    }
     
-    Serial.println("\n=== ESP32 Timer + Notification Demo ===");
-    Serial.println("Press 'h' for help\n");
+    printf("\n=== ESP32 Timer + Notification Demo ===\n");
+    printf("Press 'h' for help\n\n");
     
     // Create event handler task first
     xTaskCreate(EventHandlerTask, "Events", 4096, NULL, 3, &xEventHandler);
@@ -1401,12 +1423,9 @@ void setup() {
     xTimerStart(xTimer1s, 0);
     xTimerStart(xTimer5s, 0);
     
-    // Attach button interrupt
-    attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonISR, FALLING);
-}
-
-void loop() {
-    vTaskDelay(portMAX_DELAY);
+    // Install GPIO ISR service and add handler
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(BUTTON_PIN, buttonISR, NULL);
 }
 ```
 

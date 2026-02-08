@@ -371,26 +371,33 @@ int main(void)
 
 ## 📝 Implementasi ESP32
 
-### main.cpp (ESP32)
-```cpp
-/* ESP32 Parking Gateway - main.cpp */
-#include <Arduino.h>
+### main.c (ESP32)
+```c
+/* ESP32 Parking Gateway - main.c */
+/* NOTE: OLED display code is pseudo-code reference.
+   Students should implement using ESP-IDF I2C + SSD1306 driver. */
+#include <stdio.h>
+#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include "driver/gpio.h"
+#include "driver/uart.h"
+#include "esp_log.h"
+#include "esp_timer.h"
+#include "esp_system.h"
+
+static const char *TAG = "PARKING_GW";
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
-#define OLED_RESET -1
 
-#define LED_STATUS_GREEN  4
-#define LED_STATUS_RED    5
-#define UART2_RX          16
-#define UART2_TX          17
+#define LED_STATUS_GREEN  GPIO_NUM_4
+#define LED_STATUS_RED    GPIO_NUM_5
+#define UART2_RX          GPIO_NUM_16
+#define UART2_TX          GPIO_NUM_17
+#define UART2_PORT        UART_NUM_2
 
 typedef enum {
     EVENT_ENTRY = 0x01,
@@ -414,7 +421,8 @@ typedef struct {
     uint32_t totalExits;
 } DisplayData_t;
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+// Display driver: students should implement using ESP-IDF I2C + SSD1306 library
+// e.g., https://github.com/nopnop2002/esp-idf-ssd1306
 
 QueueHandle_t      xDataQueue;
 SemaphoreHandle_t  xDisplayMutex;
@@ -439,8 +447,8 @@ void UARTReceiveTask(void *pvParameters) {
     bool inFrame = false;
     
     for(;;) {
-        while(Serial2.available()) {
-            uint8_t byte = Serial2.read();
+        uint8_t byte;
+        while(uart_read_bytes(UART2_PORT, &byte, 1, 0) > 0) {
             
             if(byte == 0xAA && !inFrame) {
                 inFrame = true;
@@ -494,7 +502,7 @@ void DataProcessorTask(void *pvParameters) {
             // Update global status
             globalStatus.slotAvailable = event.slotAvailable;
             globalStatus.totalSlots = event.totalSlots;
-            globalStatus.lastUpdate = millis();
+            globalStatus.lastUpdate = (uint32_t)(esp_timer_get_time() / 1000);
             
             switch(event.type) {
                 case EVENT_ENTRY:
@@ -513,9 +521,9 @@ void DataProcessorTask(void *pvParameters) {
                     safePrint("[PROC] PARKING FULL!\n");
                     // Blink red LED
                     for(int i = 0; i < 5; i++) {
-                        digitalWrite(LED_STATUS_RED, HIGH);
+                        gpio_set_level(LED_STATUS_RED, 1);
                         vTaskDelay(pdMS_TO_TICKS(100));
-                        digitalWrite(LED_STATUS_RED, LOW);
+                        gpio_set_level(LED_STATUS_RED, 0);
                         vTaskDelay(pdMS_TO_TICKS(100));
                     }
                     break;
@@ -526,56 +534,46 @@ void DataProcessorTask(void *pvParameters) {
             
             // Update status LEDs
             if(event.slotAvailable == 0) {
-                digitalWrite(LED_STATUS_GREEN, LOW);
-                digitalWrite(LED_STATUS_RED, HIGH);
+                gpio_set_level(LED_STATUS_GREEN, 0);
+                gpio_set_level(LED_STATUS_RED, 1);
             } else {
-                digitalWrite(LED_STATUS_GREEN, HIGH);
-                digitalWrite(LED_STATUS_RED, LOW);
+                gpio_set_level(LED_STATUS_GREEN, 1);
+                gpio_set_level(LED_STATUS_RED, 0);
             }
         }
     }
 }
 
 // Display Task
+// NOTE: Students should implement OLED display using ESP-IDF I2C + SSD1306 driver
+// The following is pseudo-code showing the display logic
 void DisplayTask(void *pvParameters) {
     char line[25];
     
     for(;;) {
         if(xSemaphoreTake(xDisplayMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-            display.clearDisplay();
+            // Clear display buffer
+            // ssd1306_clear_screen(&dev);
             
             // Title
-            display.setTextSize(1);
-            display.setTextColor(SSD1306_WHITE);
-            display.setCursor(20, 0);
-            display.println("SMART PARKING");
+            // ssd1306_display_text(&dev, 0, "SMART PARKING", 13, false);
             
-            // Divider
-            display.drawLine(0, 10, 128, 10, SSD1306_WHITE);
-            
-            // Big slot count
-            display.setTextSize(3);
-            display.setCursor(30, 18);
+            // Slot count
             sprintf(line, "%d/%d", globalStatus.slotAvailable, globalStatus.totalSlots);
-            display.println(line);
+            // ssd1306_display_text(&dev, 2, line, strlen(line), false);
             
             // Status text
-            display.setTextSize(1);
-            display.setCursor(35, 45);
             if(globalStatus.slotAvailable == 0) {
-                display.println("FULL!");
+                // ssd1306_display_text(&dev, 5, "FULL!", 5, false);
             } else if(globalStatus.slotAvailable <= 3) {
-                display.println("LIMITED");
+                // ssd1306_display_text(&dev, 5, "LIMITED", 7, false);
             } else {
-                display.println("AVAILABLE");
+                // ssd1306_display_text(&dev, 5, "AVAILABLE", 9, false);
             }
             
             // Stats
-            display.setCursor(0, 56);
             sprintf(line, "In:%lu Out:%lu", globalStatus.totalEntries, globalStatus.totalExits);
-            display.println(line);
-            
-            display.display();
+            // ssd1306_display_text(&dev, 7, line, strlen(line), false);
             
             xSemaphoreGive(xDisplayMutex);
         }
@@ -592,28 +590,36 @@ void LoggerTask(void *pvParameters) {
         safePrint("Total IN:  %lu\n", globalStatus.totalEntries);
         safePrint("Total OUT: %lu\n", globalStatus.totalExits);
         safePrint("Queue:     %d items\n", uxQueueMessagesWaiting(xDataQueue));
-        safePrint("Free Heap: %d bytes\n", ESP.getFreeHeap());
+        safePrint("Free Heap: %lu bytes\n", esp_get_free_heap_size());
         safePrint("============================\n\n");
         
         vTaskDelay(pdMS_TO_TICKS(10000));
     }
 }
 
-void setup() {
-    Serial.begin(115200);
-    Serial2.begin(9600, SERIAL_8N1, UART2_RX, UART2_TX);
+void app_main(void) {
+    // Configure UART2 for STM32 communication
+    uart_config_t uart_config = {
+        .baud_rate = 9600,
+        .data_bits = UART_DATA_8_BITS,
+        .parity    = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+    };
+    uart_driver_install(UART2_PORT, 256, 0, 0, NULL, 0);
+    uart_param_config(UART2_PORT, &uart_config);
+    uart_set_pin(UART2_PORT, UART2_TX, UART2_RX, -1, -1);
     
-    pinMode(LED_STATUS_GREEN, OUTPUT);
-    pinMode(LED_STATUS_RED, OUTPUT);
+    // Configure LED pins
+    gpio_reset_pin(LED_STATUS_GREEN);
+    gpio_set_direction(LED_STATUS_GREEN, GPIO_MODE_OUTPUT);
+    gpio_reset_pin(LED_STATUS_RED);
+    gpio_set_direction(LED_STATUS_RED, GPIO_MODE_OUTPUT);
     
-    // Initialize OLED
-    if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-        Serial.println("OLED init failed!");
-    }
-    display.clearDisplay();
-    display.display();
+    // Initialize OLED (students: implement using ESP-IDF I2C + SSD1306 driver)
+    // Example: i2c_master_init(); ssd1306_init();
     
-    Serial.println("\n=== ESP32 Parking Gateway ===\n");
+    ESP_LOGI(TAG, "=== ESP32 Parking Gateway ===");
     
     // Create primitives
     xDataQueue = xQueueCreate(30, sizeof(ParkingEvent_t));
@@ -633,10 +639,6 @@ void setup() {
         // Logger on Core 0
         xTaskCreatePinnedToCore(LoggerTask, "Logger", 4096, NULL, 1, NULL, 0);
     }
-}
-
-void loop() {
-    vTaskDelay(portMAX_DELAY);
 }
 ```
 

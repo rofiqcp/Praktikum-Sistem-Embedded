@@ -9,15 +9,22 @@
  *   secara terus-menerus. Frekuensi dapat dikonfigurasi melalui
  *   periode timer. Arah dan nilai saat ini ditampilkan di serial.
  *
+ *   CATATAN ISR-SAFETY:
+ *   dac_output_voltage() TIDAK ISR-safe, sehingga tidak boleh dipanggil
+ *   langsung dari callback timer (konteks ISR). Solusinya: ISR mengirim
+ *   notifikasi ke task FreeRTOS berprioritas tinggi yang melakukan
+ *   output DAC yang sebenarnya.
+ *
  * Koneksi Hardware:
  *   - ESP32: DAC1 = GPIO25 (output analog)
  *   - Oscilloscope pada GPIO25 untuk melihat gelombang
  *   - ESP32-S2/S3: GPIO18 (PWM + RC filter)
  *
  * API yang digunakan:
- *   - dac_output_enable()    : Mengaktifkan DAC
- *   - dac_output_voltage()   : Set nilai DAC
- *   - esp_timer              : Timer periodik
+ *   - dac_output_enable()        : Mengaktifkan DAC
+ *   - dac_output_voltage()       : Set nilai DAC (dari task, BUKAN ISR)
+ *   - esp_timer                  : Timer periodik
+ *   - xTaskNotifyFromISR()       : Notifikasi task dari ISR (ISR-safe)
  * ==========================================================================
  */
 
@@ -60,31 +67,63 @@ static volatile uint8_t current_value = 0;
 static volatile int8_t direction = 1;       /* 1 = naik, -1 = turun */
 static volatile uint32_t cycle_count = 0;
 
+/* Handle task DAC output - task ini melakukan output DAC yang sebenarnya */
+static TaskHandle_t dac_task_handle = NULL;
+
 /**
- * Callback timer - update nilai DAC setiap periode
+ * Callback timer - dipanggil secara periodik untuk memicu update DAC
+ *
+ * PENTING: Fungsi ini berjalan di konteks ISR, sehingga TIDAK boleh
+ * memanggil dac_output_voltage() secara langsung (tidak ISR-safe).
+ * Sebagai gantinya, kita mengirim notifikasi ke task DAC.
  */
 static void IRAM_ATTR timer_callback(void *arg)
 {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    /* Kirim notifikasi ke task DAC agar segera output nilai berikutnya */
+    vTaskNotifyGiveFromISR(dac_task_handle, &xHigherPriorityTaskWoken);
+
+    /* Jika task berprioritas lebih tinggi terbangun, minta context switch */
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+/**
+ * Task DAC output - berjalan di konteks task (BUKAN ISR)
+ * Menunggu notifikasi dari timer ISR, lalu melakukan output DAC
+ * dan menghitung nilai segitiga berikutnya.
+ *
+ * Task ini berprioritas tinggi (configMAX_PRIORITIES - 1) agar
+ * segera dijalankan setelah ISR selesai, menjaga timing yang akurat.
+ */
+static void dac_output_task(void *arg)
+{
+    while (1) {
+        /* Tunggu notifikasi dari timer ISR */
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+        /* Output nilai saat ini ke DAC */
 #if HAS_DAC
-    dac_output_voltage(DAC_CHAN, current_value);
+        dac_output_voltage(DAC_CHAN, current_value);
 #else
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL, current_value);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL);
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL, current_value);
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL);
 #endif
 
-    /* Update nilai berdasarkan arah */
-    if (direction == 1) {
-        if (current_value == 255) {
-            direction = -1;  /* Balik arah ke turun */
+        /* Update nilai berdasarkan arah */
+        if (direction == 1) {
+            if (current_value == 255) {
+                direction = -1;  /* Balik arah ke turun */
+            } else {
+                current_value++;
+            }
         } else {
-            current_value++;
-        }
-    } else {
-        if (current_value == 0) {
-            direction = 1;   /* Balik arah ke naik */
-            cycle_count++;   /* Satu siklus penuh selesai */
-        } else {
-            current_value--;
+            if (current_value == 0) {
+                direction = 1;   /* Balik arah ke naik */
+                cycle_count++;   /* Satu siklus penuh selesai */
+            } else {
+                current_value--;
+            }
         }
     }
 }
@@ -132,6 +171,16 @@ void app_main(void)
     ESP_LOGI(TAG, "Frekuensi target : %d Hz", TRIANGLE_FREQ_HZ);
     ESP_LOGI(TAG, "Periode timer    : %d us", TIMER_PERIOD_US);
     ESP_LOGI(TAG, "Langkah/siklus   : 512 (256 naik + 256 turun)");
+
+    /*
+     * Buat task DAC output dengan prioritas tinggi.
+     * Task ini menunggu notifikasi dari ISR timer dan melakukan
+     * output DAC yang sebenarnya (karena dac_output_voltage()
+     * TIDAK ISR-safe).
+     */
+    xTaskCreate(dac_output_task, "dac_out", 2048,
+                NULL, configMAX_PRIORITIES - 1, &dac_task_handle);
+    ESP_LOGI(TAG, "Task DAC output dibuat (prioritas tinggi)");
 
     /* Buat dan mulai timer periodik */
     esp_timer_handle_t timer_handle;

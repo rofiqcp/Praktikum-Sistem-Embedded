@@ -1,4 +1,4 @@
-# 🎨 Prompt Pembuatan Slide Presentasi - Modul 05 DAC & PWM (Bagian 1: Slide 1-20)
+# 🎨 Prompt Slide Presentasi — Modul 05: Menghidupkan Sinyal — DAC & PWM (Bagian 1: Slide 1-20)
 
 ## Instruksi Umum
 

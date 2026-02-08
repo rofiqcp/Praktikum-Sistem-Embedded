@@ -11,7 +11,7 @@
  *   resolusi mikro-detik.
  * 
  *   Program menguji sampling rate pada setiap level atenuasi:
- *   - 0dB, 2.5dB, 6dB, 11dB
+ *   - 0dB, 2.5dB, 6dB, 12dB
  * 
  * Rumus Sampling Rate:
  *   Rate (samples/second) = N / (waktu_total_us / 1000000)
@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/adc.h"
+#include "esp_adc/adc_oneshot.h"
 #include "esp_timer.h"
 #include "esp_log.h"
 
@@ -32,17 +32,15 @@ static const char *TAG = "ADC_RATE";
 
 /* Konfigurasi ADC */
 #if CONFIG_IDF_TARGET_ESP32
-    #define ADC_CHANNEL     ADC1_CHANNEL_6
+    #define ADC_CHANNEL     ADC_CHANNEL_6
     #define ADC_GPIO_NUM    34
 #elif CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
-    #define ADC_CHANNEL     ADC1_CHANNEL_3
+    #define ADC_CHANNEL     ADC_CHANNEL_3
     #define ADC_GPIO_NUM    4
 #else
-    #define ADC_CHANNEL     ADC1_CHANNEL_6
+    #define ADC_CHANNEL     ADC_CHANNEL_6
     #define ADC_GPIO_NUM    34
 #endif
-
-#define ADC_WIDTH       ADC_WIDTH_BIT_12
 
 /* Jumlah konversi untuk pengukuran */
 #define NUM_CONVERSIONS     10000
@@ -58,9 +56,12 @@ static const atten_test_t atten_list[] = {
     { ADC_ATTEN_DB_0,   "0 dB   " },
     { ADC_ATTEN_DB_2_5, "2.5 dB " },
     { ADC_ATTEN_DB_6,   "6 dB   " },
-    { ADC_ATTEN_DB_11,  "11 dB  " }
+    { ADC_ATTEN_DB_12,  "12 dB  " }
 };
 #define NUM_ATTEN (sizeof(atten_list) / sizeof(atten_list[0]))
+
+/* Handle ADC oneshot */
+static adc_oneshot_unit_handle_t adc_handle;
 
 /**
  * @brief Ukur sampling rate untuk atenuasi tertentu
@@ -75,8 +76,12 @@ static void measure_sampling_rate(adc_atten_t atten, int num_samples,
                                    float *out_rate_hz, int64_t *out_time_us,
                                    float *out_avg_val)
 {
-    /* Konfigurasi atenuasi */
-    adc1_config_channel_atten(ADC_CHANNEL, atten);
+    /* Konfigurasi channel dengan atenuasi yang diminta */
+    adc_oneshot_chan_cfg_t chan_cfg = {
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+        .atten    = atten,
+    };
+    adc_oneshot_config_channel(adc_handle, ADC_CHANNEL, &chan_cfg);
 
     /* Variabel untuk akumulasi */
     int64_t sum = 0;
@@ -87,7 +92,9 @@ static void measure_sampling_rate(adc_atten_t atten, int num_samples,
 
     /* Lakukan N konversi berturut-turut */
     for (int i = 0; i < num_samples; i++) {
-        raw = adc1_get_raw(ADC_CHANNEL);
+        int adc_raw;
+        adc_oneshot_read(adc_handle, ADC_CHANNEL, &adc_raw);
+        raw = adc_raw;
         sum += raw;
     }
 
@@ -102,8 +109,18 @@ static void measure_sampling_rate(adc_atten_t atten, int num_samples,
 
 void app_main(void)
 {
-    /* ====== INISIALISASI ADC ====== */
-    adc1_config_width(ADC_WIDTH);
+    /* ====== INISIALISASI ADC ONESHOT ====== */
+    adc_oneshot_unit_init_cfg_t init_cfg = {
+        .unit_id = ADC_UNIT_1,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_cfg, &adc_handle));
+
+    /* Konfigurasi awal channel (akan di-reconfigure per atenuasi) */
+    adc_oneshot_chan_cfg_t chan_cfg = {
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+        .atten    = ADC_ATTEN_DB_12,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_CHANNEL, &chan_cfg));
 
     ESP_LOGI(TAG, "================================================");
     ESP_LOGI(TAG, "  ADC Sampling Rate Measurement");

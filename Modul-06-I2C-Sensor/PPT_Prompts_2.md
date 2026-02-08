@@ -1,4 +1,4 @@
-# 🎨 PPT Prompts Modul 06 — Bagian 2: Implementasi I2C pada ESP32 & STM32 (Slide 21-40)
+# 🎨 PPT Prompts Modul 06 — Komunikasi Cerdas: I2C Implementasi (Bagian 2: Slide 21-40)
 
 ## Petunjuk Penggunaan
 Lanjutan slide 21-40. Fokus pada implementasi praktis I2C di ESP32 (ESP-IDF) dan STM32 (HAL), interfacing sensor, dan percobaan praktikum.

@@ -5,13 +5,15 @@
  * Membaca dan menulis data ke EEPROM AT24C32 melalui I2C.
  * Mendukung byte write, page write (32 byte), dan sequential read.
  * Alamat memori 2 byte (AT24C32 = 32Kbit = 4096 byte).
+ *
+ * Menggunakan ESP-IDF v5.x I2C Master API (driver/i2c_master.h)
  */
 
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 
 static const char *TAG = "EEPROM";
@@ -35,60 +37,37 @@ static const char *TAG = "EEPROM";
 #define EEPROM_SIZE       4096   /* 32Kbit = 4096 byte */
 #define EEPROM_WRITE_TIME 5      /* Waktu tulis dalam ms */
 
+/* Handle I2C bus dan device */
+static i2c_master_bus_handle_t bus_handle;
+static i2c_master_dev_handle_t eeprom_handle;
+
 /* ---- Inisialisasi I2C Master ---- */
 static void i2c_master_init(void) {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_PORT,
         .sda_io_num = I2C_SDA,
         .scl_io_num = I2C_SCL,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_FREQ,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
-    i2c_param_config(I2C_PORT, &conf);
-    i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
-}
+    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle));
 
-/* ---- Helper: tulis register (generic) ---- */
-static esp_err_t i2c_write_reg(uint8_t addr, uint8_t reg, uint8_t val) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_write_byte(cmd, val, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
-}
-
-/* ---- Helper: baca register (generic) ---- */
-static esp_err_t i2c_read_reg(uint8_t addr, uint8_t reg, uint8_t *buf, size_t len) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
-    if (len > 1) i2c_master_read(cmd, buf, len - 1, I2C_MASTER_ACK);
-    i2c_master_read_byte(cmd, buf + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+    i2c_device_config_t dev_config = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = EEPROM_ADDR,
+        .scl_speed_hz = I2C_FREQ,
+    };
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_config, &eeprom_handle));
 }
 
 /* ---- EEPROM: tulis satu byte (alamat 2 byte) ---- */
 static esp_err_t eeprom_write_byte(uint16_t mem_addr, uint8_t data) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (EEPROM_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, (uint8_t)(mem_addr >> 8), true);   /* Alamat tinggi */
-    i2c_master_write_byte(cmd, (uint8_t)(mem_addr & 0xFF), true); /* Alamat rendah */
-    i2c_master_write_byte(cmd, data, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
+    uint8_t write_buf[3];
+    write_buf[0] = (uint8_t)(mem_addr >> 8);    /* Alamat tinggi */
+    write_buf[1] = (uint8_t)(mem_addr & 0xFF);  /* Alamat rendah */
+    write_buf[2] = data;
+    esp_err_t ret = i2c_master_transmit(eeprom_handle, write_buf, 3, -1);
 
     /* Tunggu siklus tulis EEPROM */
     vTaskDelay(pdMS_TO_TICKS(EEPROM_WRITE_TIME));
@@ -97,18 +76,10 @@ static esp_err_t eeprom_write_byte(uint16_t mem_addr, uint8_t data) {
 
 /* ---- EEPROM: baca satu byte (alamat 2 byte) ---- */
 static esp_err_t eeprom_read_byte(uint16_t mem_addr, uint8_t *data) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (EEPROM_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, (uint8_t)(mem_addr >> 8), true);
-    i2c_master_write_byte(cmd, (uint8_t)(mem_addr & 0xFF), true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (EEPROM_ADDR << 1) | I2C_MASTER_READ, true);
-    i2c_master_read_byte(cmd, data, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+    uint8_t addr_buf[2];
+    addr_buf[0] = (uint8_t)(mem_addr >> 8);
+    addr_buf[1] = (uint8_t)(mem_addr & 0xFF);
+    return i2c_master_transmit_receive(eeprom_handle, addr_buf, 2, data, 1, -1);
 }
 
 /* ---- EEPROM: page write (maks 32 byte, harus dalam 1 page) ---- */
@@ -126,15 +97,13 @@ static esp_err_t eeprom_page_write(uint16_t mem_addr, const uint8_t *data, size_
         len = page_end - mem_addr;
     }
 
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (EEPROM_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, (uint8_t)(mem_addr >> 8), true);
-    i2c_master_write_byte(cmd, (uint8_t)(mem_addr & 0xFF), true);
-    i2c_master_write(cmd, data, len, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
+    /* Gabungkan alamat 2 byte + data ke satu buffer untuk transmit */
+    uint8_t write_buf[2 + EEPROM_PAGE_SIZE];
+    write_buf[0] = (uint8_t)(mem_addr >> 8);
+    write_buf[1] = (uint8_t)(mem_addr & 0xFF);
+    memcpy(&write_buf[2], data, len);
+
+    esp_err_t ret = i2c_master_transmit(eeprom_handle, write_buf, 2 + len, -1);
 
     vTaskDelay(pdMS_TO_TICKS(EEPROM_WRITE_TIME));
     return ret;
@@ -144,19 +113,10 @@ static esp_err_t eeprom_page_write(uint16_t mem_addr, const uint8_t *data, size_
 static esp_err_t eeprom_seq_read(uint16_t mem_addr, uint8_t *buf, size_t len) {
     if (len == 0) return ESP_ERR_INVALID_ARG;
 
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (EEPROM_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, (uint8_t)(mem_addr >> 8), true);
-    i2c_master_write_byte(cmd, (uint8_t)(mem_addr & 0xFF), true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (EEPROM_ADDR << 1) | I2C_MASTER_READ, true);
-    if (len > 1) i2c_master_read(cmd, buf, len - 1, I2C_MASTER_ACK);
-    i2c_master_read_byte(cmd, buf + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+    uint8_t addr_buf[2];
+    addr_buf[0] = (uint8_t)(mem_addr >> 8);
+    addr_buf[1] = (uint8_t)(mem_addr & 0xFF);
+    return i2c_master_transmit_receive(eeprom_handle, addr_buf, 2, buf, len, -1);
 }
 
 /* ---- Hex dump untuk debug ---- */
@@ -300,10 +260,6 @@ static void test_string_rw(void) {
 void app_main(void) {
     ESP_LOGI(TAG, "Inisialisasi I2C Master...");
     i2c_master_init();
-
-    /* Suppress unused warnings */
-    (void)i2c_write_reg;
-    (void)i2c_read_reg;
 
     ESP_LOGI(TAG, "=== EEPROM AT24C32 Test Suite ===");
     ESP_LOGI(TAG, "Alamat: 0x%02X, Page: %d byte, Total: %d byte",

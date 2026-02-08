@@ -1,4 +1,4 @@
-# 📚 Referensi Modul 04: ADC (Analog-to-Digital Converter)
+# 📚 Referensi Modul 04: Menguak Dunia Analog — ADC
 
 ## 📖 Dokumentasi Resmi
 

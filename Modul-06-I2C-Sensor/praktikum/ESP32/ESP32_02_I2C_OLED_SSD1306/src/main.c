@@ -4,13 +4,16 @@
  *
  * Mengendalikan OLED SSD1306 128x64 melalui I2C.
  * Menampilkan teks "HELLO ESP32" dan counter yang berjalan.
+ *
+ * Menggunakan ESP-IDF v5.x I2C Master API (driver/i2c_master.h)
  */
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 
 static const char *TAG = "SSD1306";
@@ -37,72 +40,57 @@ static const char *TAG = "SSD1306";
 /* ---- Buffer framebuffer ---- */
 static uint8_t ssd1306_buffer[SSD1306_WIDTH * SSD1306_PAGES];
 
+/* ---- Handle I2C bus dan device ---- */
+static i2c_master_bus_handle_t bus_handle;
+static i2c_master_dev_handle_t ssd1306_dev_handle;
+
 /* ---- Inisialisasi I2C Master ---- */
 static void i2c_master_init(void) {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_PORT,
         .sda_io_num = I2C_SDA,
         .scl_io_num = I2C_SCL,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_FREQ,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
-    i2c_param_config(I2C_PORT, &conf);
-    i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
+    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle));
+
+    /* Tambahkan SSD1306 sebagai device pada bus I2C */
+    i2c_device_config_t dev_config = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = SSD1306_ADDR,
+        .scl_speed_hz = I2C_FREQ,
+    };
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_config, &ssd1306_dev_handle));
 }
 
 /* ---- Helper: tulis register ---- */
-static esp_err_t i2c_write_reg(uint8_t addr, uint8_t reg, uint8_t val) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_write_byte(cmd, val, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+static esp_err_t i2c_write_reg(i2c_master_dev_handle_t dev_handle, uint8_t reg, uint8_t val) {
+    uint8_t write_buf[2] = {reg, val};
+    return i2c_master_transmit(dev_handle, write_buf, 2, -1);
 }
 
 /* ---- Helper: baca register ---- */
-static esp_err_t i2c_read_reg(uint8_t addr, uint8_t reg, uint8_t *buf, size_t len) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
-    if (len > 1) i2c_master_read(cmd, buf, len - 1, I2C_MASTER_ACK);
-    i2c_master_read_byte(cmd, buf + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+static esp_err_t i2c_read_reg(i2c_master_dev_handle_t dev_handle, uint8_t reg, uint8_t *buf, size_t len) {
+    return i2c_master_transmit_receive(dev_handle, &reg, 1, buf, len, -1);
 }
 
 /* ---- Kirim perintah ke SSD1306 ---- */
 static esp_err_t ssd1306_send_cmd(uint8_t cmd_byte) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (SSD1306_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, 0x00, true);  /* Co=0, D/C#=0 : command */
-    i2c_master_write_byte(cmd, cmd_byte, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+    uint8_t write_buf[2] = {0x00, cmd_byte};  /* Co=0, D/C#=0 : command */
+    return i2c_master_transmit(ssd1306_dev_handle, write_buf, 2, -1);
 }
 
 /* ---- Kirim data ke SSD1306 ---- */
 static esp_err_t ssd1306_send_data(const uint8_t *data, size_t len) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (SSD1306_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, 0x40, true);  /* Co=0, D/C#=1 : data */
-    i2c_master_write(cmd, data, len, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
+    /* Alokasi buffer: 1 byte control + len byte data */
+    uint8_t *write_buf = malloc(len + 1);
+    if (!write_buf) return ESP_ERR_NO_MEM;
+    write_buf[0] = 0x40;  /* Co=0, D/C#=1 : data */
+    memcpy(write_buf + 1, data, len);
+    esp_err_t ret = i2c_master_transmit(ssd1306_dev_handle, write_buf, len + 1, -1);
+    free(write_buf);
     return ret;
 }
 

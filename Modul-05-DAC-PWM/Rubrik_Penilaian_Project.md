@@ -1,4 +1,4 @@
-# 📊 Rubrik Penilaian Project - Modul 05: DAC & PWM (Digital-to-Analog Converter & Pulse Width Modulation)
+# 📊 Rubrik Penilaian Project — Modul 05: Menghidupkan Sinyal — DAC & PWM
 
 ## 📋 Informasi Umum
 

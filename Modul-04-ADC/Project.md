@@ -1,4 +1,4 @@
-# 🎯 Project Modul 04: Sistem Monitoring Kualitas Udara Berbasis ADC Multi-Channel
+# 🎯 Project Modul 04: Sistem Monitoring Kualitas Udara — ADC Multi-Channel
 
 ## 📋 Deskripsi Project
 

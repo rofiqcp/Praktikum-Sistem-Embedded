@@ -1,4 +1,4 @@
-# BAB 05: DAC (Digital-to-Analog Converter) dan PWM Output
+# Modul 05: Menghidupkan Sinyal — DAC & PWM Output
 
 ## 🎯 Capaian Pembelajaran
 

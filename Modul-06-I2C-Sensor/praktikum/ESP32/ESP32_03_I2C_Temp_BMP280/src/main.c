@@ -4,13 +4,15 @@
  *
  * Membaca suhu dan tekanan dari sensor BMP280 melalui I2C.
  * Menggunakan formula kompensasi resmi dari datasheet Bosch.
+ *
+ * Menggunakan ESP-IDF v5.x I2C Master API (driver/i2c_master.h)
  */
 
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 
 static const char *TAG = "BMP280";
@@ -62,53 +64,46 @@ typedef struct {
 static bmp280_calib_t calib;
 static int32_t t_fine; /* Variabel global untuk kompensasi silang */
 
+/* ---- Handle I2C bus dan device ---- */
+static i2c_master_bus_handle_t bus_handle;
+static i2c_master_dev_handle_t bmp280_dev_handle;
+
 /* ---- Inisialisasi I2C Master ---- */
 static void i2c_master_init(void) {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_PORT,
         .sda_io_num = I2C_SDA,
         .scl_io_num = I2C_SCL,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_FREQ,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
-    i2c_param_config(I2C_PORT, &conf);
-    i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
+    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle));
+
+    /* Tambahkan BMP280 sebagai device pada bus I2C */
+    i2c_device_config_t dev_config = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = BMP280_ADDR,
+        .scl_speed_hz = I2C_FREQ,
+    };
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_config, &bmp280_dev_handle));
 }
 
 /* ---- Helper: tulis register ---- */
-static esp_err_t i2c_write_reg(uint8_t addr, uint8_t reg, uint8_t val) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_write_byte(cmd, val, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+static esp_err_t i2c_write_reg(uint8_t reg, uint8_t val) {
+    uint8_t write_buf[2] = {reg, val};
+    return i2c_master_transmit(bmp280_dev_handle, write_buf, 2, -1);
 }
 
 /* ---- Helper: baca register ---- */
-static esp_err_t i2c_read_reg(uint8_t addr, uint8_t reg, uint8_t *buf, size_t len) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
-    if (len > 1) i2c_master_read(cmd, buf, len - 1, I2C_MASTER_ACK);
-    i2c_master_read_byte(cmd, buf + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+static esp_err_t i2c_read_reg(uint8_t reg, uint8_t *buf, size_t len) {
+    return i2c_master_transmit_receive(bmp280_dev_handle, &reg, 1, buf, len, -1);
 }
 
 /* ---- Baca data kalibrasi ---- */
 static esp_err_t bmp280_read_calibration(void) {
     uint8_t buf[26];
-    esp_err_t ret = i2c_read_reg(BMP280_ADDR, BMP280_REG_CALIB, buf, 26);
+    esp_err_t ret = i2c_read_reg(BMP280_REG_CALIB, buf, 26);
     if (ret != ESP_OK) return ret;
 
     calib.dig_T1 = (uint16_t)(buf[1] << 8 | buf[0]);
@@ -166,7 +161,7 @@ static float bmp280_compensate_press(int32_t adc_P) {
 /* ---- Inisialisasi BMP280 ---- */
 static esp_err_t bmp280_init(void) {
     uint8_t chip_id = 0;
-    esp_err_t ret = i2c_read_reg(BMP280_ADDR, BMP280_REG_ID, &chip_id, 1);
+    esp_err_t ret = i2c_read_reg(BMP280_REG_ID, &chip_id, 1);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Gagal membaca chip ID");
         return ret;
@@ -178,7 +173,7 @@ static esp_err_t bmp280_init(void) {
     }
 
     /* Soft reset */
-    i2c_write_reg(BMP280_ADDR, BMP280_REG_RESET, 0xB6);
+    i2c_write_reg(BMP280_REG_RESET, 0xB6);
     vTaskDelay(pdMS_TO_TICKS(100));
 
     /* Baca kalibrasi */
@@ -189,10 +184,10 @@ static esp_err_t bmp280_init(void) {
     }
 
     /* Config: standby 0.5ms, filter coeff 16 */
-    i2c_write_reg(BMP280_ADDR, BMP280_REG_CONFIG, 0x00);
+    i2c_write_reg(BMP280_REG_CONFIG, 0x00);
 
     /* Ctrl_meas: osrs_t=x1, osrs_p=x1, mode=normal */
-    i2c_write_reg(BMP280_ADDR, BMP280_REG_CTRL, 0x27);
+    i2c_write_reg(BMP280_REG_CTRL, 0x27);
 
     ESP_LOGI(TAG, "BMP280 diinisialisasi dalam mode normal");
     return ESP_OK;
@@ -201,7 +196,7 @@ static esp_err_t bmp280_init(void) {
 /* ---- Baca suhu dan tekanan ---- */
 static esp_err_t bmp280_read(float *temp, float *press) {
     uint8_t data[6];
-    esp_err_t ret = i2c_read_reg(BMP280_ADDR, BMP280_REG_PRESS, data, 6);
+    esp_err_t ret = i2c_read_reg(BMP280_REG_PRESS, data, 6);
     if (ret != ESP_OK) return ret;
 
     /* Data tekanan: 20-bit unsigned (MSB, LSB, XLSB) */

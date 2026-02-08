@@ -1,4 +1,4 @@
-# Jobsheet Modul 05 - DAC & PWM
+# Jobsheet Modul 05: Menghidupkan Sinyal — DAC & PWM Output
 
 ## Praktikum Sistem Embedded
 

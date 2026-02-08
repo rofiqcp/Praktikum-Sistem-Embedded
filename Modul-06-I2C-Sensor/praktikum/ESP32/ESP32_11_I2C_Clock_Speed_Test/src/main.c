@@ -4,7 +4,9 @@
  *
  * Deskripsi: Menguji kecepatan I2C pada 100kHz dan 400kHz.
  *            Mengukur throughput transfer data untuk perbandingan.
- *            Menggunakan i2c_driver_delete() dan re-install untuk ganti kecepatan.
+ *            Menggunakan ESP-IDF v5.x I2C Master API (driver/i2c_master.h).
+ *            Kecepatan diatur per-device, jadi ganti speed dengan
+ *            i2c_master_bus_rm_device() + i2c_master_bus_add_device().
  *
  * Koneksi Pin:
  *   ESP32:    SDA=GPIO21, SCL=GPIO22
@@ -16,7 +18,7 @@
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 #include "esp_err.h"
 #include "esp_timer.h"
@@ -36,7 +38,6 @@ static const char *TAG = "I2C_SPEED";
 #endif
 
 #define I2C_PORT            I2C_NUM_0
-#define I2C_TIMEOUT_MS      1000
 
 /* ======================== Konfigurasi Perangkat ======================== */
 #define TARGET_ADDR         0x50    /* Alamat EEPROM AT24C32 */
@@ -49,6 +50,10 @@ static const uint32_t test_speeds[] = {100000, 400000};
 static const char *speed_names[] = {"100 kHz (Standard)", "400 kHz (Fast)"};
 #define NUM_SPEEDS          (sizeof(test_speeds) / sizeof(test_speeds[0]))
 
+/* Handle I2C bus dan device */
+static i2c_master_bus_handle_t bus_handle;
+static i2c_master_dev_handle_t dev_handle;
+
 /* ======================== Hasil Pengujian ======================== */
 typedef struct {
     uint32_t speed_hz;          /* Kecepatan clock I2C */
@@ -60,83 +65,58 @@ typedef struct {
     uint32_t fail_count;        /* Jumlah transaksi gagal */
 } speed_test_result_t;
 
-/* ======================== Inisialisasi I2C Master ======================== */
-static esp_err_t i2c_master_init(uint32_t freq_hz)
+/* ======================== Inisialisasi I2C Master Bus ======================== */
+static esp_err_t i2c_bus_init(void)
 {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_PORT,
         .sda_io_num = I2C_SDA_PIN,
         .scl_io_num = I2C_SCL_PIN,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = freq_hz,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
 
-    esp_err_t err = i2c_param_config(I2C_PORT, &conf);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Gagal konfigurasi I2C: %s", esp_err_to_name(err));
-        return err;
-    }
-
-    err = i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Gagal install driver I2C: %s", esp_err_to_name(err));
-    }
-    return err;
+    return i2c_new_master_bus(&bus_config, &bus_handle);
 }
 
-/* ======================== Tulis Register I2C ======================== */
-static esp_err_t i2c_write_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t len)
+/* ======================== Tambah Device dengan Kecepatan Tertentu ======================== */
+static esp_err_t i2c_add_device(uint32_t freq_hz)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg_addr, true);
-    if (data != NULL && len > 0) {
-        i2c_master_write(cmd, data, len, true);
-    }
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
+    i2c_device_config_t dev_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = TARGET_ADDR,
+        .scl_speed_hz = freq_hz,
+    };
+
+    return i2c_master_bus_add_device(bus_handle, &dev_cfg, &dev_handle);
 }
 
 /* ======================== Baca Register I2C ======================== */
-static esp_err_t i2c_read_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t len)
+static esp_err_t i2c_read_reg(uint8_t reg_addr, uint8_t *data, size_t len)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg_addr, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
-    if (len > 1) {
-        i2c_master_read(cmd, data, len - 1, I2C_MASTER_ACK);
-    }
-    i2c_master_read_byte(cmd, data + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
+    return i2c_master_transmit_receive(dev_handle, &reg_addr, 1, data, len, -1);
 }
 
 /* ======================== Ganti Kecepatan I2C ======================== */
 static esp_err_t i2c_change_speed(uint32_t new_freq_hz)
 {
-    ESP_LOGI(TAG, "Menghapus driver I2C lama...");
-    esp_err_t err = i2c_driver_delete(I2C_PORT);
+    ESP_LOGI(TAG, "Menghapus device I2C lama...");
+
+    /* Hapus device lama (kecepatan diatur per-device pada API baru) */
+    esp_err_t err = i2c_master_bus_rm_device(dev_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Gagal hapus driver: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Gagal hapus device: %s", esp_err_to_name(err));
         return err;
     }
 
-    /* Tunggu sebentar sebelum inisialisasi ulang */
+    /* Tunggu sebentar sebelum menambah device baru */
     vTaskDelay(pdMS_TO_TICKS(100));
 
-    ESP_LOGI(TAG, "Inisialisasi ulang I2C pada %lu Hz...", (unsigned long)new_freq_hz);
-    err = i2c_master_init(new_freq_hz);
+    ESP_LOGI(TAG, "Menambah device baru pada %lu Hz...", (unsigned long)new_freq_hz);
+    err = i2c_add_device(new_freq_hz);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Gagal inisialisasi I2C baru: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Gagal menambah device baru: %s", esp_err_to_name(err));
         return err;
     }
 
@@ -163,7 +143,7 @@ static void run_speed_test(uint32_t speed_hz, speed_test_result_t *result)
     ESP_LOGI(TAG, "========================================");
 
     /* Verifikasi perangkat tersedia */
-    esp_err_t err = i2c_read_reg(TARGET_ADDR, TEST_REGISTER, read_buf, 1);
+    esp_err_t err = i2c_read_reg(TEST_REGISTER, read_buf, 1);
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "Perangkat 0x%02X tidak merespons, menggunakan dummy read", TARGET_ADDR);
     }
@@ -176,7 +156,7 @@ static void run_speed_test(uint32_t speed_hz, speed_test_result_t *result)
 
         /* Baca BULK_READ_SIZE byte dari perangkat */
         uint8_t reg = (uint8_t)((TEST_REGISTER + (i * BULK_READ_SIZE)) & 0xFF);
-        err = i2c_read_reg(TARGET_ADDR, reg, read_buf, BULK_READ_SIZE);
+        err = i2c_read_reg(reg, read_buf, BULK_READ_SIZE);
 
         iter_end = esp_timer_get_time();
 
@@ -280,7 +260,7 @@ static void speed_test_task(void *pvParameters)
             ESP_LOGI(TAG, "\n--- Test %d/%d: %s ---",
                      (int)(i + 1), (int)NUM_SPEEDS, speed_names[i]);
 
-            /* Ganti kecepatan I2C */
+            /* Ganti kecepatan I2C (hapus device lama, tambah device baru) */
             esp_err_t err = i2c_change_speed(test_speeds[i]);
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Gagal ganti kecepatan ke %lu Hz!",
@@ -316,9 +296,13 @@ void app_main(void)
     ESP_LOGI(TAG, "SDA=GPIO%d, SCL=GPIO%d", I2C_SDA_PIN, I2C_SCL_PIN);
     ESP_LOGI(TAG, "Target: 0x%02X, Bulk size: %d byte", TARGET_ADDR, BULK_READ_SIZE);
 
-    /* Inisialisasi I2C master dengan kecepatan standar */
-    ESP_ERROR_CHECK(i2c_master_init(100000));
-    ESP_LOGI(TAG, "I2C master berhasil diinisialisasi (100 kHz)");
+    /* Inisialisasi I2C master bus */
+    ESP_ERROR_CHECK(i2c_bus_init());
+    ESP_LOGI(TAG, "I2C master bus berhasil diinisialisasi");
+
+    /* Tambah device awal dengan kecepatan standar 100kHz */
+    ESP_ERROR_CHECK(i2c_add_device(100000));
+    ESP_LOGI(TAG, "Device 0x%02X ditambahkan (100 kHz)", TARGET_ADDR);
 
     printf("HDR,speed_hz,total_bytes,total_time_us,throughput_bps,avg_latency_us,success,fail\n");
 

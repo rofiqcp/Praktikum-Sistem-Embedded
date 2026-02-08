@@ -26,28 +26,26 @@
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/adc.h"
-#include "esp_adc_cal.h"
+#include "esp_adc/adc_oneshot.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
 #include "esp_log.h"
 
 static const char *TAG = "ADC_STATS";
 
 /* Konfigurasi ADC */
 #if CONFIG_IDF_TARGET_ESP32
-    #define ADC_CHANNEL     ADC1_CHANNEL_6
+    #define ADC_CHANNEL     ADC_CHANNEL_6
     #define ADC_GPIO_NUM    34
 #elif CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
-    #define ADC_CHANNEL     ADC1_CHANNEL_3
+    #define ADC_CHANNEL     ADC_CHANNEL_3
     #define ADC_GPIO_NUM    4
 #else
-    #define ADC_CHANNEL     ADC1_CHANNEL_6
+    #define ADC_CHANNEL     ADC_CHANNEL_6
     #define ADC_GPIO_NUM    34
 #endif
 
-#define ADC_WIDTH       ADC_WIDTH_BIT_12
-#define ADC_ATTEN       ADC_ATTEN_DB_11
-#define ADC_UNIT        ADC_UNIT_1
-#define DEFAULT_VREF    1100
+#define ADC_ATTEN       ADC_ATTEN_DB_12
 
 /* Konfigurasi analisis */
 #define NUM_SAMPLES     100     /* Jumlah sampel per analisis */
@@ -57,8 +55,52 @@ static const char *TAG = "ADC_STATS";
 /* Interval antar batch analisis (ms) */
 #define ANALYSIS_INTERVAL_MS    3000
 
-/* Variabel kalibrasi */
-static esp_adc_cal_characteristics_t *adc_chars;
+/* Handle ADC dan kalibrasi */
+static adc_oneshot_unit_handle_t adc_handle;
+static adc_cali_handle_t cali_handle = NULL;
+static bool cali_ok = false;
+
+/**
+ * @brief Inisialisasi kalibrasi ADC
+ * 
+ * Menggunakan curve fitting (ESP32, ESP32S2) atau line fitting (ESP32C3, dll.)
+ * secara otomatis berdasarkan dukungan platform.
+ * 
+ * @return true jika kalibrasi berhasil
+ */
+static bool adc_calibration_init(void)
+{
+    esp_err_t ret;
+
+#if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
+    ESP_LOGI(TAG, "Kalibrasi: menggunakan Curve Fitting");
+    adc_cali_curve_fitting_config_t cali_config = {
+        .unit_id  = ADC_UNIT_1,
+        .atten    = ADC_ATTEN,
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+    };
+    ret = adc_cali_create_scheme_curve_fitting(&cali_config, &cali_handle);
+#elif ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
+    ESP_LOGI(TAG, "Kalibrasi: menggunakan Line Fitting");
+    adc_cali_line_fitting_config_t cali_config = {
+        .unit_id  = ADC_UNIT_1,
+        .atten    = ADC_ATTEN,
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+    };
+    ret = adc_cali_create_scheme_line_fitting(&cali_config, &cali_handle);
+#else
+    ESP_LOGW(TAG, "Kalibrasi tidak didukung pada platform ini");
+    return false;
+#endif
+
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "Kalibrasi ADC berhasil");
+        return true;
+    } else {
+        ESP_LOGW(TAG, "Kalibrasi ADC gagal: %s", esp_err_to_name(ret));
+        return false;
+    }
+}
 
 /**
  * @brief Struktur untuk menyimpan hasil analisis statistik
@@ -94,7 +136,7 @@ static void collect_and_analyze(stats_result_t *result)
 {
     /* ====== PENGUMPULAN SAMPEL ====== */
     for (int i = 0; i < NUM_SAMPLES; i++) {
-        result->samples[i] = adc1_get_raw(ADC_CHANNEL);
+        adc_oneshot_read(adc_handle, ADC_CHANNEL, &result->samples[i]);
         vTaskDelay(pdMS_TO_TICKS(2));  /* Delay kecil antar sampel */
     }
 
@@ -188,13 +230,16 @@ static void print_analysis(stats_result_t *result, int batch_num)
     printf("║ SNR            : %-10.2f dB                         ║\n", result->snr_db);
     printf("╠══════════════════════════════════════════════════════════╣\n");
 
-    /* Konversi tegangan */
-    uint32_t v_mean = esp_adc_cal_raw_to_voltage((int)result->mean, adc_chars);
-    uint32_t v_min = esp_adc_cal_raw_to_voltage(result->min_val, adc_chars);
-    uint32_t v_max = esp_adc_cal_raw_to_voltage(result->max_val, adc_chars);
-    printf("║ Tegangan Mean  : %-6lu mV                             ║\n", (unsigned long)v_mean);
-    printf("║ Tegangan Min   : %-6lu mV                             ║\n", (unsigned long)v_min);
-    printf("║ Tegangan Max   : %-6lu mV                             ║\n", (unsigned long)v_max);
+    /* Konversi tegangan menggunakan kalibrasi baru */
+    int v_mean = 0, v_min = 0, v_max = 0;
+    if (cali_ok) {
+        adc_cali_raw_to_voltage(cali_handle, (int)result->mean, &v_mean);
+        adc_cali_raw_to_voltage(cali_handle, result->min_val, &v_min);
+        adc_cali_raw_to_voltage(cali_handle, result->max_val, &v_max);
+    }
+    printf("║ Tegangan Mean  : %-6d mV                             ║\n", v_mean);
+    printf("║ Tegangan Min   : %-6d mV                             ║\n", v_min);
+    printf("║ Tegangan Max   : %-6d mV                             ║\n", v_max);
     printf("╠══════════════════════════════════════════════════════════╣\n");
 
     /* Histogram */
@@ -254,18 +299,27 @@ static void print_analysis(stats_result_t *result, int batch_num)
 
 void app_main(void)
 {
-    /* ====== INISIALISASI ADC ====== */
-    adc1_config_width(ADC_WIDTH);
-    adc1_config_channel_atten(ADC_CHANNEL, ADC_ATTEN);
+    /* ====== INISIALISASI ADC ONESHOT ====== */
+    adc_oneshot_unit_init_cfg_t init_cfg = {
+        .unit_id = ADC_UNIT_1,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_cfg, &adc_handle));
 
-    adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
-    esp_adc_cal_characterize(ADC_UNIT, ADC_ATTEN, ADC_WIDTH, DEFAULT_VREF, adc_chars);
+    adc_oneshot_chan_cfg_t chan_cfg = {
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+        .atten    = ADC_ATTEN,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_CHANNEL, &chan_cfg));
+
+    /* Inisialisasi kalibrasi */
+    cali_ok = adc_calibration_init();
 
     ESP_LOGI(TAG, "========================================");
     ESP_LOGI(TAG, "  ADC Statistical Analysis");
     ESP_LOGI(TAG, "  Channel : ADC1_CH%d (GPIO%d)", ADC_CHANNEL, ADC_GPIO_NUM);
     ESP_LOGI(TAG, "  Sampel  : %d per batch", NUM_SAMPLES);
     ESP_LOGI(TAG, "  Bins    : %d", NUM_BINS);
+    ESP_LOGI(TAG, "  Kalibrasi: %s", cali_ok ? "Ya" : "Tidak");
     ESP_LOGI(TAG, "========================================");
 
     stats_result_t result;

@@ -4,9 +4,10 @@
  *
  * Deskripsi: Deteksi dan recovery dari error I2C.
  *            - Deteksi SDA stuck (bus busy)
- *            - Recovery: toggle SCL 9x via GPIO, kirim STOP
+ *            - Recovery: i2c_master_bus_reset() pada API baru
  *            - Retry logic (max 3 percobaan)
  *            - Penanganan NAK dan timeout error
+ *            Menggunakan ESP-IDF v5.x I2C Master API (driver/i2c_master.h)
  *
  * Koneksi Pin:
  *   ESP32:    SDA=GPIO21, SCL=GPIO22
@@ -17,7 +18,7 @@
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_err.h"
@@ -39,13 +40,11 @@ static const char *TAG = "I2C_RECOVERY";
 
 #define I2C_PORT            I2C_NUM_0
 #define I2C_FREQ_HZ         100000
-#define I2C_TIMEOUT_MS      1000
 
 /* ======================== Konfigurasi Recovery ======================== */
 #define TARGET_ADDR         0x76    /* Alamat perangkat target (BMP280) */
 #define TARGET_REG          0xD0    /* Register untuk test read (Chip ID) */
 #define MAX_RETRIES         3       /* Maksimum percobaan ulang */
-#define SCL_TOGGLE_COUNT    9       /* Jumlah toggle SCL untuk recovery */
 #define INVALID_ADDR        0x7E    /* Alamat tidak valid untuk simulasi NACK */
 
 /* ======================== Statistik Error ======================== */
@@ -62,68 +61,74 @@ typedef struct {
 } error_stats_t;
 
 static error_stats_t stats = {0};
-static bool i2c_driver_installed = false;
+
+/* Handle I2C bus dan device */
+static i2c_master_bus_handle_t bus_handle;
+static i2c_master_dev_handle_t target_dev_handle;
+static i2c_master_dev_handle_t invalid_dev_handle;
 
 /* ======================== Inisialisasi I2C Master ======================== */
 static esp_err_t i2c_master_init(void)
 {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_PORT,
         .sda_io_num = I2C_SDA_PIN,
         .scl_io_num = I2C_SCL_PIN,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_FREQ_HZ,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
 
-    esp_err_t err = i2c_param_config(I2C_PORT, &conf);
+    esp_err_t err = i2c_new_master_bus(&bus_config, &bus_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Gagal konfigurasi I2C: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Gagal membuat I2C master bus: %s", esp_err_to_name(err));
         return err;
     }
 
-    err = i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
+    /* Tambahkan device target (BMP280) ke bus */
+    i2c_device_config_t target_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = TARGET_ADDR,
+        .scl_speed_hz = I2C_FREQ_HZ,
+    };
+    err = i2c_master_bus_add_device(bus_handle, &target_cfg, &target_dev_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Gagal install driver I2C: %s", esp_err_to_name(err));
-    } else {
-        i2c_driver_installed = true;
+        ESP_LOGE(TAG, "Gagal menambah device target: %s", esp_err_to_name(err));
+        return err;
     }
-    return err;
+
+    /* Tambahkan device invalid untuk simulasi NACK */
+    i2c_device_config_t invalid_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = INVALID_ADDR,
+        .scl_speed_hz = I2C_FREQ_HZ,
+    };
+    err = i2c_master_bus_add_device(bus_handle, &invalid_cfg, &invalid_dev_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Gagal menambah device invalid: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    return ESP_OK;
 }
 
 /* ======================== Tulis Register I2C ======================== */
-static esp_err_t i2c_write_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t len)
+static esp_err_t i2c_write_reg(i2c_master_dev_handle_t dev_handle, uint8_t reg_addr,
+                                uint8_t *data, size_t len)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg_addr, true);
+    uint8_t write_buf[1 + len];
+    write_buf[0] = reg_addr;
     if (data != NULL && len > 0) {
-        i2c_master_write(cmd, data, len, true);
+        memcpy(&write_buf[1], data, len);
     }
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
+    return i2c_master_transmit(dev_handle, write_buf, 1 + len, -1);
 }
 
 /* ======================== Baca Register I2C ======================== */
-static esp_err_t i2c_read_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t len)
+static esp_err_t i2c_read_reg(i2c_master_dev_handle_t dev_handle, uint8_t reg_addr,
+                               uint8_t *data, size_t len)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg_addr, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
-    if (len > 1) {
-        i2c_master_read(cmd, data, len - 1, I2C_MASTER_ACK);
-    }
-    i2c_master_read_byte(cmd, data + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
+    return i2c_master_transmit_receive(dev_handle, &reg_addr, 1, data, len, -1);
 }
 
 /* ======================== Cek Status Bus I2C ======================== */
@@ -133,7 +138,6 @@ static bool i2c_bus_is_busy(void)
      * Cek apakah SDA dalam keadaan LOW (stuck).
      * Jika SDA rendah saat tidak ada transaksi, bus mungkin stuck.
      */
-    /* Sementara matikan driver untuk baca langsung GPIO */
     int sda_level = gpio_get_level(I2C_SDA_PIN);
     int scl_level = gpio_get_level(I2C_SCL_PIN);
 
@@ -155,100 +159,31 @@ static esp_err_t i2c_bus_recovery(void)
     stats.recovery_attempts++;
 
     /*
-     * Prosedur recovery:
-     * 1. Hapus driver I2C
-     * 2. Konfigurasi SCL sebagai GPIO output
-     * 3. Konfigurasi SDA sebagai GPIO input (dengan pull-up)
-     * 4. Toggle SCL 9 kali (untuk melepas slave yang stuck)
-     * 5. Kirim kondisi STOP manual
-     * 6. Inisialisasi ulang driver I2C
+     * Prosedur recovery menggunakan API baru:
+     * 1. Panggil i2c_master_bus_reset() untuk reset bus
+     *    (API baru menangani toggle SCL dan STOP secara internal)
+     * 2. Tunggu stabilisasi
+     * 3. Verifikasi recovery berhasil dengan test read
      */
 
-    /* Step 1: Hapus driver I2C */
-    if (i2c_driver_installed) {
-        ESP_LOGI(TAG, "[1/6] Menghapus driver I2C...");
-        esp_err_t err = i2c_driver_delete(I2C_PORT);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Gagal hapus driver: %s", esp_err_to_name(err));
-            return err;
-        }
-        i2c_driver_installed = false;
-    }
-
-    /* Step 2: Konfigurasi SCL sebagai GPIO output */
-    ESP_LOGI(TAG, "[2/6] Konfigurasi SCL (GPIO%d) sebagai output...", I2C_SCL_PIN);
-    gpio_config_t scl_conf = {
-        .pin_bit_mask = (1ULL << I2C_SCL_PIN),
-        .mode = GPIO_MODE_OUTPUT_OD,  /* Open-drain seperti I2C */
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&scl_conf);
-
-    /* Step 3: Konfigurasi SDA sebagai GPIO input */
-    ESP_LOGI(TAG, "[3/6] Konfigurasi SDA (GPIO%d) sebagai input...", I2C_SDA_PIN);
-    gpio_config_t sda_conf = {
-        .pin_bit_mask = (1ULL << I2C_SDA_PIN),
-        .mode = GPIO_MODE_OUTPUT_OD,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&sda_conf);
-    gpio_set_level(I2C_SDA_PIN, 1);  /* Lepas SDA (high) */
-
-    /* Step 4: Toggle SCL 9 kali */
-    ESP_LOGI(TAG, "[4/6] Toggle SCL %d kali untuk melepas slave...", SCL_TOGGLE_COUNT);
-    for (int i = 0; i < SCL_TOGGLE_COUNT; i++) {
-        gpio_set_level(I2C_SCL_PIN, 0);  /* SCL LOW */
-        esp_rom_delay_us(5);              /* Tahan 5us */
-        gpio_set_level(I2C_SCL_PIN, 1);  /* SCL HIGH */
-        esp_rom_delay_us(5);              /* Tahan 5us */
-
-        /* Cek apakah SDA sudah lepas */
-        int sda = gpio_get_level(I2C_SDA_PIN);
-        ESP_LOGI(TAG, "  Toggle %d: SCL↑ SDA=%d", i + 1, sda);
-
-        if (sda == 1 && i > 0) {
-            ESP_LOGI(TAG, "  SDA sudah HIGH setelah %d toggle!", i + 1);
-            break;
-        }
-    }
-
-    /* Step 5: Kirim kondisi STOP manual */
-    ESP_LOGI(TAG, "[5/6] Mengirim kondisi STOP manual...");
-    /* STOP = SDA LOW->HIGH saat SCL HIGH */
-    gpio_set_level(I2C_SDA_PIN, 0);  /* SDA LOW */
-    esp_rom_delay_us(5);
-    gpio_set_level(I2C_SCL_PIN, 1);  /* SCL HIGH */
-    esp_rom_delay_us(5);
-    gpio_set_level(I2C_SDA_PIN, 1);  /* SDA HIGH (STOP condition) */
-    esp_rom_delay_us(5);
-
-    /* Verifikasi SDA sudah lepas */
-    int sda_level = gpio_get_level(I2C_SDA_PIN);
-    int scl_level = gpio_get_level(I2C_SCL_PIN);
-    ESP_LOGI(TAG, "  Setelah STOP: SDA=%d, SCL=%d", sda_level, scl_level);
-
-    /* Step 6: Inisialisasi ulang driver I2C */
-    ESP_LOGI(TAG, "[6/6] Inisialisasi ulang driver I2C...");
-    vTaskDelay(pdMS_TO_TICKS(100));
-
-    /* Reset konfigurasi GPIO sebelum re-init I2C */
-    gpio_reset_pin(I2C_SDA_PIN);
-    gpio_reset_pin(I2C_SCL_PIN);
-
-    esp_err_t err = i2c_master_init();
+    /* Step 1: Reset bus I2C menggunakan API baru */
+    ESP_LOGI(TAG, "[1/3] Melakukan reset bus I2C via i2c_master_bus_reset()...");
+    ESP_LOGI(TAG, "  (API baru menangani toggle SCL 9x dan STOP secara internal)");
+    esp_err_t err = i2c_master_bus_reset(bus_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Gagal inisialisasi ulang I2C: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Gagal reset bus: %s", esp_err_to_name(err));
         return err;
     }
+    ESP_LOGI(TAG, "  Reset bus berhasil dikirim");
 
-    /* Verifikasi recovery berhasil */
-    vTaskDelay(pdMS_TO_TICKS(50));
+    /* Step 2: Tunggu stabilisasi */
+    ESP_LOGI(TAG, "[2/3] Menunggu stabilisasi...");
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    /* Step 3: Verifikasi recovery berhasil */
+    ESP_LOGI(TAG, "[3/3] Verifikasi recovery dengan test read...");
     uint8_t test_data = 0;
-    err = i2c_read_reg(TARGET_ADDR, TARGET_REG, &test_data, 1);
+    err = i2c_read_reg(target_dev_handle, TARGET_REG, &test_data, 1);
     if (err == ESP_OK) {
         ESP_LOGI(TAG, "Recovery BERHASIL! Test read: 0x%02X", test_data);
         stats.recovery_success++;
@@ -267,15 +202,15 @@ static esp_err_t i2c_bus_recovery(void)
 }
 
 /* ======================== Baca dengan Retry Logic ======================== */
-static esp_err_t i2c_read_with_retry(uint8_t dev_addr, uint8_t reg_addr,
-                                      uint8_t *data, size_t len)
+static esp_err_t i2c_read_with_retry(i2c_master_dev_handle_t dev_handle, uint8_t reg_addr,
+                                      uint8_t *data, size_t len, uint8_t dev_addr_log)
 {
     esp_err_t err;
 
     for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
         stats.total_transactions++;
 
-        err = i2c_read_reg(dev_addr, reg_addr, data, len);
+        err = i2c_read_reg(dev_handle, reg_addr, data, len);
 
         if (err == ESP_OK) {
             stats.success_count++;
@@ -305,7 +240,7 @@ static esp_err_t i2c_read_with_retry(uint8_t dev_addr, uint8_t reg_addr,
 
         ESP_LOGW(TAG, "Percobaan %d/%d GAGAL: %s (%s)",
                  attempt + 1, MAX_RETRIES, error_type, esp_err_to_name(err));
-        printf("ERROR,%s,0x%02X,0x%02X,%d\n", error_type, dev_addr, reg_addr, attempt + 1);
+        printf("ERROR,%s,0x%02X,0x%02X,%d\n", error_type, dev_addr_log, reg_addr, attempt + 1);
 
         /* Tunggu sebelum retry */
         vTaskDelay(pdMS_TO_TICKS(50 * (attempt + 1))); /* Backoff eksponensial sederhana */
@@ -318,7 +253,7 @@ static esp_err_t i2c_read_with_retry(uint8_t dev_addr, uint8_t reg_addr,
     }
 
     ESP_LOGE(TAG, "Semua %d percobaan GAGAL untuk addr 0x%02X reg 0x%02X",
-             MAX_RETRIES, dev_addr, reg_addr);
+             MAX_RETRIES, dev_addr_log, reg_addr);
     return err;
 }
 
@@ -371,7 +306,7 @@ static void recovery_task(void *pvParameters)
 
         /* Test 1: Baca normal dari perangkat yang valid */
         ESP_LOGI(TAG, "--- Test 1: Pembacaan normal (addr=0x%02X) ---", TARGET_ADDR);
-        esp_err_t err = i2c_read_with_retry(TARGET_ADDR, TARGET_REG, data, 1);
+        esp_err_t err = i2c_read_with_retry(target_dev_handle, TARGET_REG, data, 1, TARGET_ADDR);
         if (err == ESP_OK) {
             ESP_LOGI(TAG, "Berhasil baca: 0x%02X", data[0]);
             printf("DATA,NORMAL,0x%02X,0x%02X,OK,0x%02X\n",
@@ -382,7 +317,7 @@ static void recovery_task(void *pvParameters)
 
         /* Test 2: Baca dari alamat tidak valid (simulasi NACK) */
         ESP_LOGI(TAG, "--- Test 2: Simulasi NACK (addr=0x%02X) ---", INVALID_ADDR);
-        err = i2c_read_with_retry(INVALID_ADDR, 0x00, data, 1);
+        err = i2c_read_with_retry(invalid_dev_handle, 0x00, data, 1, INVALID_ADDR);
         if (err != ESP_OK) {
             ESP_LOGW(TAG, "Error yang diharapkan: NACK pada alamat tidak valid");
             printf("DATA,NACK_TEST,0x%02X,0x00,NACK,N/A\n", INVALID_ADDR);
@@ -406,7 +341,7 @@ static void recovery_task(void *pvParameters)
 
         /* Test 4: Multi-byte read dengan retry */
         ESP_LOGI(TAG, "--- Test 4: Multi-byte read ---");
-        err = i2c_read_with_retry(TARGET_ADDR, 0x88, data, 4);
+        err = i2c_read_with_retry(target_dev_handle, 0x88, data, 4, TARGET_ADDR);
         if (err == ESP_OK) {
             ESP_LOGI(TAG, "Berhasil baca 4 byte: 0x%02X 0x%02X 0x%02X 0x%02X",
                      data[0], data[1], data[2], data[3]);

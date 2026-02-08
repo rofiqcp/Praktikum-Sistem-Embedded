@@ -1,4 +1,4 @@
-# 📏 Rubrik Penilaian Project — Modul 06: I2C & Sensor
+# 📊 Rubrik Penilaian Project — Modul 06: Komunikasi Cerdas — I2C & Sensor
 
 ## 🎯 Project: Weather Station I2C Multi-Sensor dengan Data Logging
 

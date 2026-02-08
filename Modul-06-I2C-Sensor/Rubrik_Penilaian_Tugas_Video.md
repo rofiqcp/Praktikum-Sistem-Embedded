@@ -1,4 +1,4 @@
-# 🎬 Rubrik Penilaian Tugas Video — Modul 06: I2C & Sensor
+# 🎥 Rubrik Penilaian Tugas Video — Modul 06: Komunikasi Cerdas — I2C & Sensor
 
 ## 📋 Deskripsi Tugas
 

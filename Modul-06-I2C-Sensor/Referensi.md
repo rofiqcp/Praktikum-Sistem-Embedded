@@ -1,4 +1,4 @@
-# 📚 Referensi Modul 06: I2C & Sensor
+# 📚 Referensi Modul 06: Komunikasi Cerdas Antar-Chip — I2C & Sensor
 
 ## 📖 Referensi Utama
 

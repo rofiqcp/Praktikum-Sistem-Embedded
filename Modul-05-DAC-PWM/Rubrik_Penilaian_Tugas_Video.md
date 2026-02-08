@@ -1,4 +1,4 @@
-# 🎥 Rubrik Penilaian Tugas Video - Modul 05: DAC & PWM (Digital-to-Analog Converter & Pulse Width Modulation)
+# 🎥 Rubrik Penilaian Tugas Video — Modul 05: Menghidupkan Sinyal — DAC & PWM
 
 ## 📋 Informasi Umum
 

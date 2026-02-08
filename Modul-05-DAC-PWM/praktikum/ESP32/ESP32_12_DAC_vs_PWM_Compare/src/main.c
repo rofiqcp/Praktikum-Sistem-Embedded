@@ -20,10 +20,11 @@
  *   - PWM2: GPIO17 → RC filter → ADC1_CH4 (GPIO5)
  *   (Membandingkan 2 konfigurasi RC filter berbeda)
  *
- * API yang digunakan:
- *   - dac_output_voltage()    : Output DAC
- *   - ledc_set_duty()         : Output PWM
- *   - adc1_get_raw()          : Baca kembali tegangan
+ * API yang digunakan (ESP-IDF v5.x):
+ *   - dac_output_voltage()         : Output DAC
+ *   - ledc_set_duty()              : Output PWM
+ *   - adc_oneshot_read()           : Baca kembali tegangan (new API)
+ *   - adc_cali_raw_to_voltage()    : Konversi ADC ke tegangan terkalibrasi
  * ==========================================================================
  */
 
@@ -31,7 +32,9 @@
 #include <math.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/adc.h"
+#include "esp_adc/adc_oneshot.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
 #include "driver/ledc.h"
 #include "esp_log.h"
 
@@ -43,16 +46,16 @@ static const char *TAG = "DAC_VS_PWM";
     #include "driver/dac.h"
     #define DAC_CHAN       DAC_CHANNEL_1     /* GPIO25 */
     #define DAC_GPIO      25
-    #define ADC_DAC_CH    ADC1_CHANNEL_6    /* GPIO34 - baca output DAC */
+    #define ADC_DAC_CH    ADC_CHANNEL_6     /* GPIO34 - baca output DAC */
     #define ADC_DAC_GPIO  34
-    #define ADC_PWM_CH    ADC1_CHANNEL_7    /* GPIO35 - baca output PWM */
+    #define ADC_PWM_CH    ADC_CHANNEL_7     /* GPIO35 - baca output PWM */
     #define ADC_PWM_GPIO  35
 #else
     #define HAS_DAC 0
     /* Tanpa DAC, bandingkan dua PWM dengan RC filter berbeda */
-    #define ADC_PWM1_CH   ADC1_CHANNEL_3   /* GPIO4 */
+    #define ADC_PWM1_CH   ADC_CHANNEL_3    /* GPIO4 */
     #define ADC_PWM1_GPIO 4
-    #define ADC_PWM2_CH   ADC1_CHANNEL_4   /* GPIO5 */
+    #define ADC_PWM2_CH   ADC_CHANNEL_4    /* GPIO5 */
     #define ADC_PWM2_GPIO 5
     #define PWM2_GPIO     17               /* PWM kedua pada GPIO17 */
 #endif
@@ -78,24 +81,82 @@ static const char *TAG = "DAC_VS_PWM";
 /* Delay per langkah (ms) - cukup lama agar RC filter stabil */
 #define STEP_DELAY_MS    200
 
+/* ADC oneshot handle dan calibration handle */
+static adc_oneshot_unit_handle_t adc_handle;
+static adc_cali_handle_t adc_cali_handle = NULL;
+static bool cali_enabled = false;
+
 /**
- * Inisialisasi ADC untuk pembacaan balik
+ * Inisialisasi kalibrasi ADC
+ */
+static bool adc_calibration_init(adc_unit_t unit, adc_atten_t atten, adc_cali_handle_t *out_handle)
+{
+    esp_err_t ret = ESP_FAIL;
+    adc_cali_handle_t handle = NULL;
+    bool calibrated = false;
+
+#if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
+    ESP_LOGI(TAG, "Kalibrasi: curve fitting");
+    adc_cali_curve_fitting_config_t cali_config = {
+        .unit_id  = unit,
+        .atten    = atten,
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+    };
+    ret = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
+    if (ret == ESP_OK) {
+        calibrated = true;
+    }
+#elif ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
+    ESP_LOGI(TAG, "Kalibrasi: line fitting");
+    adc_cali_line_fitting_config_t cali_config = {
+        .unit_id  = unit,
+        .atten    = atten,
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+    };
+    ret = adc_cali_create_scheme_line_fitting(&cali_config, &handle);
+    if (ret == ESP_OK) {
+        calibrated = true;
+    }
+#endif
+
+    *out_handle = handle;
+    if (!calibrated) {
+        ESP_LOGW(TAG, "Kalibrasi ADC tidak didukung, menggunakan konversi manual");
+    }
+    return calibrated;
+}
+
+/**
+ * Inisialisasi ADC oneshot untuk pembacaan balik
  */
 static void adc_init(void)
 {
-    adc1_config_width(ADC_WIDTH_BIT_12);
+    /* Inisialisasi ADC unit */
+    adc_oneshot_unit_init_cfg_t init_config = {
+        .unit_id = ADC_UNIT_1,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle));
+
+    /* Konfigurasi channel */
+    adc_oneshot_chan_cfg_t config = {
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+        .atten    = ADC_ATTEN_DB_12,
+    };
 
 #if HAS_DAC
-    adc1_config_channel_atten(ADC_DAC_CH, ADC_ATTEN_DB_12);
-    adc1_config_channel_atten(ADC_PWM_CH, ADC_ATTEN_DB_12);
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_DAC_CH, &config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_PWM_CH, &config));
     ESP_LOGI(TAG, "ADC dikonfigurasi: DAC→GPIO%d, PWM→GPIO%d",
              ADC_DAC_GPIO, ADC_PWM_GPIO);
 #else
-    adc1_config_channel_atten(ADC_PWM1_CH, ADC_ATTEN_DB_12);
-    adc1_config_channel_atten(ADC_PWM2_CH, ADC_ATTEN_DB_12);
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_PWM1_CH, &config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_PWM2_CH, &config));
     ESP_LOGI(TAG, "ADC dikonfigurasi: PWM1→GPIO%d, PWM2→GPIO%d",
              ADC_PWM1_GPIO, ADC_PWM2_GPIO);
 #endif
+
+    /* Inisialisasi kalibrasi */
+    cali_enabled = adc_calibration_init(ADC_UNIT_1, ADC_ATTEN_DB_12, &adc_cali_handle);
 }
 
 /**
@@ -105,7 +166,7 @@ static void pwm_init(void)
 {
     ledc_timer_config_t timer_conf = {
         .speed_mode      = LEDC_MODE,
-        .timer_num        = LEDC_TIMER,
+        .timer_num       = LEDC_TIMER,
         .duty_resolution = LEDC_DUTY_RES,
         .freq_hz         = LEDC_FREQUENCY,
         .clk_cfg         = LEDC_AUTO_CLK,
@@ -142,12 +203,35 @@ static void pwm_init(void)
 }
 
 /**
- * Konversi nilai ADC 12-bit ke tegangan (mV)
- * Menggunakan atenuasi 12dB: range ~0-3.3V
+ * Baca tegangan dari ADC channel (dalam mV)
+ * Menggunakan kalibrasi jika tersedia, jika tidak konversi manual.
  */
-static float adc_to_voltage(int raw)
+static float adc_read_voltage_mv(adc_channel_t channel)
 {
-    return (raw * 3300.0f) / 4095.0f;
+    int raw = 0;
+    ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, channel, &raw));
+
+    if (cali_enabled && adc_cali_handle != NULL) {
+        int voltage_mv = 0;
+        adc_cali_raw_to_voltage(adc_cali_handle, raw, &voltage_mv);
+        return (float)voltage_mv;
+    } else {
+        /* Fallback: konversi manual (atenuasi 12dB ~ 0-3.3V) */
+        return (raw * 3300.0f) / 4095.0f;
+    }
+}
+
+/**
+ * Baca tegangan rata-rata dari ADC channel (num_avg sampel)
+ */
+static float adc_read_avg_mv(adc_channel_t channel, int num_avg)
+{
+    float sum = 0;
+    for (int i = 0; i < num_avg; i++) {
+        sum += adc_read_voltage_mv(channel);
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
+    return sum / num_avg;
 }
 
 void app_main(void)
@@ -170,6 +254,11 @@ void app_main(void)
 #endif
 
     ESP_LOGI(TAG, "Langkah ramp: %d | Delay: %d ms/langkah", RAMP_STEPS, STEP_DELAY_MS);
+    if (cali_enabled) {
+        ESP_LOGI(TAG, "Kalibrasi ADC: AKTIF (hasil dalam mV terkalibrasi)");
+    } else {
+        ESP_LOGW(TAG, "Kalibrasi ADC: TIDAK AKTIF (konversi manual)");
+    }
     ESP_LOGI(TAG, "-------------------------------------------");
 
     /* Header tabel */
@@ -210,23 +299,15 @@ void app_main(void)
             vTaskDelay(pdMS_TO_TICKS(STEP_DELAY_MS));
 
             /* Baca ADC (rata-rata 16 sampel untuk akurasi) */
-            int adc_a_sum = 0, adc_b_sum = 0;
             int num_avg = 16;
-            for (int i = 0; i < num_avg; i++) {
+            float mv_a, mv_b;
 #if HAS_DAC
-                adc_a_sum += adc1_get_raw(ADC_DAC_CH);
-                adc_b_sum += adc1_get_raw(ADC_PWM_CH);
+            mv_a = adc_read_avg_mv(ADC_DAC_CH, num_avg);
+            mv_b = adc_read_avg_mv(ADC_PWM_CH, num_avg);
 #else
-                adc_a_sum += adc1_get_raw(ADC_PWM1_CH);
-                adc_b_sum += adc1_get_raw(ADC_PWM2_CH);
+            mv_a = adc_read_avg_mv(ADC_PWM1_CH, num_avg);
+            mv_b = adc_read_avg_mv(ADC_PWM2_CH, num_avg);
 #endif
-                vTaskDelay(pdMS_TO_TICKS(1));
-            }
-
-            int adc_a_raw = adc_a_sum / num_avg;
-            int adc_b_raw = adc_b_sum / num_avg;
-            float mv_a = adc_to_voltage(adc_a_raw);
-            float mv_b = adc_to_voltage(adc_b_raw);
 
             /* Hitung error (selisih dari target) */
             float err_a = mv_a - target_mv;

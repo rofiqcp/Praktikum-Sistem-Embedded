@@ -1,4 +1,4 @@
-# BAB 06: I2C Bus dan Sensor Integration
+# Modul 06: Komunikasi Cerdas Antar-Chip — I2C Bus & Sensor Integration
 
 ## 🎯 Capaian Pembelajaran
 

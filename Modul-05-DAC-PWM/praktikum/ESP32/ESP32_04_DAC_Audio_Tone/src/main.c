@@ -10,14 +10,21 @@
  *   Timer berkecepatan tinggi (~8kHz sample rate) digunakan untuk
  *   menghasilkan sinyal audio yang halus.
  *
+ *   CATATAN ISR-SAFETY:
+ *   dac_output_voltage() TIDAK ISR-safe, sehingga tidak boleh dipanggil
+ *   langsung dari callback timer (konteks ISR). Solusinya: ISR mengirim
+ *   notifikasi ke task FreeRTOS berprioritas tinggi yang melakukan
+ *   output DAC yang sebenarnya.
+ *
  * Koneksi Hardware:
  *   - ESP32: DAC1 = GPIO25 → Speaker/Buzzer (melalui amplifier)
  *   - GND speaker → GND ESP32
  *   - ESP32-S2/S3: GPIO18 (PWM) → Speaker/Buzzer
  *
  * API yang digunakan:
- *   - dac_output_voltage()  : Output nilai analog
- *   - esp_timer             : Timer berkecepatan tinggi
+ *   - dac_output_voltage()       : Output nilai analog (dari task, BUKAN ISR)
+ *   - esp_timer                  : Timer berkecepatan tinggi
+ *   - xTaskNotifyFromISR()       : Notifikasi task dari ISR (ISR-safe)
  * ==========================================================================
  */
 
@@ -63,6 +70,9 @@ static volatile float phase_accumulator = 0.0f;
 static volatile float phase_increment = 0.0f;
 static volatile bool tone_active = true;
 
+/* Handle task DAC output - task ini melakukan output DAC yang sebenarnya */
+static TaskHandle_t dac_task_handle = NULL;
+
 /**
  * Membuat tabel lookup sinus
  */
@@ -87,36 +97,63 @@ static void set_tone_frequency(float freq_hz)
 
 /**
  * Callback timer audio - dipanggil setiap periode sampling
- * Menggunakan phase accumulator untuk menghasilkan frekuensi yang tepat
+ *
+ * PENTING: Fungsi ini berjalan di konteks ISR, sehingga TIDAK boleh
+ * memanggil dac_output_voltage() secara langsung (tidak ISR-safe).
+ * Sebagai gantinya, kita mengirim notifikasi ke task DAC.
  */
 static void IRAM_ATTR audio_timer_callback(void *arg)
 {
-    if (!tone_active) {
-        /* Senyap: output nilai tengah */
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    /* Kirim notifikasi ke task DAC agar segera output nilai berikutnya */
+    vTaskNotifyGiveFromISR(dac_task_handle, &xHigherPriorityTaskWoken);
+
+    /* Jika task berprioritas lebih tinggi terbangun, minta context switch */
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+/**
+ * Task DAC output - berjalan di konteks task (BUKAN ISR)
+ * Menunggu notifikasi dari timer ISR, lalu melakukan output DAC.
+ * Menggunakan phase accumulator untuk menghasilkan frekuensi yang tepat.
+ *
+ * Task ini berprioritas tinggi (configMAX_PRIORITIES - 1) agar
+ * segera dijalankan setelah ISR selesai, menjaga timing audio yang akurat.
+ */
+static void dac_output_task(void *arg)
+{
+    while (1) {
+        /* Tunggu notifikasi dari timer ISR */
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+        if (!tone_active) {
+            /* Senyap: output nilai tengah */
 #if HAS_DAC
-        dac_output_voltage(DAC_CHAN, 128);
+            dac_output_voltage(DAC_CHAN, 128);
 #else
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL, 128);
+            ledc_set_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL, 128);
+            ledc_update_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL);
+#endif
+            continue;
+        }
+
+        /* Ambil nilai dari tabel sinus berdasarkan fase */
+        uint8_t index = (uint8_t)((int)phase_accumulator % SINE_TABLE_SIZE);
+        uint8_t value = sine_table[index];
+
+#if HAS_DAC
+        dac_output_voltage(DAC_CHAN, value);
+#else
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL, value);
         ledc_update_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL);
 #endif
-        return;
-    }
 
-    /* Ambil nilai dari tabel sinus berdasarkan fase */
-    uint8_t index = (uint8_t)((int)phase_accumulator % SINE_TABLE_SIZE);
-    uint8_t value = sine_table[index];
-
-#if HAS_DAC
-    dac_output_voltage(DAC_CHAN, value);
-#else
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL, value);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL);
-#endif
-
-    /* Update phase accumulator */
-    phase_accumulator += phase_increment;
-    if (phase_accumulator >= SINE_TABLE_SIZE) {
-        phase_accumulator -= SINE_TABLE_SIZE;
+        /* Update phase accumulator */
+        phase_accumulator += phase_increment;
+        if (phase_accumulator >= SINE_TABLE_SIZE) {
+            phase_accumulator -= SINE_TABLE_SIZE;
+        }
     }
 }
 
@@ -165,6 +202,16 @@ void app_main(void)
 
     ESP_LOGI(TAG, "Sample rate : %d Hz", SAMPLE_RATE);
     ESP_LOGI(TAG, "Periode     : %d us", TIMER_PERIOD_US);
+
+    /*
+     * Buat task DAC output dengan prioritas tinggi.
+     * Task ini menunggu notifikasi dari ISR timer dan melakukan
+     * output DAC yang sebenarnya (karena dac_output_voltage()
+     * TIDAK ISR-safe).
+     */
+    xTaskCreate(dac_output_task, "dac_out", 2048,
+                NULL, configMAX_PRIORITIES - 1, &dac_task_handle);
+    ESP_LOGI(TAG, "Task DAC output dibuat (prioritas tinggi)");
 
     /* Buat dan mulai timer audio */
     esp_timer_handle_t audio_timer;

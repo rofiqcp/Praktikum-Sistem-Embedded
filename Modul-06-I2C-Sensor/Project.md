@@ -1,4 +1,4 @@
-# 🎯 Project Modul 06: Weather Station I2C Multi-Sensor dengan Data Logging
+# 🎯 Project Modul 06: Weather Station I2C Multi-Sensor & Data Logging
 
 ## 📋 Deskripsi Project
 

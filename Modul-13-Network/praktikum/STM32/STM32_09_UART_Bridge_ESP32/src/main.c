@@ -13,8 +13,7 @@
  *   STX(0x02) + CMD(1B) + LEN(2B, little-endian) + DATA(0..N) + CHECKSUM(1B) + ETX(0x03)
  *   Checksum = XOR of CMD + LEN_L + LEN_H + DATA[0..N-1]
  * ========================================================================== */
-
-#include "stm32f1xx_hal.h"
+#include "config.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -22,7 +21,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-
 /* ----- Protocol Definitions ----- */
 #define PROTO_STX           0x02
 #define PROTO_ETX           0x03
@@ -32,36 +30,29 @@
 #define CMD_GET_IP          0x04
 #define CMD_ACK             0x10
 #define CMD_NACK            0x11
-
 #define MAX_DATA_LEN        128
 #define CMD_QUEUE_LEN       8
 #define RX_BUFFER_SIZE      256
-
 /* ----- Protocol Packet Structure ----- */
 typedef struct {
     uint8_t cmd;
     uint16_t data_len;
     uint8_t data[MAX_DATA_LEN];
 } ProtoPacket_t;
-
 /* ----- Peripheral Handles ----- */
 static UART_HandleTypeDef huart1;  /* Debug console */
 static UART_HandleTypeDef huart2;  /* ESP32 bridge  */
-
 /* ----- FreeRTOS Objects ----- */
 static QueueHandle_t xCmdQueue;
 static SemaphoreHandle_t xUart2Mutex;
 static TaskHandle_t xSendTaskHandle;
 static TaskHandle_t xRecvTaskHandle;
-
 /* ----- RX State Machine ----- */
 typedef enum { RX_WAIT_STX, RX_CMD, RX_LEN_L, RX_LEN_H, RX_DATA, RX_CHECKSUM, RX_ETX } RxState_t;
-
 static volatile uint8_t uart2_rx_byte;
 static volatile uint32_t packets_sent = 0;
 static volatile uint32_t packets_received = 0;
 static volatile uint32_t checksum_errors = 0;
-
 /* ----- Function Prototypes ----- */
 static void SystemClock_Config(void);
 static void GPIO_Init(void);
@@ -74,7 +65,6 @@ static void Send_Command(uint8_t cmd, const uint8_t *data, uint16_t len);
 static void vSendTask(void *pvParameters);
 static void vRecvTask(void *pvParameters);
 static void vMonitorTask(void *pvParameters);
-
 /* ----- UART Printf Helper ----- */
 static void UART_Printf(const char *fmt, ...) {
     char buf[192];
@@ -86,33 +76,60 @@ static void UART_Printf(const char *fmt, ...) {
         HAL_UART_Transmit(&huart1, (uint8_t *)buf, (uint16_t)n, HAL_MAX_DELAY);
     }
 }
-
-/* ----- Clock: HSE 8MHz -> PLL -> 72MHz ----- */
-static void SystemClock_Config(void) {
+/* ============================================================
+ *  System Clock Configuration (Multi-platform)
+ * ============================================================ */
+#ifdef STM32F103xB
+/* F103: 8 MHz HSE -> PLL x9 -> 72 MHz SYSCLK */
+static void SystemClock_Config(void)
+{
     RCC_OscInitTypeDef osc = {0};
-    osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-    osc.HSEState = RCC_HSE_ON;
-    osc.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-    osc.PLL.PLLState = RCC_PLL_ON;
-    osc.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-    osc.PLL.PLLMUL = RCC_PLL_MUL9;
-    HAL_RCC_OscConfig(&osc);
-
     RCC_ClkInitTypeDef clk = {0};
-    clk.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
-                    RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-    clk.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-    clk.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    osc.OscillatorType      = RCC_OSCILLATORTYPE_HSE;
+    osc.HSEState            = RCC_HSE_ON;
+    osc.HSEPredivValue      = RCC_HSE_PREDIV_DIV1;
+    osc.PLL.PLLState        = RCC_PLL_ON;
+    osc.PLL.PLLSource       = RCC_PLLSOURCE_HSE;
+    osc.PLL.PLLMUL          = RCC_PLL_MUL9;
+    HAL_RCC_OscConfig(&osc);
+    clk.ClockType      = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                       | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    clk.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
+    clk.AHBCLKDivider  = RCC_SYSCLK_DIV1;
     clk.APB1CLKDivider = RCC_HCLK_DIV2;
     clk.APB2CLKDivider = RCC_HCLK_DIV1;
     HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_2);
 }
-
+#elif defined(STM32F401xC) || defined(STM32F411xE)
+/* F4xx: 25 MHz HSE -> PLL -> 84 MHz SYSCLK */
+static void SystemClock_Config(void)
+{
+    RCC_OscInitTypeDef osc = {0};
+    RCC_ClkInitTypeDef clk = {0};
+    __HAL_RCC_PWR_CLK_ENABLE();
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+    osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    osc.HSEState       = RCC_HSE_ON;
+    osc.PLL.PLLState   = RCC_PLL_ON;
+    osc.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
+    osc.PLL.PLLM       = 25;
+    osc.PLL.PLLN       = 336;
+    osc.PLL.PLLP       = RCC_PLLP_DIV4;   /* 336/4 = 84 MHz */
+    osc.PLL.PLLQ       = 7;
+    HAL_RCC_OscConfig(&osc);
+    clk.ClockType      = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                       | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    clk.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
+    clk.AHBCLKDivider  = RCC_SYSCLK_DIV1;
+    clk.APB1CLKDivider = RCC_HCLK_DIV2;
+    clk.APB2CLKDivider = RCC_HCLK_DIV1;
+    HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_2);
+}
+#endif
 /* ----- GPIO Init ----- */
 static void GPIO_Init(void) {
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
-
     GPIO_InitTypeDef gpio = {0};
     gpio.Pin = LED_PIN;
     gpio.Mode = GPIO_MODE_OUTPUT_PP;
@@ -121,60 +138,78 @@ static void GPIO_Init(void) {
     HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);  /* LED off (active low) */
 }
 
-/* ----- UART1 Init (Debug) ----- */
-static void UART1_Init(void) {
+/* ---- UART1: Debug (PA9 TX, PA10 RX) ---- */
+static void UART1_Init(void)
+{
     __HAL_RCC_USART1_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
 
-    GPIO_InitTypeDef gpio = {0};
-    gpio.Pin = GPIO_PIN_9;
-    gpio.Mode = GPIO_MODE_AF_PP;
-    gpio.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOA, &gpio);
+    GPIO_InitTypeDef g = {0};
+#ifdef STM32F103xB
+    g.Pin   = GPIO_PIN_9;
+    g.Mode  = GPIO_MODE_AF_PP;
+    g.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(GPIOA, &g);
+    g.Pin   = GPIO_PIN_10;
+    g.Mode  = GPIO_MODE_INPUT;
+    g.Pull  = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &g);
+#elif defined(STM32F401xC) || defined(STM32F411xE)
+    g.Pin       = GPIO_PIN_9 | GPIO_PIN_10;
+    g.Mode      = GPIO_MODE_AF_PP;
+    g.Pull      = GPIO_PULLUP;
+    g.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
+    g.Alternate = GPIO_AF7_USART1;
+    HAL_GPIO_Init(GPIOA, &g);
+#endif
 
-    gpio.Pin = GPIO_PIN_10;
-    gpio.Mode = GPIO_MODE_INPUT;
-    gpio.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &gpio);
-
-    huart1.Instance = USART1;
-    huart1.Init.BaudRate = UART_BAUDRATE;
-    huart1.Init.WordLength = UART_WORDLENGTH_8B;
-    huart1.Init.StopBits = UART_STOPBITS_1;
-    huart1.Init.Parity = UART_PARITY_NONE;
-    huart1.Init.Mode = UART_MODE_TX_RX;
-    huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart1.Instance          = USART1;
+    huart1.Init.BaudRate     = UART_BAUDRATE;
+    huart1.Init.WordLength   = UART_WORDLENGTH_8B;
+    huart1.Init.StopBits     = UART_STOPBITS_1;
+    huart1.Init.Parity       = UART_PARITY_NONE;
+    huart1.Init.Mode         = UART_MODE_TX_RX;
+    huart1.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
+    huart1.Init.OverSampling = UART_OVERSAMPLING_16;
     HAL_UART_Init(&huart1);
 }
 
-/* ----- UART2 Init (ESP32 Bridge) ----- */
-static void UART2_Init(void) {
+/* ---- UART2: Module comm (PA2 TX, PA3 RX) ---- */
+static void UART2_Init(void)
+{
     __HAL_RCC_USART2_CLK_ENABLE();
-
-    GPIO_InitTypeDef gpio = {0};
-    gpio.Pin = GPIO_PIN_2;  /* TX */
-    gpio.Mode = GPIO_MODE_AF_PP;
-    gpio.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOA, &gpio);
-
-    gpio.Pin = GPIO_PIN_3;  /* RX */
-    gpio.Mode = GPIO_MODE_INPUT;
-    gpio.Pull = GPIO_PULLUP;
-    HAL_GPIO_Init(GPIOA, &gpio);
-
-    huart2.Instance = USART2;
-    huart2.Init.BaudRate = 115200;
-    huart2.Init.WordLength = UART_WORDLENGTH_8B;
-    huart2.Init.StopBits = UART_STOPBITS_1;
-    huart2.Init.Parity = UART_PARITY_NONE;
-    huart2.Init.Mode = UART_MODE_TX_RX;
-    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    GPIO_InitTypeDef g = {0};
+#ifdef STM32F103xB
+    g.Pin   = GPIO_PIN_2;
+    g.Mode  = GPIO_MODE_AF_PP;
+    g.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(GPIOA, &g);
+    g.Pin   = GPIO_PIN_3;
+    g.Mode  = GPIO_MODE_INPUT;
+    g.Pull  = GPIO_PULLUP;
+    HAL_GPIO_Init(GPIOA, &g);
+#elif defined(STM32F401xC) || defined(STM32F411xE)
+    g.Pin       = GPIO_PIN_2 | GPIO_PIN_3;
+    g.Mode      = GPIO_MODE_AF_PP;
+    g.Pull      = GPIO_PULLUP;
+    g.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
+    g.Alternate = GPIO_AF7_USART2;
+    HAL_GPIO_Init(GPIOA, &g);
+#endif
+    huart2.Instance          = USART2;
+    huart2.Init.BaudRate     = UART_BAUDRATE;
+    huart2.Init.WordLength   = UART_WORDLENGTH_8B;
+    huart2.Init.StopBits     = UART_STOPBITS_1;
+    huart2.Init.Parity       = UART_PARITY_NONE;
+    huart2.Init.Mode         = UART_MODE_TX_RX;
+    huart2.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
+    huart2.Init.OverSampling = UART_OVERSAMPLING_16;
     HAL_UART_Init(&huart2);
-
     HAL_NVIC_SetPriority(USART2_IRQn, 6, 0);
     HAL_NVIC_EnableIRQ(USART2_IRQn);
     HAL_UART_Receive_IT(&huart2, (uint8_t *)&uart2_rx_byte, 1);
 }
-
 /* ----- Checksum: XOR of CMD + LEN_L + LEN_H + DATA ----- */
 static uint8_t Calculate_Checksum(const ProtoPacket_t *pkt) {
     uint8_t cs = pkt->cmd;
@@ -185,7 +220,6 @@ static uint8_t Calculate_Checksum(const ProtoPacket_t *pkt) {
     }
     return cs;
 }
-
 /* ----- Build wire frame from packet ----- */
 static void Build_Frame(const ProtoPacket_t *pkt, uint8_t *frame, uint16_t *frame_len) {
     uint16_t idx = 0;
@@ -200,7 +234,6 @@ static void Build_Frame(const ProtoPacket_t *pkt, uint8_t *frame, uint16_t *fram
     frame[idx++] = PROTO_ETX;
     *frame_len = idx;
 }
-
 /* ----- Send a command to ESP32 ----- */
 static void Send_Command(uint8_t cmd, const uint8_t *data, uint16_t len) {
     ProtoPacket_t pkt;
@@ -211,7 +244,6 @@ static void Send_Command(uint8_t cmd, const uint8_t *data, uint16_t len) {
     }
     xQueueSend(xCmdQueue, &pkt, pdMS_TO_TICKS(100));
 }
-
 /* ----- Send Task: dequeue commands and transmit ----- */
 static void vSendTask(void *pvParameters) {
     (void)pvParameters;
@@ -219,16 +251,12 @@ static void vSendTask(void *pvParameters) {
     uint8_t frame[MAX_DATA_LEN + 8];
     uint16_t frame_len;
     const char *cmd_names[] = {"?", "WIFI_CONNECT", "SEND_DATA", "GET_STATUS", "GET_IP"};
-
     UART_Printf("[SEND] Task started\r\n");
-
     /* Initial WiFi connect command */
     const char *ssid_pass = "MySSID:MyPassword";
     Send_Command(CMD_WIFI_CONNECT, (const uint8_t *)ssid_pass, strlen(ssid_pass));
-
     TickType_t xLastWake = xTaskGetTickCount();
     uint32_t cycle = 0;
-
     for (;;) {
         /* Periodically enqueue status/data commands */
         if (cycle % 10 == 3) {
@@ -243,39 +271,31 @@ static void vSendTask(void *pvParameters) {
                              25.0 + (cycle % 10) * 0.5, 60.0 + (cycle % 8));
             Send_Command(CMD_SEND_DATA, (const uint8_t *)sensor_data, (uint16_t)n);
         }
-
         /* Process queued commands */
         while (xQueueReceive(xCmdQueue, &pkt, 0) == pdTRUE) {
             Build_Frame(&pkt, frame, &frame_len);
-
             const char *name = (pkt.cmd >= 1 && pkt.cmd <= 4) ? cmd_names[pkt.cmd] : "UNKNOWN";
             UART_Printf("[SEND] CMD=%s(0x%02X) LEN=%u CS=0x%02X\r\n",
                         name, pkt.cmd, pkt.data_len, Calculate_Checksum(&pkt));
-
             xSemaphoreTake(xUart2Mutex, portMAX_DELAY);
             HAL_UART_Transmit(&huart2, frame, frame_len, 200);
             xSemaphoreGive(xUart2Mutex);
-
             packets_sent++;
             HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
         }
-
         cycle++;
         vTaskDelayUntil(&xLastWake, pdMS_TO_TICKS(1000));
     }
 }
-
 /* ----- Receive Task: parse incoming frames ----- */
 static void vRecvTask(void *pvParameters) {
     (void)pvParameters;
     UART_Printf("[RECV] Task started\r\n");
-
     RxState_t state = RX_WAIT_STX;
     ProtoPacket_t rx_pkt;
     uint16_t data_idx = 0;
     uint8_t rx_checksum = 0;
     uint8_t byte;
-
     for (;;) {
         /* Poll UART2 for received bytes */
         if (HAL_UART_Receive(&huart2, &byte, 1, 50) == HAL_OK) {
@@ -340,12 +360,10 @@ static void vRecvTask(void *pvParameters) {
         vTaskDelay(pdMS_TO_TICKS(5));
     }
 }
-
 /* ----- Monitor Task: periodic stats ----- */
 static void vMonitorTask(void *pvParameters) {
     (void)pvParameters;
     UART_Printf("[MON] Monitor task started\r\n");
-
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(5000));
         UART_Printf("\r\n===== Bridge Stats =====\r\n");
@@ -356,19 +374,16 @@ static void vMonitorTask(void *pvParameters) {
         UART_Printf("========================\r\n\r\n");
     }
 }
-
 /* ----- FreeRTOS Hooks ----- */
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
     (void)xTask;
     UART_Printf("STACK OVERFLOW: %s\r\n", pcTaskName);
     for (;;) { }
 }
-
 void vApplicationMallocFailedHook(void) {
     UART_Printf("MALLOC FAILED\r\n");
     for (;;) { }
 }
-
 static StaticTask_t xIdleTaskTCB;
 static StackType_t uxIdleTaskStack[configMINIMAL_STACK_SIZE];
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTCB, StackType_t **ppxIdleStack, uint32_t *pulIdleStackSize) {
@@ -376,7 +391,6 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTCB, StackType_t **ppxI
     *ppxIdleStack = uxIdleTaskStack;
     *pulIdleStackSize = configMINIMAL_STACK_SIZE;
 }
-
 static StaticTask_t xTimerTaskTCB;
 static StackType_t uxTimerTaskStack[configTIMER_TASK_STACK_DEPTH];
 void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTCB, StackType_t **ppxTimerStack, uint32_t *pulTimerStackSize) {
@@ -384,7 +398,6 @@ void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTCB, StackType_t **pp
     *ppxTimerStack = uxTimerTaskStack;
     *pulTimerStackSize = configTIMER_TASK_STACK_DEPTH;
 }
-
 /* ----- Main ----- */
 int main(void) {
     HAL_Init();
@@ -392,22 +405,17 @@ int main(void) {
     GPIO_Init();
     UART1_Init();
     UART2_Init();
-
     UART_Printf("\r\n========================================\r\n");
     UART_Printf("  STM32 UART Bridge to ESP32\r\n");
     UART_Printf("  Protocol: STX+CMD+LEN+DATA+CS+ETX\r\n");
     UART_Printf("  UART2: PA2(TX), PA3(RX) @ 115200\r\n");
     UART_Printf("========================================\r\n\r\n");
-
     xCmdQueue = xQueueCreate(CMD_QUEUE_LEN, sizeof(ProtoPacket_t));
     xUart2Mutex = xSemaphoreCreateMutex();
-
     xTaskCreate(vSendTask, "Send", 384, NULL, 3, &xSendTaskHandle);
     xTaskCreate(vRecvTask, "Recv", 384, NULL, 4, &xRecvTaskHandle);
     xTaskCreate(vMonitorTask, "Mon", 256, NULL, 2, NULL);
-
     UART_Printf("[MAIN] Starting scheduler...\r\n");
     vTaskStartScheduler();
-
     for (;;) { }
 }

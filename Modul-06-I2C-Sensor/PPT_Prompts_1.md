@@ -1,4 +1,4 @@
-# 🎨 PPT Prompts Modul 06 — Bagian 1: Teori I2C Protocol (Slide 1-20)
+# 🎨 PPT Prompts Modul 06 — Komunikasi Cerdas: I2C Protocol (Bagian 1: Slide 1-20)
 
 ## Petunjuk Penggunaan
 Gunakan prompt berikut untuk membuat slide presentasi di PowerPoint, Google Slides, atau Canva. Setiap prompt menghasilkan 1 slide.

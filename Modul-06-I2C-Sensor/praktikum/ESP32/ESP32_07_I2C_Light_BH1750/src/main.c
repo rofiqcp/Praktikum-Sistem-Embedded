@@ -10,13 +10,15 @@
  *   ESP32:    SDA=GPIO21, SCL=GPIO22
  *   S2/S3:   SDA=GPIO8,  SCL=GPIO9
  *   BH1750:  ADDR=GND (0x23), VCC=3.3V
+ *
+ * Menggunakan ESP-IDF v5.x I2C Master API (driver/i2c_master.h)
  */
 
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 #include "esp_err.h"
 
@@ -36,7 +38,6 @@ static const char *TAG = "BH1750";
 
 #define I2C_PORT            I2C_NUM_0
 #define I2C_FREQ_HZ         100000  /* Kecepatan I2C 100kHz (standard mode) */
-#define I2C_TIMEOUT_MS      1000    /* Timeout operasi I2C dalam milidetik */
 
 /* ======================== Alamat & Perintah BH1750 ======================== */
 #define BH1750_ADDR         0x23    /* Alamat I2C BH1750 (ADDR pin = GND) */
@@ -50,63 +51,36 @@ static const char *TAG = "BH1750";
 #define BH1750_ONETIME_HRES2 0x21   /* Mode one-time high-resolution 2 */
 #define BH1750_ONETIME_LRES 0x23    /* Mode one-time low-resolution */
 
+/* Handle I2C bus dan device */
+static i2c_master_bus_handle_t bus_handle;
+static i2c_master_dev_handle_t bh1750_handle;
+
 /* ======================== Inisialisasi I2C Master ======================== */
 static esp_err_t i2c_master_init(void)
 {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,            /* Mode master */
-        .sda_io_num = I2C_SDA_PIN,          /* Pin SDA */
-        .scl_io_num = I2C_SCL_PIN,          /* Pin SCL */
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,/* Pull-up internal SDA */
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,/* Pull-up internal SCL */
-        .master.clk_speed = I2C_FREQ_HZ,   /* Kecepatan clock */
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_PORT,
+        .sda_io_num = I2C_SDA_PIN,
+        .scl_io_num = I2C_SCL_PIN,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
-
-    esp_err_t err = i2c_param_config(I2C_PORT, &conf);
+    esp_err_t err = i2c_new_master_bus(&bus_config, &bus_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Gagal konfigurasi I2C: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Gagal membuat I2C master bus: %s", esp_err_to_name(err));
         return err;
     }
 
-    err = i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
+    i2c_device_config_t dev_config = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = BH1750_ADDR,
+        .scl_speed_hz = I2C_FREQ_HZ,
+    };
+    err = i2c_master_bus_add_device(bus_handle, &dev_config, &bh1750_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Gagal install driver I2C: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Gagal menambahkan device BH1750: %s", esp_err_to_name(err));
     }
-    return err;
-}
-
-/* ======================== Tulis Register I2C ======================== */
-static esp_err_t i2c_write_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t len)
-{
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg_addr, true);
-    if (data != NULL && len > 0) {
-        i2c_master_write(cmd, data, len, true);
-    }
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
-}
-
-/* ======================== Baca Register I2C ======================== */
-static esp_err_t i2c_read_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t len)
-{
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg_addr, true);
-    i2c_master_start(cmd);  /* Repeated START */
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
-    if (len > 1) {
-        i2c_master_read(cmd, data, len - 1, I2C_MASTER_ACK);
-    }
-    i2c_master_read_byte(cmd, data + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
     return err;
 }
 
@@ -114,31 +88,14 @@ static esp_err_t i2c_read_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data,
 /* BH1750 menggunakan format perintah tanpa register address */
 static esp_err_t bh1750_send_cmd(uint8_t command)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (BH1750_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, command, true);
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
+    return i2c_master_transmit(bh1750_handle, &command, 1, -1);
 }
 
 /* ======================== Baca Data BH1750 ======================== */
 /* BH1750 mengirim 2 byte data tanpa register address */
 static esp_err_t bh1750_read_data(uint8_t *data, size_t len)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (BH1750_ADDR << 1) | I2C_MASTER_READ, true);
-    if (len > 1) {
-        i2c_master_read(cmd, data, len - 1, I2C_MASTER_ACK);
-    }
-    i2c_master_read_byte(cmd, data + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
+    return i2c_master_receive(bh1750_handle, data, len, -1);
 }
 
 /* ======================== Inisialisasi BH1750 ======================== */

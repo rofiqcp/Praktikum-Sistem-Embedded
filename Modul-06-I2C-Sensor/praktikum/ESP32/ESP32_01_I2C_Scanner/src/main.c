@@ -5,13 +5,15 @@
  * Memindai bus I2C dari alamat 0x01 hingga 0x7F,
  * mendeteksi perangkat yang terhubung dan menampilkan
  * tabel dengan nama-nama perangkat umum.
+ *
+ * Menggunakan ESP-IDF v5.x I2C Master API (driver/i2c_master.h)
  */
 
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 
 static const char *TAG = "I2C_SCANNER";
@@ -30,47 +32,31 @@ static const char *TAG = "I2C_SCANNER";
 #define I2C_PORT I2C_NUM_0
 #define I2C_FREQ 100000
 
+/* ---- Handle I2C bus ---- */
+static i2c_master_bus_handle_t bus_handle;
+
 /* ---- Inisialisasi I2C Master ---- */
 static void i2c_master_init(void) {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_PORT,
         .sda_io_num = I2C_SDA,
         .scl_io_num = I2C_SCL,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_FREQ,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
-    i2c_param_config(I2C_PORT, &conf);
-    i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
+    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle));
 }
 
-/* ---- Helper: tulis register ---- */
-static esp_err_t i2c_write_reg(uint8_t addr, uint8_t reg, uint8_t val) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_write_byte(cmd, val, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+/* ---- Helper: tulis register (menggunakan device handle) ---- */
+static esp_err_t i2c_write_reg(i2c_master_dev_handle_t dev_handle, uint8_t reg, uint8_t val) {
+    uint8_t write_buf[2] = {reg, val};
+    return i2c_master_transmit(dev_handle, write_buf, 2, -1);
 }
 
-/* ---- Helper: baca register ---- */
-static esp_err_t i2c_read_reg(uint8_t addr, uint8_t reg, uint8_t *buf, size_t len) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
-    if (len > 1) i2c_master_read(cmd, buf, len - 1, I2C_MASTER_ACK);
-    i2c_master_read_byte(cmd, buf + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+/* ---- Helper: baca register (menggunakan device handle) ---- */
+static esp_err_t i2c_read_reg(i2c_master_dev_handle_t dev_handle, uint8_t reg, uint8_t *buf, size_t len) {
+    return i2c_master_transmit_receive(dev_handle, &reg, 1, buf, len, -1);
 }
 
 /* ---- Nama perangkat I2C yang umum ---- */
@@ -101,17 +87,6 @@ static const char* get_device_name(uint8_t addr) {
     }
 }
 
-/* ---- Probe satu alamat I2C ---- */
-static esp_err_t i2c_probe(uint8_t addr) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(50));
-    i2c_cmd_link_delete(cmd);
-    return ret;
-}
-
 /* ---- Scan seluruh bus I2C ---- */
 static void i2c_scan(void) {
     uint8_t found[128];
@@ -133,7 +108,8 @@ static void i2c_scan(void) {
                 printf("   ");
                 continue;
             }
-            esp_err_t ret = i2c_probe(addr);
+            /* Gunakan i2c_master_probe() untuk deteksi perangkat */
+            esp_err_t ret = i2c_master_probe(bus_handle, addr, 50);
             if (ret == ESP_OK) {
                 printf("%02X ", addr);
                 found[count++] = addr;

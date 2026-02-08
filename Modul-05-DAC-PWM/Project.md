@@ -1,4 +1,4 @@
-# 🎯 Project Modul 05: Sistem Audio Player dan LED Controller Berbasis DAC & PWM
+# 🎯 Project Modul 05: Audio Player & LED Controller — DAC & PWM
 
 ## 📋 Deskripsi Project
 

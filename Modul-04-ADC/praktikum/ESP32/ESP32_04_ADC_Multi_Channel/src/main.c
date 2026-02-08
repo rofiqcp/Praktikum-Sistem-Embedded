@@ -16,40 +16,46 @@
  *   ESP32-S2/S3:
  *     - Pot 1: Wiper → GPIO4 (ADC1_CHANNEL_3)
  *     - Pot 2: Wiper → GPIO5 (ADC1_CHANNEL_4)
+ * 
+ * API yang digunakan (ESP-IDF v5.x Oneshot + Calibration API):
+ *   - adc_oneshot_new_unit()                    : Membuat unit handle ADC
+ *   - adc_oneshot_config_channel()              : Konfigurasi channel
+ *   - adc_oneshot_read()                        : Membaca nilai mentah ADC
+ *   - adc_cali_create_scheme_curve_fitting()    : Buat handle kalibrasi (ESP32)
+ *   - adc_cali_create_scheme_line_fitting()     : Buat handle kalibrasi (ESP32-S2/S3/C3)
+ *   - adc_cali_raw_to_voltage()                 : Konversi raw ke tegangan terkalibrasi
  * ==========================================================================
  */
 
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/adc.h"
-#include "esp_adc_cal.h"
+#include "esp_adc/adc_oneshot.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
 #include "esp_log.h"
 
 static const char *TAG = "ADC_MULTI";
 
 /* Konfigurasi Channel berdasarkan target */
 #if CONFIG_IDF_TARGET_ESP32
-    #define CH1_CHANNEL     ADC1_CHANNEL_6   /* GPIO34 */
-    #define CH2_CHANNEL     ADC1_CHANNEL_7   /* GPIO35 */
+    #define CH1_CHANNEL     ADC_CHANNEL_6    /* GPIO34 */
+    #define CH2_CHANNEL     ADC_CHANNEL_7    /* GPIO35 */
     #define CH1_GPIO        34
     #define CH2_GPIO        35
 #elif CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
-    #define CH1_CHANNEL     ADC1_CHANNEL_3   /* GPIO4 */
-    #define CH2_CHANNEL     ADC1_CHANNEL_4   /* GPIO5 */
+    #define CH1_CHANNEL     ADC_CHANNEL_3    /* GPIO4 */
+    #define CH2_CHANNEL     ADC_CHANNEL_4    /* GPIO5 */
     #define CH1_GPIO        4
     #define CH2_GPIO        5
 #else
-    #define CH1_CHANNEL     ADC1_CHANNEL_6
-    #define CH2_CHANNEL     ADC1_CHANNEL_7
+    #define CH1_CHANNEL     ADC_CHANNEL_6
+    #define CH2_CHANNEL     ADC_CHANNEL_7
     #define CH1_GPIO        34
     #define CH2_GPIO        35
 #endif
 
-#define ADC_WIDTH       ADC_WIDTH_BIT_12
-#define ADC_ATTEN       ADC_ATTEN_DB_11
-#define ADC_UNIT        ADC_UNIT_1
-#define DEFAULT_VREF    1100
+#define ADC_ATTEN       ADC_ATTEN_DB_12
 #define READ_INTERVAL_MS    500
 
 /* Jumlah channel yang digunakan */
@@ -57,16 +63,66 @@ static const char *TAG = "ADC_MULTI";
 
 /* Struktur data channel */
 typedef struct {
-    adc1_channel_t channel;
+    adc_channel_t channel;
     int gpio_num;
     const char *label;
-    esp_adc_cal_characteristics_t *cal_chars;
+    adc_cali_handle_t cali_handle;
+    bool cali_enabled;
 } adc_channel_info_t;
+
+/**
+ * @brief Inisialisasi kalibrasi ADC untuk satu channel
+ * 
+ * Otomatis memilih skema kalibrasi berdasarkan target:
+ * - ESP32: Curve Fitting
+ * - ESP32-S2/S3/C3: Line Fitting
+ * 
+ * @param unit Unit ADC
+ * @param atten Atenuasi
+ * @param out_handle Pointer ke handle kalibrasi (output)
+ * @return true jika kalibrasi berhasil
+ */
+static bool adc_calibration_init(adc_unit_t unit, adc_atten_t atten, adc_cali_handle_t *out_handle)
+{
+    adc_cali_handle_t handle = NULL;
+    esp_err_t ret = ESP_FAIL;
+
+#if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
+    /* Skema Curve Fitting (tersedia di ESP32, ESP32-S2) */
+    adc_cali_curve_fitting_config_t cali_config = {
+        .unit_id = unit,
+        .atten = atten,
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+    };
+    ret = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
+
+#elif ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
+    /* Skema Line Fitting (tersedia di ESP32-C3, ESP32-S3, dll.) */
+    adc_cali_line_fitting_config_t cali_config = {
+        .unit_id = unit,
+        .atten = atten,
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+    };
+    ret = adc_cali_create_scheme_line_fitting(&cali_config, &handle);
+#endif
+
+    if (ret == ESP_OK) {
+        *out_handle = handle;
+        return true;
+    }
+
+    ESP_LOGW(TAG, "Kalibrasi gagal atau tidak didukung: %s", esp_err_to_name(ret));
+    return false;
+}
 
 void app_main(void)
 {
-    /* ====== KONFIGURASI ADC ====== */
-    adc1_config_width(ADC_WIDTH);
+    /* ====== KONFIGURASI ADC (Oneshot) ====== */
+    adc_oneshot_unit_handle_t adc_handle;
+    adc_oneshot_unit_init_cfg_t init_config = {
+        .unit_id = ADC_UNIT_1,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle));
 
     /* Definisi informasi channel */
     adc_channel_info_t channels[NUM_CHANNELS] = {
@@ -74,28 +130,34 @@ void app_main(void)
             .channel = CH1_CHANNEL,
             .gpio_num = CH1_GPIO,
             .label = "POT-1",
-            .cal_chars = NULL
+            .cali_handle = NULL,
+            .cali_enabled = false
         },
         {
             .channel = CH2_CHANNEL,
             .gpio_num = CH2_GPIO,
             .label = "POT-2",
-            .cal_chars = NULL
+            .cali_handle = NULL,
+            .cali_enabled = false
         }
     };
 
     /* Konfigurasi setiap channel */
+    adc_oneshot_chan_cfg_t chan_config = {
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+        .atten = ADC_ATTEN,
+    };
+
     for (int i = 0; i < NUM_CHANNELS; i++) {
-        /* Atur atenuasi untuk masing-masing channel */
-        adc1_config_channel_atten(channels[i].channel, ADC_ATTEN);
+        /* Konfigurasi channel (atenuasi + bitwidth) */
+        ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, channels[i].channel, &chan_config));
 
-        /* Alokasi dan konfigurasi kalibrasi */
-        channels[i].cal_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
-        esp_adc_cal_characterize(ADC_UNIT, ADC_ATTEN, ADC_WIDTH,
-                                 DEFAULT_VREF, channels[i].cal_chars);
+        /* Inisialisasi kalibrasi untuk masing-masing channel */
+        channels[i].cali_enabled = adc_calibration_init(ADC_UNIT_1, ADC_ATTEN, &channels[i].cali_handle);
 
-        ESP_LOGI(TAG, "Channel %d (%s): ADC1_CH%d pada GPIO%d - Dikonfigurasi",
-                 i + 1, channels[i].label, channels[i].channel, channels[i].gpio_num);
+        ESP_LOGI(TAG, "Channel %d (%s): ADC1_CH%d pada GPIO%d - Dikonfigurasi (kalibrasi: %s)",
+                 i + 1, channels[i].label, channels[i].channel, channels[i].gpio_num,
+                 channels[i].cali_enabled ? "YA" : "TIDAK");
     }
 
     ESP_LOGI(TAG, "========================================");
@@ -114,27 +176,29 @@ void app_main(void)
     /* ====== LOOP PEMBACAAN ====== */
     while (1) {
         int raw[NUM_CHANNELS];
-        uint32_t voltage[NUM_CHANNELS];
+        int voltage[NUM_CHANNELS];
 
         /* Baca semua channel secara sekuensial */
         for (int i = 0; i < NUM_CHANNELS; i++) {
             /* Baca nilai mentah */
-            raw[i] = adc1_get_raw(channels[i].channel);
+            ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, channels[i].channel, &raw[i]));
 
             /* Konversi ke tegangan terkalibrasi */
-            voltage[i] = esp_adc_cal_raw_to_voltage(raw[i], channels[i].cal_chars);
+            voltage[i] = 0;
+            if (channels[i].cali_enabled) {
+                ESP_ERROR_CHECK(adc_cali_raw_to_voltage(channels[i].cali_handle, raw[i], &voltage[i]));
+            }
         }
 
         /* Hitung selisih antar channel */
-        int32_t diff_raw = raw[0] - raw[1];
         int32_t diff_mv = (int32_t)voltage[0] - (int32_t)voltage[1];
 
         /* Tampilkan hasil secara berdampingan */
         counter++;
-        printf("[%04d] | %4d / %4lu mV      | %4d / %4lu mV      | %+4ld mV\n",
+        printf("[%04d] | %4d / %4d mV      | %4d / %4d mV      | %+4ld mV\n",
                counter,
-               raw[0], (unsigned long)voltage[0],
-               raw[1], (unsigned long)voltage[1],
+               raw[0], voltage[0],
+               raw[1], voltage[1],
                (long)diff_mv);
 
         /* Tampilkan bar visual setiap 10 pembacaan */

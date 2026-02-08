@@ -7,10 +7,20 @@
     #define configPRIO_BITS 4
 #endif
 
+/* ---- CPU Clock: auto-detect based on target ---- */
+#if defined(STM32F103xB)
+  #define configCPU_CLOCK_HZ    72000000UL
+#elif defined(STM32F401xC)
+  #define configCPU_CLOCK_HZ    84000000UL
+#elif defined(STM32F411xE)
+  #define configCPU_CLOCK_HZ    100000000UL
+#else
+  #define configCPU_CLOCK_HZ    72000000UL
+#endif
+
 #define configUSE_PREEMPTION                    1
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 0
 #define configUSE_TICKLESS_IDLE                 0
-#define configCPU_CLOCK_HZ                      72000000
 #define configTICK_RATE_HZ                      1000
 #define configMAX_PRIORITIES                    7
 #define configMINIMAL_STACK_SIZE                128
@@ -61,13 +71,6 @@
 
 #define configASSERT( x ) if ((x) == 0) {taskDISABLE_INTERRUPTS(); for( ;; );}
 
-#define configINCLUDE_APPLICATION_DEFINED_PRIVILEGED_FUNCTIONS 0
-#define configTOTAL_MPU_REGIONS                 8
-#define configTEX_S_C_B_FLASH                   0x07UL
-#define configTEX_S_C_B_SRAM                    0x07UL
-#define configENFORCE_SYSTEM_CALLS_FROM_KERNEL_ONLY 1
-#define configALLOW_UNPRIVILEGED_CRITICAL_SECTIONS 1
-
 #define INCLUDE_vTaskPrioritySet                1
 #define INCLUDE_uxTaskPriorityGet               1
 #define INCLUDE_vTaskDelete                     1
@@ -85,6 +88,7 @@
 #define INCLUDE_xTaskAbortDelay                 1
 #define INCLUDE_xSemaphoreGetMutexHolder        1
 
+/* ---- Hardware definitions ---- */
 #define UART_BAUDRATE                           115200
 #define LED_PORT                                GPIOC
 #define LED_PIN                                 GPIO_PIN_13

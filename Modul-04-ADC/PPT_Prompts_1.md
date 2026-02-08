@@ -1,4 +1,4 @@
-# 🎨 Prompt Pembuatan Slide Presentasi - Modul 04 ADC (Bagian 1: Slide 1-20)
+# 🎨 Prompt Slide Presentasi — Modul 04: Menguak Dunia Analog — ADC (Bagian 1: Slide 1-20)
 
 ## Instruksi Umum
 

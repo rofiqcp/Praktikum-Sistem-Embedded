@@ -1,4 +1,4 @@
-# 📊 Rubrik Penilaian Project - Modul 04: ADC (Analog-to-Digital Converter)
+# 📊 Rubrik Penilaian Project — Modul 04: Menguak Dunia Analog — ADC
 
 ## 📋 Informasi Umum
 

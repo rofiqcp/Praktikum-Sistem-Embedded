@@ -5,13 +5,15 @@
  * Membaca dan menulis waktu ke RTC DS3231 melalui I2C.
  * Fitur: set waktu, baca waktu, baca suhu, set Alarm 1.
  * Format BCD encode/decode.
+ *
+ * Menggunakan ESP-IDF v5.x I2C Master API (driver/i2c_master.h)
  */
 
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 
 static const char *TAG = "DS3231";
@@ -71,47 +73,39 @@ static const char *HARI[] = {
     "", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"
 };
 
+/* Handle I2C bus dan device */
+static i2c_master_bus_handle_t bus_handle;
+static i2c_master_dev_handle_t ds3231_handle;
+
 /* ---- Inisialisasi I2C Master ---- */
 static void i2c_master_init(void) {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_PORT,
         .sda_io_num = I2C_SDA,
         .scl_io_num = I2C_SCL,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_FREQ,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
-    i2c_param_config(I2C_PORT, &conf);
-    i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
+    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle));
+
+    i2c_device_config_t dev_config = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = DS3231_ADDR,
+        .scl_speed_hz = I2C_FREQ,
+    };
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_config, &ds3231_handle));
 }
 
 /* ---- Helper: tulis register ---- */
-static esp_err_t i2c_write_reg(uint8_t addr, uint8_t reg, uint8_t val) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_write_byte(cmd, val, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+static esp_err_t i2c_write_reg(uint8_t reg, uint8_t val) {
+    uint8_t write_buf[2] = {reg, val};
+    return i2c_master_transmit(ds3231_handle, write_buf, 2, -1);
 }
 
 /* ---- Helper: baca register ---- */
-static esp_err_t i2c_read_reg(uint8_t addr, uint8_t reg, uint8_t *buf, size_t len) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
-    if (len > 1) i2c_master_read(cmd, buf, len - 1, I2C_MASTER_ACK);
-    i2c_master_read_byte(cmd, buf + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+static esp_err_t i2c_read_reg(uint8_t reg, uint8_t *buf, size_t len) {
+    return i2c_master_transmit_receive(ds3231_handle, &reg, 1, buf, len, -1);
 }
 
 /* ---- BCD encode/decode ---- */
@@ -125,24 +119,18 @@ static uint8_t dec_to_bcd(uint8_t dec) {
 
 /* ---- Set waktu pada DS3231 ---- */
 static esp_err_t ds3231_set_time(const ds3231_time_t *time) {
-    uint8_t data[7];
-    data[0] = dec_to_bcd(time->seconds);
-    data[1] = dec_to_bcd(time->minutes);
-    data[2] = dec_to_bcd(time->hours);    /* Format 24 jam */
-    data[3] = dec_to_bcd(time->day_of_week);
-    data[4] = dec_to_bcd(time->date);
-    data[5] = dec_to_bcd(time->month);
-    data[6] = dec_to_bcd(time->year);
+    uint8_t write_buf[8];
+    write_buf[0] = DS3231_REG_SEC;                /* Register awal */
+    write_buf[1] = dec_to_bcd(time->seconds);
+    write_buf[2] = dec_to_bcd(time->minutes);
+    write_buf[3] = dec_to_bcd(time->hours);       /* Format 24 jam */
+    write_buf[4] = dec_to_bcd(time->day_of_week);
+    write_buf[5] = dec_to_bcd(time->date);
+    write_buf[6] = dec_to_bcd(time->month);
+    write_buf[7] = dec_to_bcd(time->year);
 
-    /* Tulis 7 byte mulai dari register 0x00 */
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (DS3231_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, DS3231_REG_SEC, true);
-    i2c_master_write(cmd, data, 7, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
+    /* Tulis register awal + 7 byte data sekaligus */
+    esp_err_t ret = i2c_master_transmit(ds3231_handle, write_buf, 8, -1);
 
     if (ret == ESP_OK) {
         ESP_LOGI(TAG, "Waktu diset: %04d-%02d-%02d %02d:%02d:%02d",
@@ -155,7 +143,7 @@ static esp_err_t ds3231_set_time(const ds3231_time_t *time) {
 /* ---- Baca waktu dari DS3231 ---- */
 static esp_err_t ds3231_get_time(ds3231_time_t *time) {
     uint8_t data[7];
-    esp_err_t ret = i2c_read_reg(DS3231_ADDR, DS3231_REG_SEC, data, 7);
+    esp_err_t ret = i2c_read_reg(DS3231_REG_SEC, data, 7);
     if (ret != ESP_OK) return ret;
 
     time->seconds     = bcd_to_dec(data[0] & 0x7F);
@@ -172,10 +160,10 @@ static esp_err_t ds3231_get_time(ds3231_time_t *time) {
 /* ---- Baca suhu internal DS3231 ---- */
 static esp_err_t ds3231_get_temperature(float *temp) {
     uint8_t data[2];
-    esp_err_t ret = i2c_read_reg(DS3231_ADDR, DS3231_REG_TEMP, data, 2);
+    esp_err_t ret = i2c_read_reg(DS3231_REG_TEMP, data, 2);
     if (ret != ESP_OK) return ret;
 
-    /* MSB = integer part (signed), LSB bits 7:6 = fractional (0.25°C steps) */
+    /* MSB = integer part (signed), LSB bits 7:6 = fractional (0.25 deg C steps) */
     int8_t integer_part = (int8_t)data[0];
     uint8_t frac_part = (data[1] >> 6) & 0x03;
     *temp = (float)integer_part + (frac_part * 0.25f);
@@ -186,22 +174,22 @@ static esp_err_t ds3231_get_temperature(float *temp) {
 /* ---- Set Alarm 1 (detik cocok) ---- */
 static esp_err_t ds3231_set_alarm1(uint8_t hours, uint8_t minutes, uint8_t seconds) {
     /* A1M4=1, A1M3=0, A1M2=0, A1M1=0: Alarm when hours, minutes, seconds match */
-    i2c_write_reg(DS3231_ADDR, DS3231_REG_A1SEC,  dec_to_bcd(seconds) & 0x7F);  /* A1M1=0 */
-    i2c_write_reg(DS3231_ADDR, DS3231_REG_A1MIN,  dec_to_bcd(minutes) & 0x7F);  /* A1M2=0 */
-    i2c_write_reg(DS3231_ADDR, DS3231_REG_A1HOUR, dec_to_bcd(hours) & 0x3F);    /* A1M3=0 */
-    i2c_write_reg(DS3231_ADDR, DS3231_REG_A1DAY,  0x80);                        /* A1M4=1 */
+    i2c_write_reg(DS3231_REG_A1SEC,  dec_to_bcd(seconds) & 0x7F);  /* A1M1=0 */
+    i2c_write_reg(DS3231_REG_A1MIN,  dec_to_bcd(minutes) & 0x7F);  /* A1M2=0 */
+    i2c_write_reg(DS3231_REG_A1HOUR, dec_to_bcd(hours) & 0x3F);    /* A1M3=0 */
+    i2c_write_reg(DS3231_REG_A1DAY,  0x80);                        /* A1M4=1 */
 
     /* Enable Alarm 1 interrupt: set A1IE bit di control register */
     uint8_t ctrl = 0;
-    i2c_read_reg(DS3231_ADDR, DS3231_REG_CTRL, &ctrl, 1);
+    i2c_read_reg(DS3231_REG_CTRL, &ctrl, 1);
     ctrl |= 0x05;  /* INTCN=1, A1IE=1 */
-    i2c_write_reg(DS3231_ADDR, DS3231_REG_CTRL, ctrl);
+    i2c_write_reg(DS3231_REG_CTRL, ctrl);
 
     /* Clear alarm flag */
     uint8_t status = 0;
-    i2c_read_reg(DS3231_ADDR, DS3231_REG_STATUS, &status, 1);
+    i2c_read_reg(DS3231_REG_STATUS, &status, 1);
     status &= ~0x01;  /* Clear A1F */
-    i2c_write_reg(DS3231_ADDR, DS3231_REG_STATUS, status);
+    i2c_write_reg(DS3231_REG_STATUS, status);
 
     ESP_LOGI(TAG, "Alarm 1 diset: %02d:%02d:%02d", hours, minutes, seconds);
     return ESP_OK;
@@ -210,11 +198,11 @@ static esp_err_t ds3231_set_alarm1(uint8_t hours, uint8_t minutes, uint8_t secon
 /* ---- Cek apakah Alarm 1 terpicu ---- */
 static bool ds3231_check_alarm1(void) {
     uint8_t status = 0;
-    i2c_read_reg(DS3231_ADDR, DS3231_REG_STATUS, &status, 1);
+    i2c_read_reg(DS3231_REG_STATUS, &status, 1);
     if (status & 0x01) {
         /* Clear flag */
         status &= ~0x01;
-        i2c_write_reg(DS3231_ADDR, DS3231_REG_STATUS, status);
+        i2c_write_reg(DS3231_REG_STATUS, status);
         return true;
     }
     return false;
@@ -278,7 +266,7 @@ void app_main(void) {
 
             printf("\n");
 
-            ESP_LOGI(TAG, "%s, 20%02d-%02d-%02d %02d:%02d:%02d | Suhu: %.2f°C",
+            ESP_LOGI(TAG, "%s, 20%02d-%02d-%02d %02d:%02d:%02d | Suhu: %.2f C",
                      day_name, now.year, now.month, now.date,
                      now.hours, now.minutes, now.seconds, temperature);
         } else {

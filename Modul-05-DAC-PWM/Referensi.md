@@ -1,4 +1,4 @@
-# 📚 Referensi Modul 05: DAC & PWM (Digital-to-Analog Converter & Pulse Width Modulation)
+# 📚 Referensi Modul 05: Menghidupkan Sinyal — DAC & PWM
 
 ## 📖 Dokumentasi Resmi
 

@@ -4,13 +4,15 @@
  *
  * Membaca data akselerometer dan giroskop dari MPU6050.
  * Menampilkan nilai X, Y, Z dalam g dan dps.
+ *
+ * Menggunakan ESP-IDF v5.x I2C Master API (driver/i2c_master.h)
  */
 
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 
 static const char *TAG = "MPU6050";
@@ -48,47 +50,40 @@ static const char *TAG = "MPU6050";
 #define ACCEL_SCALE  16384.0f  /* ±2g -> 16384 LSB/g */
 #define GYRO_SCALE   131.0f    /* ±250°/s -> 131 LSB/(°/s) */
 
+/* ---- Handle I2C bus dan device ---- */
+static i2c_master_bus_handle_t bus_handle;
+static i2c_master_dev_handle_t mpu6050_dev_handle;
+
 /* ---- Inisialisasi I2C Master ---- */
 static void i2c_master_init(void) {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_PORT,
         .sda_io_num = I2C_SDA,
         .scl_io_num = I2C_SCL,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_FREQ,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
-    i2c_param_config(I2C_PORT, &conf);
-    i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
+    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle));
+
+    /* Tambahkan MPU6050 sebagai device pada bus I2C */
+    i2c_device_config_t dev_config = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = MPU6050_ADDR,
+        .scl_speed_hz = I2C_FREQ,
+    };
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_config, &mpu6050_dev_handle));
 }
 
 /* ---- Helper: tulis register ---- */
-static esp_err_t i2c_write_reg(uint8_t addr, uint8_t reg, uint8_t val) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_write_byte(cmd, val, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+static esp_err_t i2c_write_reg(uint8_t reg, uint8_t val) {
+    uint8_t write_buf[2] = {reg, val};
+    return i2c_master_transmit(mpu6050_dev_handle, write_buf, 2, -1);
 }
 
 /* ---- Helper: baca register ---- */
-static esp_err_t i2c_read_reg(uint8_t addr, uint8_t reg, uint8_t *buf, size_t len) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
-    if (len > 1) i2c_master_read(cmd, buf, len - 1, I2C_MASTER_ACK);
-    i2c_master_read_byte(cmd, buf + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+static esp_err_t i2c_read_reg(uint8_t reg, uint8_t *buf, size_t len) {
+    return i2c_master_transmit_receive(mpu6050_dev_handle, &reg, 1, buf, len, -1);
 }
 
 /* ---- Inisialisasi MPU6050 ---- */
@@ -97,7 +92,7 @@ static esp_err_t mpu6050_init(void) {
     esp_err_t ret;
 
     /* Baca WHO_AM_I untuk verifikasi */
-    ret = i2c_read_reg(MPU6050_ADDR, MPU6050_WHO_AM_I, &who_am_i, 1);
+    ret = i2c_read_reg(MPU6050_WHO_AM_I, &who_am_i, 1);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Gagal membaca WHO_AM_I (err=%d)", ret);
         return ret;
@@ -105,21 +100,21 @@ static esp_err_t mpu6050_init(void) {
     ESP_LOGI(TAG, "WHO_AM_I: 0x%02X (diharapkan: 0x%02X)", who_am_i, MPU6050_WHO_AM_I_VAL);
 
     /* Wake up: tulis 0 ke PWR_MGMT_1 (clear SLEEP bit) */
-    ret = i2c_write_reg(MPU6050_ADDR, MPU6050_PWR_MGMT1, 0x00);
+    ret = i2c_write_reg(MPU6050_PWR_MGMT1, 0x00);
     if (ret != ESP_OK) return ret;
     vTaskDelay(pdMS_TO_TICKS(100));
 
     /* Set sample rate divider: 1kHz / (1+9) = 100Hz */
-    i2c_write_reg(MPU6050_ADDR, MPU6050_SMPLRT, 0x09);
+    i2c_write_reg(MPU6050_SMPLRT, 0x09);
 
     /* Config: DLPF = 3 (bandwidth 44Hz) */
-    i2c_write_reg(MPU6050_ADDR, MPU6050_CONFIG, 0x03);
+    i2c_write_reg(MPU6050_CONFIG, 0x03);
 
     /* Gyro config: FS_SEL=0 -> ±250°/s */
-    i2c_write_reg(MPU6050_ADDR, MPU6050_GYRO_CFG, 0x00);
+    i2c_write_reg(MPU6050_GYRO_CFG, 0x00);
 
     /* Accel config: AFS_SEL=0 -> ±2g */
-    i2c_write_reg(MPU6050_ADDR, MPU6050_ACCEL_CFG, 0x00);
+    i2c_write_reg(MPU6050_ACCEL_CFG, 0x00);
 
     ESP_LOGI(TAG, "MPU6050 diinisialisasi (±2g, ±250°/s)");
     return ESP_OK;
@@ -130,7 +125,7 @@ static esp_err_t mpu6050_read(float *ax, float *ay, float *az,
                                float *gx, float *gy, float *gz,
                                float *temp) {
     uint8_t data[14];
-    esp_err_t ret = i2c_read_reg(MPU6050_ADDR, MPU6050_ACCEL_OUT, data, 14);
+    esp_err_t ret = i2c_read_reg(MPU6050_ACCEL_OUT, data, 14);
     if (ret != ESP_OK) return ret;
 
     /* Akselerometer: register 0x3B-0x40 (big-endian) */

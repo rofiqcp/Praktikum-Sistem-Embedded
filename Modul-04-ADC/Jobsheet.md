@@ -1,4 +1,4 @@
-# Jobsheet Modul 04: ADC — Analog to Digital Conversion
+# Jobsheet Modul 04: Menguak Dunia Analog — ADC (Analog-to-Digital Converter)
 
 ## Praktikum Sistem Embedded
 

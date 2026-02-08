@@ -9,6 +9,22 @@
  *                F103: Membandingkan dua konfigurasi PWM berbeda,
  *                      readback via ADC.
  *                Menghitung error antara target dan aktual.
+ *
+ *  CATATAN F103 (tanpa DAC):
+ *    PWM menghasilkan sinyal digital kotak (square wave), bukan
+ *    tegangan analog kontinu. Untuk mendapatkan tegangan DC analog
+ *    dari PWM, WAJIB menggunakan RC low-pass filter pada output PWM:
+ *
+ *      PA0 (PWM) → [R 10kΩ] → junction → [C 100nF] → GND
+ *                              junction → PA6 (ADC input)
+ *
+ *    Frekuensi cutoff: fc = 1/(2π×R×C) = 1/(2π×10k×100nF) ≈ 159 Hz
+ *    PWM frequency harus >> fc agar filter efektif (default ~17.6kHz).
+ *
+ *    Tanpa RC filter, ADC membaca sinyal kotak PWM secara langsung
+ *    dan hasilnya tidak bermakna (bergantung pada timing sampling).
+ *    Jika RC filter tidak terpasang, program menggunakan simulasi
+ *    berdasarkan duty cycle: Vsim = (duty/max_duty) × Vref.
  * ==========================================================
  */
 
@@ -32,6 +48,9 @@ ADC_HandleTypeDef hadc1;
 #ifdef STM32F4
 DAC_HandleTypeDef hdac;
 #endif
+
+/* Tegangan referensi ADC dalam mV */
+#define VREF_MV  3300
 
 /* ===================== Retarget printf ===================== */
 int _write(int file, char *ptr, int len) {
@@ -267,6 +286,74 @@ void MX_DAC_Init(void) {
 }
 #endif
 
+#ifdef STM32F1
+/**
+ * Simulasi tegangan analog dari duty cycle PWM.
+ *
+ * Karena F103 tidak punya DAC, output PWM adalah sinyal digital kotak.
+ * Membaca ADC langsung dari pin PWM tanpa RC low-pass filter menghasilkan
+ * nilai acak (tergantung kapan ADC men-sample relatif terhadap siklus PWM).
+ *
+ * Dalam hardware nyata, RC filter (R=10kΩ, C=100nF) pada output PWM
+ * akan menghasilkan tegangan DC rata-rata:
+ *   V_out = (duty_cycle / max_duty) × Vref
+ *
+ * Fungsi ini mengembalikan nilai ADC 12-bit yang disimulasikan berdasarkan
+ * duty cycle, sebagai fallback jika RC filter tidak terpasang.
+ *
+ * @param duty   Nilai duty cycle (0–4095)
+ * @param max_duty Nilai duty cycle maksimum (4095)
+ * @return Nilai ADC 12-bit yang disimulasikan
+ */
+static uint16_t simulate_pwm_adc_readback(uint16_t duty, uint16_t max_duty)
+{
+    /* Simulasi: V_adc = (duty / max_duty) * 4095
+     * Ini merepresentasikan tegangan DC setelah RC low-pass filter ideal */
+    if (max_duty == 0) return 0;
+    return (uint16_t)(((uint32_t)duty * 4095UL) / max_duty);
+}
+
+/**
+ * Deteksi apakah RC filter terpasang dengan membaca ADC pada duty 50%.
+ * Jika pembacaan ADC dekat dengan mid-range (~2048), filter kemungkinan terpasang.
+ * Jika pembacaan mendekati 0 atau 4095, kemungkinan membaca sinyal kotak langsung.
+ *
+ * @return 1 jika RC filter kemungkinan terpasang, 0 jika tidak
+ */
+static int detect_rc_filter(void)
+{
+    /* Set PWM ke 50% duty */
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 2048);
+    HAL_Delay(200); /* Tunggu settling */
+
+    /* Baca beberapa sampel dan cek konsistensi */
+    uint32_t sum = 0;
+    uint16_t min_val = 4095, max_val = 0;
+    for (int i = 0; i < 32; i++) {
+        uint16_t val = ADC_Read(ADC_CHANNEL_6);
+        sum += val;
+        if (val < min_val) min_val = val;
+        if (val > max_val) max_val = val;
+        HAL_Delay(1);
+    }
+    uint16_t avg = sum / 32;
+    uint16_t spread = max_val - min_val;
+
+    /*
+     * Jika RC filter terpasang:
+     *   - Rata-rata dekat 2048 (±500)
+     *   - Spread kecil (< 500)
+     * Jika tanpa filter (baca square wave langsung):
+     *   - Spread besar (mendekati 4095)
+     *   - Rata-rata tidak konsisten
+     */
+    if (spread < 500 && avg > 1500 && avg < 2500) {
+        return 1; /* RC filter kemungkinan terpasang */
+    }
+    return 0; /* Tidak ada RC filter */
+}
+#endif
+
 /* ===================== Program Utama ===================== */
 int main(void) {
     HAL_Init();
@@ -274,6 +361,11 @@ int main(void) {
     MX_USART1_UART_Init();
     MX_TIM2_PWM_Init();
     MX_ADC1_Init();
+
+#ifdef STM32F1
+    /* Deteksi keberadaan RC filter */
+    int rc_filter_present = detect_rc_filter();
+#endif
 
 #ifdef STM32F4
     MX_DAC_Init();
@@ -285,7 +377,16 @@ int main(void) {
     printf("\r\n=== PWM Compare (STM32F103) ===\r\n");
     printf("CATATAN: F103 tidak punya DAC\r\n");
     printf("PWM output pada PA0 -> readback ADC pada PA6\r\n");
-    printf("(Hubungkan PA0->RC_filter->PA6)\r\n\r\n");
+    printf("(Hubungkan PA0->RC_filter(R=10k,C=100nF)->PA6)\r\n");
+    printf("RC filter mengkonversi sinyal kotak PWM menjadi DC analog\r\n\r\n");
+    if (rc_filter_present) {
+        printf("[INFO] RC filter terdeteksi → menggunakan ADC readback langsung\r\n\r\n");
+    } else {
+        printf("[WARN] RC filter TIDAK terdeteksi!\r\n");
+        printf("[WARN] ADC membaca sinyal kotak PWM → hasil tidak bermakna\r\n");
+        printf("[WARN] Menggunakan simulasi: Vsim = (duty/4095) x 3300 mV\r\n");
+        printf("[WARN] Pasang RC filter (R=10k, C=100nF) untuk hasil akurat\r\n\r\n");
+    }
 #endif
 
     printf("%-6s | %-8s | %-8s | %-8s | %-8s | %-8s\r\n",
@@ -318,6 +419,27 @@ int main(void) {
             uint16_t adc_ch6 = ADC_Read(ADC_CHANNEL_6);  /* Readback channel 1 */
             uint16_t adc_ch7 = ADC_Read(ADC_CHANNEL_7);  /* Readback channel 2 */
 
+#ifdef STM32F1
+            /*
+             * F103: Tidak punya DAC, jadi adc_ch6 membaca PWM output.
+             *
+             * Jika RC filter TIDAK terpasang, ADC membaca sinyal kotak
+             * secara acak (0 atau 3.3V tergantung timing sampling).
+             * Gunakan simulasi duty-cycle sebagai gantinya.
+             *
+             * Jika RC filter terpasang, ADC membaca tegangan DC rata-rata
+             * yang merepresentasikan duty cycle PWM.
+             */
+            uint16_t pwm_readback;
+            if (rc_filter_present) {
+                /* RC filter ada: gunakan ADC readback langsung */
+                pwm_readback = adc_ch6;
+            } else {
+                /* Tanpa RC filter: gunakan simulasi berdasarkan duty cycle */
+                pwm_readback = simulate_pwm_adc_readback(target, 4095);
+            }
+#endif
+
             /* Hitung error */
             float error_dac = 0.0f;
             float error_pwm = 0.0f;
@@ -325,10 +447,13 @@ int main(void) {
             if (target > 0) {
 #ifdef STM32F4
                 error_dac = ((float)(adc_ch6) - (float)(target)) / (float)(target) * 100.0f;
-#else
-                error_dac = ((float)(adc_ch6) - (float)(target)) / (float)(target) * 100.0f;
-#endif
                 error_pwm = ((float)(adc_ch7) - (float)(target)) / (float)(target) * 100.0f;
+#else
+                /* F103: adc_ch6 = PWM readback (via RC atau simulasi) */
+                error_dac = ((float)(pwm_readback) - (float)(target)) / (float)(target) * 100.0f;
+                /* adc_ch7: second channel (jika ada koneksi kedua) */
+                error_pwm = ((float)(adc_ch7) - (float)(target)) / (float)(target) * 100.0f;
+#endif
             }
 
             total_error_dac += (error_dac < 0) ? -error_dac : error_dac;
@@ -339,8 +464,10 @@ int main(void) {
             printf("[CMP] Target=%4u | DAC_RB=%4u | PWM_RB=%4u | ErrDAC=%+6.1f%% | ErrPWM=%+6.1f%%\r\n",
                    target, adc_ch6, adc_ch7, error_dac, error_pwm);
 #else
-            printf("[CMP] Target=%4u | PWM1_RB=%4u | PWM2_RB=%4u | Err1=%+6.1f%% | Err2=%+6.1f%%\r\n",
-                   target, adc_ch6, adc_ch7, error_dac, error_pwm);
+            printf("[CMP] Target=%4u | PWM_RB=%4u%s | ADC_raw=%4u | Err=%+6.1f%% | Err2=%+6.1f%%\r\n",
+                   target, pwm_readback,
+                   rc_filter_present ? "(RC)" : "(sim)",
+                   adc_ch6, error_dac, error_pwm);
 #endif
         }
 
@@ -359,6 +486,13 @@ int main(void) {
         }
 #else
         printf("[RESULT] Rata-rata Error PWM1  : %.2f%%\r\n", avg_error_dac);
+        if (!rc_filter_present) {
+            printf("[RESULT] (PWM1 menggunakan simulasi duty-cycle)\r\n");
+            printf("[RESULT] Simulasi: Vsim = (duty/4095) x Vref\r\n");
+            printf("[RESULT] Untuk hasil akurat, pasang RC filter:\r\n");
+            printf("[RESULT]   PA0 → R(10kΩ) → junction → C(100nF) → GND\r\n");
+            printf("[RESULT]                    junction → PA6 (ADC)\r\n");
+        }
         printf("[RESULT] Rata-rata Error PWM2  : %.2f%%\r\n", avg_error_pwm);
 #endif
 

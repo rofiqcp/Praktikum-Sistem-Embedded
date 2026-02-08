@@ -6,6 +6,13 @@
  *  Deskripsi   : Menghasilkan nada audio 440Hz (A4) dan 880Hz (A5)
  *                melalui DAC (F4) dengan timer-driven sample output.
  *                F103: PWM buzzer tone sebagai alternatif.
+ *
+ *  Perhitungan Frekuensi (F4 DAC):
+ *    Untuk 440Hz dengan 64-sample lookup table:
+ *      Timer rate = 440 × 64 = 28,160 Hz
+ *      APB1 timer clock = 84 MHz (TIM6 on APB1, x2 multiplier)
+ *      ARR = 84000000 / 28160 - 1 = 2982
+ *    Untuk 880Hz: sample_skip = 2 → efektif 880Hz
  * ==========================================================
  */
 
@@ -41,7 +48,6 @@ static const uint16_t sine_64[64] = {
 };
 
 /* Konfigurasi nada audio */
-#define SAMPLE_RATE    32000   /* 32kHz sample rate */
 #define TONE_440HZ     0
 #define TONE_880HZ     1
 
@@ -233,11 +239,23 @@ void MX_DAC_Init(void) {
 void MX_TIM6_Init(void) {
     __HAL_RCC_TIM6_CLK_ENABLE();
 
-    /* Sample rate 32kHz: 84MHz / 1 / 2625 = 32kHz */
+    /*
+     * Untuk menghasilkan nada 440Hz dengan 64-sample sine table:
+     *   Timer interrupt rate = 440 × 64 = 28,160 Hz
+     *   TIM6 clock = APB1 timer clock = 84 MHz
+     *   (APB1 prescaler = /2, timer clock x2 multiplier)
+     *   ARR = 84000000 / 28160 - 1 = 2982
+     *
+     * Verifikasi: 84000000 / (2982 + 1) = 28,160.24 Hz
+     *             28,160.24 / 64 = 440.00 Hz ✓
+     *
+     * BUG LAMA: ARR = 2624 menghasilkan 84MHz/2625 = 32kHz
+     *           32000/64 = 500Hz (BUKAN 440Hz!)
+     */
     htim6.Instance = TIM6;
     htim6.Init.Prescaler = 0;
     htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim6.Init.Period = 2624;
+    htim6.Init.Period = 2982;  /* 84MHz / 28160 - 1 = 2982 → tepat 440Hz */
     htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
     HAL_TIM_Base_Init(&htim6);
 
@@ -274,7 +292,8 @@ int main(void) {
     MX_TIM6_Init();
     printf("\r\n=== DAC Audio Tone Generator (STM32F4) ===\r\n");
     printf("DAC Channel 1 pada PA4 (hubungkan ke speaker/amplifier)\r\n");
-    printf("Sample rate: 32kHz, 64-point sine table\r\n\r\n");
+    printf("Timer rate: 440x64 = 28160 Hz, 64-point sine table\r\n");
+    printf("ARR = 2982 → tepat 440Hz base tone\r\n\r\n");
 #else
     MX_TIM2_PWM_Init(440);
     printf("\r\n=== PWM Buzzer Tone (STM32F103) ===\r\n");
@@ -285,9 +304,12 @@ int main(void) {
     while (1) {
         /* === Nada 440Hz (A4) selama 2 detik === */
 #ifdef STM32F4
-        /* 440Hz dari 32kHz sample rate, 64 titik:
-         * sample_skip = (440 * 64) / 32000 ~ 1 */
-        sample_skip = 1; /* ~500Hz (32000/64) - mendekati 440Hz */
+        /*
+         * 440Hz: sample_skip = 1
+         * Timer fires at 28,160 Hz, stepping through 64 samples
+         * → output frequency = 28160 / 64 = 440 Hz ✓
+         */
+        sample_skip = 1;
         current_tone = TONE_440HZ;
         printf("[AUDIO] Nada: 440 Hz (A4) - DAC sinus\r\n");
 #else
@@ -298,7 +320,12 @@ int main(void) {
 
         /* === Nada 880Hz (A5) selama 2 detik === */
 #ifdef STM32F4
-        sample_skip = 2; /* ~1000Hz - mendekati 880Hz */
+        /*
+         * 880Hz: sample_skip = 2
+         * Skips every other sample → effectively doubles frequency
+         * → output frequency = 28160 / 64 * 2 = 880 Hz ✓
+         */
+        sample_skip = 2;
         current_tone = TONE_880HZ;
         printf("[AUDIO] Nada: 880 Hz (A5) - DAC sinus\r\n");
 #else

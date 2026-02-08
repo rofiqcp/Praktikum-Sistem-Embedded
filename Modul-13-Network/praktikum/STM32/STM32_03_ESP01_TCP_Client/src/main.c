@@ -19,36 +19,30 @@
  *   5. Close connection (AT+CIPCLOSE)
  * ============================================================================
  */
-
-#include "stm32f1xx_hal.h"
+#include "config.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
-
 /* ---- Handles ---- */
 static UART_HandleTypeDef huart1;
 static UART_HandleTypeDef huart2;
-
 /* ---- Network config ---- */
 #define WIFI_SSID       "YourSSID"
 #define WIFI_PASSWORD   "YourPassword"
 #define TCP_SERVER_IP   "192.168.1.100"
 #define TCP_SERVER_PORT "8080"
 #define MAX_RETRIES     5
-
 /* ---- Buffers ---- */
 #define ESP_RX_BUF_SIZE   1024
 #define AT_TIMEOUT_MS     5000
 #define WIFI_TIMEOUT_MS   15000
 #define TCP_TIMEOUT_MS    10000
-
 static char esp_rx_buf[ESP_RX_BUF_SIZE];
 static volatile uint16_t esp_rx_idx = 0;
 static uint8_t esp_rx_byte;
-
 /* ---- Forward declarations ---- */
 static void SystemClock_Config(void);
 static void GPIO_Init(void);
@@ -65,7 +59,6 @@ static int  TCP_Connect(const char *ip, const char *port);
 static int  TCP_Send(const char *data, uint16_t len);
 static void TCP_Close(void);
 static void TCPClientTask(void *pvParameters);
-
 /* ---- UART printf ---- */
 static void UART_Printf(const char *fmt, ...)
 {
@@ -78,36 +71,61 @@ static void UART_Printf(const char *fmt, ...)
         HAL_UART_Transmit(&huart1, (uint8_t *)buf, (uint16_t)len, HAL_MAX_DELAY);
     }
 }
-
-/* ---- System clock: HSE 8MHz -> PLL -> 72MHz ---- */
+/* ============================================================
+ *  System Clock Configuration (Multi-platform)
+ * ============================================================ */
+#ifdef STM32F103xB
+/* F103: 8 MHz HSE -> PLL x9 -> 72 MHz SYSCLK */
 static void SystemClock_Config(void)
 {
-    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-    RCC_OscInitStruct.HSEState       = RCC_HSE_ON;
-    RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-    RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
-    RCC_OscInitStruct.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
-    RCC_OscInitStruct.PLL.PLLMUL     = RCC_PLL_MUL9;
-    HAL_RCC_OscConfig(&RCC_OscInitStruct);
-
-    RCC_ClkInitStruct.ClockType      = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
-                                       RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-    RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
-    RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-    HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
+    RCC_OscInitTypeDef osc = {0};
+    RCC_ClkInitTypeDef clk = {0};
+    osc.OscillatorType      = RCC_OSCILLATORTYPE_HSE;
+    osc.HSEState            = RCC_HSE_ON;
+    osc.HSEPredivValue      = RCC_HSE_PREDIV_DIV1;
+    osc.PLL.PLLState        = RCC_PLL_ON;
+    osc.PLL.PLLSource       = RCC_PLLSOURCE_HSE;
+    osc.PLL.PLLMUL          = RCC_PLL_MUL9;
+    HAL_RCC_OscConfig(&osc);
+    clk.ClockType      = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                       | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    clk.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
+    clk.AHBCLKDivider  = RCC_SYSCLK_DIV1;
+    clk.APB1CLKDivider = RCC_HCLK_DIV2;
+    clk.APB2CLKDivider = RCC_HCLK_DIV1;
+    HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_2);
 }
-
+#elif defined(STM32F401xC) || defined(STM32F411xE)
+/* F4xx: 25 MHz HSE -> PLL -> 84 MHz SYSCLK */
+static void SystemClock_Config(void)
+{
+    RCC_OscInitTypeDef osc = {0};
+    RCC_ClkInitTypeDef clk = {0};
+    __HAL_RCC_PWR_CLK_ENABLE();
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+    osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    osc.HSEState       = RCC_HSE_ON;
+    osc.PLL.PLLState   = RCC_PLL_ON;
+    osc.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
+    osc.PLL.PLLM       = 25;
+    osc.PLL.PLLN       = 336;
+    osc.PLL.PLLP       = RCC_PLLP_DIV4;   /* 336/4 = 84 MHz */
+    osc.PLL.PLLQ       = 7;
+    HAL_RCC_OscConfig(&osc);
+    clk.ClockType      = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                       | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    clk.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
+    clk.AHBCLKDivider  = RCC_SYSCLK_DIV1;
+    clk.APB1CLKDivider = RCC_HCLK_DIV2;
+    clk.APB2CLKDivider = RCC_HCLK_DIV1;
+    HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_2);
+}
+#endif
 /* ---- GPIO ---- */
 static void GPIO_Init(void)
 {
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
-
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     GPIO_InitStruct.Pin   = LED_PIN;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
@@ -116,21 +134,30 @@ static void GPIO_Init(void)
     HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
 }
 
-/* ---- UART1: Debug ---- */
+/* ---- UART1: Debug (PA9 TX, PA10 RX) ---- */
 static void UART1_Init(void)
 {
     __HAL_RCC_USART1_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
 
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin   = GPIO_PIN_9;
-    GPIO_InitStruct.Mode  = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin   = GPIO_PIN_10;
-    GPIO_InitStruct.Mode  = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull  = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    GPIO_InitTypeDef g = {0};
+#ifdef STM32F103xB
+    g.Pin   = GPIO_PIN_9;
+    g.Mode  = GPIO_MODE_AF_PP;
+    g.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(GPIOA, &g);
+    g.Pin   = GPIO_PIN_10;
+    g.Mode  = GPIO_MODE_INPUT;
+    g.Pull  = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &g);
+#elif defined(STM32F401xC) || defined(STM32F411xE)
+    g.Pin       = GPIO_PIN_9 | GPIO_PIN_10;
+    g.Mode      = GPIO_MODE_AF_PP;
+    g.Pull      = GPIO_PULLUP;
+    g.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
+    g.Alternate = GPIO_AF7_USART1;
+    HAL_GPIO_Init(GPIOA, &g);
+#endif
 
     huart1.Instance          = USART1;
     huart1.Init.BaudRate     = UART_BAUDRATE;
@@ -143,22 +170,29 @@ static void UART1_Init(void)
     HAL_UART_Init(&huart1);
 }
 
-/* ---- UART2: ESP-01 ---- */
+/* ---- UART2: Module comm (PA2 TX, PA3 RX) ---- */
 static void UART2_Init(void)
 {
     __HAL_RCC_USART2_CLK_ENABLE();
-
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin   = GPIO_PIN_2;
-    GPIO_InitStruct.Mode  = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin   = GPIO_PIN_3;
-    GPIO_InitStruct.Mode  = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull  = GPIO_PULLUP;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    GPIO_InitTypeDef g = {0};
+#ifdef STM32F103xB
+    g.Pin   = GPIO_PIN_2;
+    g.Mode  = GPIO_MODE_AF_PP;
+    g.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(GPIOA, &g);
+    g.Pin   = GPIO_PIN_3;
+    g.Mode  = GPIO_MODE_INPUT;
+    g.Pull  = GPIO_PULLUP;
+    HAL_GPIO_Init(GPIOA, &g);
+#elif defined(STM32F401xC) || defined(STM32F411xE)
+    g.Pin       = GPIO_PIN_2 | GPIO_PIN_3;
+    g.Mode      = GPIO_MODE_AF_PP;
+    g.Pull      = GPIO_PULLUP;
+    g.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
+    g.Alternate = GPIO_AF7_USART2;
+    HAL_GPIO_Init(GPIOA, &g);
+#endif
     huart2.Instance          = USART2;
     huart2.Init.BaudRate     = UART_BAUDRATE;
     huart2.Init.WordLength   = UART_WORDLENGTH_8B;
@@ -168,12 +202,10 @@ static void UART2_Init(void)
     huart2.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
     huart2.Init.OverSampling = UART_OVERSAMPLING_16;
     HAL_UART_Init(&huart2);
-
     HAL_NVIC_SetPriority(USART2_IRQn, 6, 0);
     HAL_NVIC_EnableIRQ(USART2_IRQn);
     HAL_UART_Receive_IT(&huart2, &esp_rx_byte, 1);
 }
-
 /* ---- UART2 RX interrupt ---- */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -185,30 +217,25 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
         HAL_UART_Receive_IT(&huart2, &esp_rx_byte, 1);
     }
 }
-
 void USART2_IRQHandler(void)
 {
     HAL_UART_IRQHandler(&huart2);
 }
-
 /* ---- ESP helper functions ---- */
 static void ESP_ClearBuffer(void)
 {
     memset(esp_rx_buf, 0, ESP_RX_BUF_SIZE);
     esp_rx_idx = 0;
 }
-
 static void ESP_SendCommand(const char *cmd)
 {
     ESP_ClearBuffer();
     HAL_UART_Transmit(&huart2, (uint8_t *)cmd, strlen(cmd), 1000);
 }
-
 static void ESP_SendRaw(const char *data, uint16_t len)
 {
     HAL_UART_Transmit(&huart2, (uint8_t *)data, len, 2000);
 }
-
 static int ESP_WaitResponse(const char *expect, uint32_t timeout_ms)
 {
     uint32_t start = HAL_GetTick();
@@ -221,7 +248,6 @@ static int ESP_WaitResponse(const char *expect, uint32_t timeout_ms)
     }
     return 0;
 }
-
 static int ESP_SendAndCheck(const char *cmd, const char *expect, uint32_t timeout)
 {
     UART_Printf("[TX] %s", cmd);
@@ -232,19 +258,15 @@ static int ESP_SendAndCheck(const char *cmd, const char *expect, uint32_t timeou
     else                UART_Printf("[TMO] Timeout\r\n");
     return ret;
 }
-
 /* ---- WiFi connect ---- */
 static int WiFi_Connect(void)
 {
     char cmd[128];
     int attempt;
-
     UART_Printf("[WIFI] Setting station mode...\r\n");
     ESP_SendAndCheck("AT+CWMODE=1\r\n", "OK", AT_TIMEOUT_MS);
     vTaskDelay(pdMS_TO_TICKS(500));
-
     snprintf(cmd, sizeof(cmd), "AT+CWJAP=\"%s\",\"%s\"\r\n", WIFI_SSID, WIFI_PASSWORD);
-
     for (attempt = 0; attempt < MAX_RETRIES; attempt++) {
         UART_Printf("[WIFI] Connect attempt %d/%d...\r\n", attempt + 1, MAX_RETRIES);
         if (ESP_SendAndCheck(cmd, "OK", WIFI_TIMEOUT_MS) == 1) {
@@ -257,13 +279,11 @@ static int WiFi_Connect(void)
     }
     return 0;
 }
-
 /* ---- TCP connect ---- */
 static int TCP_Connect(const char *ip, const char *port)
 {
     char cmd[128];
     snprintf(cmd, sizeof(cmd), "AT+CIPSTART=\"TCP\",\"%s\",%s\r\n", ip, port);
-
     UART_Printf("[TCP] Connecting to %s:%s...\r\n", ip, port);
     if (ESP_SendAndCheck(cmd, "OK", TCP_TIMEOUT_MS) == 1) {
         UART_Printf("[TCP] Connected!\r\n");
@@ -276,27 +296,22 @@ static int TCP_Connect(const char *ip, const char *port)
     }
     return 0;
 }
-
 /* ---- TCP send ---- */
 static int TCP_Send(const char *data, uint16_t len)
 {
     char cmd[32];
     snprintf(cmd, sizeof(cmd), "AT+CIPSEND=%u\r\n", len);
-
     UART_Printf("[TCP] Sending %u bytes...\r\n", len);
     ESP_SendCommand(cmd);
-
     /* Wait for '>' prompt */
     int ret = ESP_WaitResponse(">", AT_TIMEOUT_MS);
     if (ret != 1) {
         UART_Printf("[TCP] No '>' prompt\r\n");
         return 0;
     }
-
     /* Send actual data */
     ESP_ClearBuffer();
     ESP_SendRaw(data, len);
-
     /* Wait for SEND OK */
     ret = ESP_WaitResponse("SEND OK", TCP_TIMEOUT_MS);
     if (ret == 1) {
@@ -306,72 +321,58 @@ static int TCP_Send(const char *data, uint16_t len)
     UART_Printf("[TCP] Send failed\r\n");
     return 0;
 }
-
 /* ---- TCP close ---- */
 static void TCP_Close(void)
 {
     UART_Printf("[TCP] Closing connection...\r\n");
     ESP_SendAndCheck("AT+CIPCLOSE\r\n", "OK", AT_TIMEOUT_MS);
 }
-
 /* ---- TCP Client Task ---- */
 static void TCPClientTask(void *pvParameters)
 {
     (void)pvParameters;
     uint32_t msg_count = 0;
-
     UART_Printf("\r\n========================================\r\n");
     UART_Printf("  STM32 + ESP-01 TCP Client\r\n");
     UART_Printf("  Server: %s:%s\r\n", TCP_SERVER_IP, TCP_SERVER_PORT);
     UART_Printf("========================================\r\n\n");
-
     vTaskDelay(pdMS_TO_TICKS(2000));
     ESP_ClearBuffer();
-
     /* Test AT */
     ESP_SendAndCheck("AT\r\n", "OK", AT_TIMEOUT_MS);
     vTaskDelay(pdMS_TO_TICKS(500));
-
     /* Connect WiFi */
     if (!WiFi_Connect()) {
         UART_Printf("[FATAL] WiFi connection failed\r\n");
         for (;;) { vTaskDelay(pdMS_TO_TICKS(5000)); }
     }
-
     /* Main TCP loop */
     for (;;) {
         msg_count++;
         char payload[64];
         int plen = snprintf(payload, sizeof(payload),
                             "Hello from STM32! Msg#%lu\r\n", msg_count);
-
         HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_RESET);
-
         /* Connect TCP */
         if (TCP_Connect(TCP_SERVER_IP, TCP_SERVER_PORT)) {
             /* Send data */
             TCP_Send(payload, (uint16_t)plen);
-
             /* Wait for response */
             UART_Printf("[TCP] Waiting for response...\r\n");
             vTaskDelay(pdMS_TO_TICKS(2000));
             if (esp_rx_idx > 0) {
                 UART_Printf("[TCP] Response:\r\n%s\r\n", esp_rx_buf);
             }
-
             TCP_Close();
         } else {
             UART_Printf("[TCP] Connection failed\r\n");
         }
-
         HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
-
         UBaseType_t hwm = uxTaskGetStackHighWaterMark(NULL);
         UART_Printf("[SYS] Stack HWM: %u | Next send in 10s\r\n", (unsigned int)hwm);
         vTaskDelay(pdMS_TO_TICKS(10000));
     }
 }
-
 /* ---- FreeRTOS hooks ---- */
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
@@ -379,13 +380,11 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
     UART_Printf("\r\n[FATAL] Stack overflow: %s\r\n", pcTaskName);
     for (;;) {}
 }
-
 void vApplicationMallocFailedHook(void)
 {
     UART_Printf("\r\n[FATAL] Malloc failed!\r\n");
     for (;;) {}
 }
-
 static StaticTask_t xIdleTaskTCB;
 static StackType_t  uxIdleTaskStack[configMINIMAL_STACK_SIZE];
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
@@ -396,7 +395,6 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
     *ppxIdleTaskStackBuffer = uxIdleTaskStack;
     *pulIdleTaskStackSize   = configMINIMAL_STACK_SIZE;
 }
-
 static StaticTask_t xTimerTaskTCB;
 static StackType_t  uxTimerTaskStack[configTIMER_TASK_STACK_DEPTH];
 void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer,
@@ -407,7 +405,6 @@ void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer,
     *ppxTimerTaskStackBuffer = uxTimerTaskStack;
     *pulTimerTaskStackSize   = configTIMER_TASK_STACK_DEPTH;
 }
-
 /* ---- Main ---- */
 int main(void)
 {
@@ -416,7 +413,6 @@ int main(void)
     GPIO_Init();
     UART1_Init();
     UART2_Init();
-
     xTaskCreate(TCPClientTask, "TCP", 512, NULL, MAIN_TASK_PRIORITY, NULL);
     vTaskStartScheduler();
     for (;;) {}

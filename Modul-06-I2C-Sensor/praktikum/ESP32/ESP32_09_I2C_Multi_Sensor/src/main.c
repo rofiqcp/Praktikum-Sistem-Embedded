@@ -4,6 +4,7 @@
  *
  * Deskripsi: Membaca BMP280 (suhu + tekanan) dan BH1750 (cahaya)
  *            pada bus I2C yang sama. Demonstrasi multiple device.
+ *            Menggunakan ESP-IDF v5.x I2C Master API (driver/i2c_master.h)
  *
  * Koneksi Pin:
  *   ESP32:    SDA=GPIO21, SCL=GPIO22
@@ -17,7 +18,7 @@
 #include <math.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 #include "esp_err.h"
 
@@ -37,7 +38,6 @@ static const char *TAG = "MULTI_SENSOR";
 
 #define I2C_PORT            I2C_NUM_0
 #define I2C_FREQ_HZ         100000
-#define I2C_TIMEOUT_MS      1000
 
 /* ======================== Alamat & Register BMP280 ======================== */
 #define BMP280_ADDR         0x76    /* Alamat I2C BMP280 (SDO=GND) */
@@ -75,86 +75,77 @@ typedef struct {
 static bmp280_calib_t bmp_calib;
 static int32_t t_fine; /* Variabel global untuk kompensasi suhu */
 
+/* Handle I2C bus dan device */
+static i2c_master_bus_handle_t bus_handle;
+static i2c_master_dev_handle_t bmp280_dev_handle;
+static i2c_master_dev_handle_t bh1750_dev_handle;
+
 /* ======================== Inisialisasi I2C Master ======================== */
 static esp_err_t i2c_master_init(void)
 {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_PORT,
         .sda_io_num = I2C_SDA_PIN,
         .scl_io_num = I2C_SCL_PIN,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_FREQ_HZ,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
 
-    esp_err_t err = i2c_param_config(I2C_PORT, &conf);
+    esp_err_t err = i2c_new_master_bus(&bus_config, &bus_handle);
     if (err != ESP_OK) return err;
 
-    return i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
+    /* Tambahkan device BMP280 ke bus */
+    i2c_device_config_t bmp280_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = BMP280_ADDR,
+        .scl_speed_hz = I2C_FREQ_HZ,
+    };
+    err = i2c_master_bus_add_device(bus_handle, &bmp280_cfg, &bmp280_dev_handle);
+    if (err != ESP_OK) return err;
+
+    /* Tambahkan device BH1750 ke bus */
+    i2c_device_config_t bh1750_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = BH1750_ADDR,
+        .scl_speed_hz = I2C_FREQ_HZ,
+    };
+    err = i2c_master_bus_add_device(bus_handle, &bh1750_cfg, &bh1750_dev_handle);
+    if (err != ESP_OK) return err;
+
+    return ESP_OK;
 }
 
 /* ======================== Tulis Register I2C ======================== */
-static esp_err_t i2c_write_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t len)
+static esp_err_t i2c_write_reg(i2c_master_dev_handle_t dev_handle, uint8_t reg_addr,
+                                uint8_t *data, size_t len)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg_addr, true);
+    /* Gabungkan register address + data menjadi satu buffer tulis */
+    uint8_t write_buf[1 + len];
+    write_buf[0] = reg_addr;
     if (data != NULL && len > 0) {
-        i2c_master_write(cmd, data, len, true);
+        memcpy(&write_buf[1], data, len);
     }
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
+    return i2c_master_transmit(dev_handle, write_buf, 1 + len, -1);
 }
 
 /* ======================== Baca Register I2C ======================== */
-static esp_err_t i2c_read_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t len)
+static esp_err_t i2c_read_reg(i2c_master_dev_handle_t dev_handle, uint8_t reg_addr,
+                               uint8_t *data, size_t len)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg_addr, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
-    if (len > 1) {
-        i2c_master_read(cmd, data, len - 1, I2C_MASTER_ACK);
-    }
-    i2c_master_read_byte(cmd, data + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
+    return i2c_master_transmit_receive(dev_handle, &reg_addr, 1, data, len, -1);
 }
 
 /* ======================== Kirim Perintah BH1750 ======================== */
 static esp_err_t bh1750_send_cmd(uint8_t command)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (BH1750_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, command, true);
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
+    return i2c_master_transmit(bh1750_dev_handle, &command, 1, -1);
 }
 
 /* ======================== Baca Data BH1750 ======================== */
 static esp_err_t bh1750_read_data(uint8_t *data, size_t len)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (BH1750_ADDR << 1) | I2C_MASTER_READ, true);
-    if (len > 1) {
-        i2c_master_read(cmd, data, len - 1, I2C_MASTER_ACK);
-    }
-    i2c_master_read_byte(cmd, data + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
+    return i2c_master_receive(bh1750_dev_handle, data, len, -1);
 }
 
 /* ======================== Inisialisasi BMP280 ======================== */
@@ -164,7 +155,7 @@ static esp_err_t bmp280_init(void)
     esp_err_t err;
 
     /* Baca chip ID untuk verifikasi */
-    err = i2c_read_reg(BMP280_ADDR, BMP280_REG_ID, &chip_id, 1);
+    err = i2c_read_reg(bmp280_dev_handle, BMP280_REG_ID, &chip_id, 1);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Gagal membaca chip ID BMP280: %s", esp_err_to_name(err));
         return err;
@@ -177,7 +168,7 @@ static esp_err_t bmp280_init(void)
 
     /* Baca data kalibrasi (26 byte mulai dari 0x88) */
     uint8_t calib_data[26];
-    err = i2c_read_reg(BMP280_ADDR, BMP280_REG_CALIB, calib_data, 26);
+    err = i2c_read_reg(bmp280_dev_handle, BMP280_REG_CALIB, calib_data, 26);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Gagal baca data kalibrasi BMP280");
         return err;
@@ -202,12 +193,12 @@ static esp_err_t bmp280_init(void)
 
     /* Konfigurasi: standby 500ms, filter coeff 4 */
     uint8_t config_val = (0x04 << 5) | (0x02 << 2); /* t_sb=500ms, filter=x4 */
-    err = i2c_write_reg(BMP280_ADDR, BMP280_REG_CONFIG, &config_val, 1);
+    err = i2c_write_reg(bmp280_dev_handle, BMP280_REG_CONFIG, &config_val, 1);
     if (err != ESP_OK) return err;
 
     /* Kontrol: osrs_t=x2, osrs_p=x16, mode=normal */
     uint8_t ctrl_val = (0x02 << 5) | (0x05 << 2) | 0x03;
-    err = i2c_write_reg(BMP280_ADDR, BMP280_REG_CTRL, &ctrl_val, 1);
+    err = i2c_write_reg(bmp280_dev_handle, BMP280_REG_CTRL, &ctrl_val, 1);
     if (err != ESP_OK) return err;
 
     ESP_LOGI(TAG, "BMP280 berhasil diinisialisasi (mode normal)");
@@ -283,7 +274,7 @@ static esp_err_t bmp280_read(float *temp, float *press)
     esp_err_t err;
 
     /* Baca 6 byte data: tekanan (3 byte) + suhu (3 byte) */
-    err = i2c_read_reg(BMP280_ADDR, BMP280_REG_PRESS, data, 6);
+    err = i2c_read_reg(bmp280_dev_handle, BMP280_REG_PRESS, data, 6);
     if (err != ESP_OK) return err;
 
     /* Parse raw data (20-bit) */
@@ -370,13 +361,7 @@ static void i2c_scan(void)
     uint8_t device_count = 0;
 
     for (uint8_t addr = 1; addr < 127; addr++) {
-        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-        i2c_master_stop(cmd);
-        esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(50));
-        i2c_cmd_link_delete(cmd);
-
+        esp_err_t err = i2c_master_probe(bus_handle, addr, -1);
         if (err == ESP_OK) {
             ESP_LOGI(TAG, "  Perangkat ditemukan di alamat 0x%02X", addr);
             device_count++;

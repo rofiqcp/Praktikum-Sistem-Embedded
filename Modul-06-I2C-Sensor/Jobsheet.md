@@ -1,4 +1,4 @@
-# Jobsheet Modul 06 - I2C & Sensor
+# Jobsheet Modul 06: Komunikasi Cerdas Antar-Chip — I2C Bus & Sensor Integration
 
 ## Praktikum Sistem Embedded
 

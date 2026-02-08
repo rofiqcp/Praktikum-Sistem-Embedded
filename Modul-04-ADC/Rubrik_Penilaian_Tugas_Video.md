@@ -1,4 +1,4 @@
-# 🎥 Rubrik Penilaian Tugas Video - Modul 04: ADC (Analog-to-Digital Converter)
+# 🎥 Rubrik Penilaian Tugas Video — Modul 04: Menguak Dunia Analog — ADC
 
 ## 📋 Informasi Umum
 

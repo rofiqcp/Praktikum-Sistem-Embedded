@@ -9,13 +9,15 @@
  *   ESP32:    SDA=GPIO21, SCL=GPIO22
  *   S2/S3:   SDA=GPIO8,  SCL=GPIO9
  *   PCF8574: P0=RS, P1=RW, P2=EN, P3=BL, P4-P7=D4-D7
+ *
+ * Menggunakan ESP-IDF v5.x I2C Master API (driver/i2c_master.h)
  */
 
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 #include "esp_err.h"
 
@@ -35,7 +37,6 @@ static const char *TAG = "LCD_I2C";
 
 #define I2C_PORT            I2C_NUM_0
 #define I2C_FREQ_HZ         100000
-#define I2C_TIMEOUT_MS      1000
 
 /* ======================== Konfigurasi PCF8574 & LCD ======================== */
 #define PCF8574_ADDR        0x27    /* Alamat I2C PCF8574 (A0=A1=A2=1) */
@@ -61,77 +62,43 @@ static const char *TAG = "LCD_I2C";
 
 static uint8_t lcd_backlight = LCD_BL; /* Status backlight (on) */
 
+/* Handle I2C bus dan device */
+static i2c_master_bus_handle_t bus_handle;
+static i2c_master_dev_handle_t pcf8574_handle;
+
 /* ======================== Inisialisasi I2C Master ======================== */
 static esp_err_t i2c_master_init(void)
 {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_PORT,
         .sda_io_num = I2C_SDA_PIN,
         .scl_io_num = I2C_SCL_PIN,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_FREQ_HZ,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
-
-    esp_err_t err = i2c_param_config(I2C_PORT, &conf);
+    esp_err_t err = i2c_new_master_bus(&bus_config, &bus_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Gagal konfigurasi I2C: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Gagal membuat I2C master bus: %s", esp_err_to_name(err));
         return err;
     }
 
-    err = i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
+    i2c_device_config_t dev_config = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = PCF8574_ADDR,
+        .scl_speed_hz = I2C_FREQ_HZ,
+    };
+    err = i2c_master_bus_add_device(bus_handle, &dev_config, &pcf8574_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Gagal install driver I2C: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Gagal menambahkan device PCF8574: %s", esp_err_to_name(err));
     }
-    return err;
-}
-
-/* ======================== Tulis Register I2C ======================== */
-static esp_err_t i2c_write_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t len)
-{
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg_addr, true);
-    if (data != NULL && len > 0) {
-        i2c_master_write(cmd, data, len, true);
-    }
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
-}
-
-/* ======================== Baca Register I2C ======================== */
-static esp_err_t i2c_read_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t len)
-{
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg_addr, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
-    if (len > 1) {
-        i2c_master_read(cmd, data, len - 1, I2C_MASTER_ACK);
-    }
-    i2c_master_read_byte(cmd, data + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
     return err;
 }
 
 /* ======================== Tulis Byte ke PCF8574 ======================== */
 static esp_err_t pcf8574_write(uint8_t byte_val)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (PCF8574_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, byte_val, true);
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-    return err;
+    return i2c_master_transmit(pcf8574_handle, &byte_val, 1, -1);
 }
 
 /* ======================== Pulse Enable ======================== */
@@ -280,6 +247,9 @@ static void lcd_task(void *pvParameters)
     ESP_LOGI(TAG, "Menampilkan 'I2C LCD Ready' di baris 2");
 
     vTaskDelay(pdMS_TO_TICKS(3000));
+
+    /* Suppress unused warning */
+    (void)lcd_clear;
 
     while (1) {
         counter++;

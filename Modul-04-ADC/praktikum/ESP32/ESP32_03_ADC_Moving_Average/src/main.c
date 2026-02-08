@@ -17,6 +17,11 @@
  * 
  * Koneksi Hardware:
  *   - Potensiometer: VCC → 3.3V, GND → GND, Wiper → GPIO34
+ * 
+ * API yang digunakan (ESP-IDF v5.x Oneshot API):
+ *   - adc_oneshot_new_unit()       : Membuat unit handle ADC
+ *   - adc_oneshot_config_channel() : Mengatur konfigurasi channel
+ *   - adc_oneshot_read()           : Membaca nilai mentah ADC (single-shot)
  * ==========================================================================
  */
 
@@ -25,25 +30,24 @@
 #include <math.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/adc.h"
+#include "esp_adc/adc_oneshot.h"
 #include "esp_log.h"
 
 static const char *TAG = "ADC_MAVG";
 
 /* Konfigurasi ADC */
 #if CONFIG_IDF_TARGET_ESP32
-    #define ADC_CHANNEL     ADC1_CHANNEL_6
+    #define ADC_CHANNEL     ADC_CHANNEL_6
     #define ADC_GPIO_NUM    34
 #elif CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
-    #define ADC_CHANNEL     ADC1_CHANNEL_3
+    #define ADC_CHANNEL     ADC_CHANNEL_3
     #define ADC_GPIO_NUM    4
 #else
-    #define ADC_CHANNEL     ADC1_CHANNEL_6
+    #define ADC_CHANNEL     ADC_CHANNEL_6
     #define ADC_GPIO_NUM    34
 #endif
 
-#define ADC_WIDTH       ADC_WIDTH_BIT_12
-#define ADC_ATTEN       ADC_ATTEN_DB_11
+#define ADC_ATTEN       ADC_ATTEN_DB_12
 #define READ_INTERVAL_MS    50  /* Pembacaan cepat untuk melihat efek filter */
 
 /* Ukuran window moving average */
@@ -145,9 +149,18 @@ static float calculate_std_dev(int *values, int count)
 
 void app_main(void)
 {
-    /* ====== KONFIGURASI ADC ====== */
-    adc1_config_width(ADC_WIDTH);
-    adc1_config_channel_atten(ADC_CHANNEL, ADC_ATTEN);
+    /* ====== KONFIGURASI ADC (Oneshot) ====== */
+    adc_oneshot_unit_handle_t adc_handle;
+    adc_oneshot_unit_init_cfg_t init_config = {
+        .unit_id = ADC_UNIT_1,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle));
+
+    adc_oneshot_chan_cfg_t chan_config = {
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+        .atten = ADC_ATTEN,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_CHANNEL, &chan_config));
 
     ESP_LOGI(TAG, "========================================");
     ESP_LOGI(TAG, "  ADC Moving Average Filter");
@@ -172,7 +185,8 @@ void app_main(void)
     /* ====== LOOP PEMBACAAN ====== */
     while (1) {
         /* Baca nilai mentah ADC */
-        int raw_value = adc1_get_raw(ADC_CHANNEL);
+        int raw_value = 0;
+        ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, ADC_CHANNEL, &raw_value));
 
         /* Terapkan filter moving average */
         int avg_16 = moving_avg_add(&filter_16, raw_value);

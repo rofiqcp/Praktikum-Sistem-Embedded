@@ -14,6 +14,38 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+
+/* F4xx compatibility for peripheral register bit names */
+#if defined(STM32F401xC) || defined(STM32F411xE)
+  #ifndef RCC_APB2ENR_IOPAEN
+    #define RCC_APB2ENR_IOPAEN  RCC_AHB1ENR_GPIOAEN
+  #endif
+  #ifndef RCC_APB2ENR_IOPBEN
+    #define RCC_APB2ENR_IOPBEN  RCC_AHB1ENR_GPIOBEN
+  #endif
+  #ifndef RCC_APB2ENR_IOPCEN
+    #define RCC_APB2ENR_IOPCEN  RCC_AHB1ENR_GPIOCEN
+  #endif
+  #ifndef RCC_APB2ENR_IOPDEN
+    #define RCC_APB2ENR_IOPDEN  RCC_AHB1ENR_GPIODEN
+  #endif
+  #ifndef RCC_APB2ENR_ADC2EN
+    #define RCC_APB2ENR_ADC2EN  0  /* F4xx: no ADC2 on F401/F411 */
+  #endif
+  #ifndef RCC_APB2ENR_AFIOEN
+    #define RCC_APB2ENR_AFIOEN  0  /* F4xx: no AFIO */
+  #endif
+  #ifndef RCC_APB1ENR_USART3EN
+    #define RCC_APB1ENR_USART3EN 0  /* F401: no USART3 */
+  #endif
+  #ifndef RCC_APB1ENR_USBEN
+    #define RCC_APB1ENR_USBEN   0  /* F4xx: uses OTG_FS instead */
+  #ifndef RCC_APB1ENR_BKPEN
+    #define RCC_APB1ENR_BKPEN   0  /* F4xx: no BKP peripheral */
+  #endif
+  #endif
+#endif
+
 /* ---- Private variables --------------------------------------------------- */
 static UART_HandleTypeDef huart1;
 /* Peripheral current estimates (mA) - approximate values */
@@ -164,20 +196,28 @@ static void Enable_All_Peripheral_Clocks(void)
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
     __HAL_RCC_ADC1_CLK_ENABLE();
+    #ifdef STM32F103xB
     __HAL_RCC_ADC2_CLK_ENABLE();
+    #endif
     __HAL_RCC_SPI1_CLK_ENABLE();
     __HAL_RCC_TIM1_CLK_ENABLE();
+    #ifdef STM32F103xB
     __HAL_RCC_AFIO_CLK_ENABLE();
+    #endif
     __HAL_RCC_TIM2_CLK_ENABLE();
     __HAL_RCC_TIM3_CLK_ENABLE();
     __HAL_RCC_TIM4_CLK_ENABLE();
     __HAL_RCC_WWDG_CLK_ENABLE();
     __HAL_RCC_SPI2_CLK_ENABLE();
     __HAL_RCC_USART2_CLK_ENABLE();
+    #ifdef STM32F103xB
     __HAL_RCC_USART3_CLK_ENABLE();
+    #endif
     __HAL_RCC_I2C1_CLK_ENABLE();
     __HAL_RCC_I2C2_CLK_ENABLE();
+    #ifdef STM32F103xB
     __HAL_RCC_USB_CLK_ENABLE();
+    #endif
     __HAL_RCC_PWR_CLK_ENABLE();
     #ifdef STM32F103xB
     __HAL_RCC_BKP_CLK_ENABLE();
@@ -198,10 +238,18 @@ static void vPowerGateTask(void *pvParameters)
         /* Read and display APB2 register */
         uint32_t apb2enr = RCC->APB2ENR;
         uint32_t apb1enr = RCC->APB1ENR;
+        #ifdef STM32F103xB
         uint32_t ahbenr  = RCC->AHBENR;
+        #elif defined(STM32F401xC) || defined(STM32F411xE)
+        uint32_t ahbenr  = RCC->AHB1ENR;
+        #endif
         UART_Printf("[REG] RCC_APB2ENR = 0x%08lX\r\n", apb2enr);
         UART_Printf("[REG] RCC_APB1ENR = 0x%08lX\r\n", apb1enr);
+        #ifdef STM32F103xB
         UART_Printf("[REG] RCC_AHBENR  = 0x%08lX\r\n\r\n", ahbenr);
+        #elif defined(STM32F401xC) || defined(STM32F411xE)
+        UART_Printf("[REG] RCC_AHB1ENR  = 0x%08lX\r\n\r\n", ahbenr);
+        #endif
         float total_all = 0;
         UART_Printf("APB2 Peripherals (all enabled):\r\n");
         for (uint32_t i = 0; i < APB2_PERIPH_COUNT; i++) {
@@ -228,7 +276,9 @@ static void vPowerGateTask(void *pvParameters)
         __HAL_RCC_GPIOB_CLK_DISABLE();
         __HAL_RCC_GPIOD_CLK_DISABLE();
         __HAL_RCC_ADC1_CLK_DISABLE();
+        #ifdef STM32F103xB
         __HAL_RCC_ADC2_CLK_DISABLE();
+        #endif
         __HAL_RCC_SPI1_CLK_DISABLE();
         __HAL_RCC_TIM1_CLK_DISABLE();
         __HAL_RCC_TIM2_CLK_DISABLE();
@@ -237,10 +287,14 @@ static void vPowerGateTask(void *pvParameters)
         __HAL_RCC_WWDG_CLK_DISABLE();
         __HAL_RCC_SPI2_CLK_DISABLE();
         __HAL_RCC_USART2_CLK_DISABLE();
+        #ifdef STM32F103xB
         __HAL_RCC_USART3_CLK_DISABLE();
+        #endif
         __HAL_RCC_I2C1_CLK_DISABLE();
         __HAL_RCC_I2C2_CLK_DISABLE();
+        #ifdef STM32F103xB
         __HAL_RCC_USB_CLK_DISABLE();
+        #endif
         vTaskDelay(pdMS_TO_TICKS(200));
         apb2enr = RCC->APB2ENR;
         apb1enr = RCC->APB1ENR;

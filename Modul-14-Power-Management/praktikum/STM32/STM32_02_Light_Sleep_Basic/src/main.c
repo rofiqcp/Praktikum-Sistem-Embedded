@@ -70,7 +70,9 @@ static void GPIO_Init(void)
 {
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
+    #ifdef STM32F103xB
     __HAL_RCC_AFIO_CLK_ENABLE();
+    #endif
     GPIO_InitTypeDef gpio = {0};
     /* LED PC13 - active low */
     gpio.Pin   = LED_PIN;

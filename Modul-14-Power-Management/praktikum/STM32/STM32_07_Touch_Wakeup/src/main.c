@@ -17,6 +17,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+
+#ifndef AWAKE_PERIOD_MS
+#define AWAKE_PERIOD_MS  5000
+#endif
 /* ---- Private variables --------------------------------------------------- */
 static UART_HandleTypeDef huart1;
 static RTC_HandleTypeDef  hrtc;
@@ -144,7 +148,11 @@ static void Backup_Init(void)
     hrtc.Init.AsynchPrediv = 127;
     hrtc.Init.SynchPrediv    = 255;
     #endif
+    #ifdef STM32F103xB
     hrtc.Init.OutPut = RTC_OUTPUTSOURCE_NONE;
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+    #endif
     HAL_RTC_Init(&hrtc);
 }
 /* ---- WKUP Pin Wakeup Task ------------------------------------------------ */

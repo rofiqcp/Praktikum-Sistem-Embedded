@@ -15,6 +15,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+
+#ifndef SLEEP_SECONDS
+#define SLEEP_SECONDS  5
+#endif
 /* ---- Private variables --------------------------------------------------- */
 static UART_HandleTypeDef huart1;
 static RTC_HandleTypeDef  hrtc;
@@ -167,7 +171,11 @@ static void RTC_Init(void)
     __HAL_RCC_RTC_ENABLE();
     hrtc.Instance          = RTC;
     hrtc.Init.AsynchPrediv = (40000 - 1);
+    #ifdef STM32F103xB
     hrtc.Init.OutPut       = RTC_OUTPUTSOURCE_NONE;
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    hrtc.Init.OutPut       = RTC_OUTPUT_DISABLE;
+    #endif
     HAL_RTC_Init(&hrtc);
 }
 /* ---- Simulated sensor reading -------------------------------------------- */
@@ -220,15 +228,38 @@ static void Print_Persistence_Comparison(uint32_t bkp_boot, uint32_t bkp_sensor)
 /* ---- Set RTC alarm for standby wakeup ------------------------------------ */
 static void RTC_SetAlarm_ForStandby(uint32_t seconds)
 {
+    #ifdef STM32F103xB
     uint32_t current = RTC->CNTH << 16 | RTC->CNTL;
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    RTC_TimeTypeDef sTime = {0};
+    RTC_DateTypeDef sDate = {0};
+    HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+    uint32_t current = sTime.Hours * 3600 + sTime.Minutes * 60 + sTime.Seconds;
+    #endif
     uint32_t alarm_val = current + seconds;
     HAL_RTC_DeactivateAlarm(&hrtc, RTC_ALARM_A);
+    #ifdef STM32F103xB
     while (!(RTC->CRL & RTC_CRL_RTOFF));
     RTC->CRL |= RTC_CRL_CNF;
     RTC->ALRH = (alarm_val >> 16) & 0xFFFF;
     RTC->ALRL = alarm_val & 0xFFFF;
     RTC->CRL &= ~RTC_CRL_CNF;
     while (!(RTC->CRL & RTC_CRL_RTOFF));
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    /* F4xx: Use HAL RTC Alarm */
+    memset(&sTime, 0, sizeof(sTime));
+    memset(&sDate, 0, sizeof(sDate));
+    HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+    RTC_AlarmTypeDef sAlarm = {0};
+    sAlarm.AlarmTime.Hours   = sTime.Hours;
+    sAlarm.AlarmTime.Minutes = sTime.Minutes;
+    sAlarm.AlarmTime.Seconds = (sTime.Seconds + SLEEP_SECONDS) % 60;
+    sAlarm.AlarmMask         = RTC_ALARMMASK_DATEWEEKDAY | RTC_ALARMMASK_HOURS | RTC_ALARMMASK_MINUTES;
+    sAlarm.Alarm             = RTC_ALARM_A;
+    HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BIN);
+    #endif
     __HAL_RTC_ALARM_ENABLE_IT(&hrtc, RTC_IT_ALRA);
     EXTI->IMR  |= (1 << 17);
     EXTI->RTSR |= (1 << 17);
@@ -292,7 +323,15 @@ static void DataRetentionTask(void *pvParameters)
     /* Simulate sensor reading */
     uint16_t new_sensor = Read_Simulated_Sensor();
     uint32_t new_boot   = bkp_boot + 1;
+    #ifdef STM32F103xB
     uint32_t rtc_counter = RTC->CNTH << 16 | RTC->CNTL;
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    RTC_TimeTypeDef sTime = {0};
+    RTC_DateTypeDef sDate = {0};
+    HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+    uint32_t rtc_counter = sTime.Hours * 3600 + sTime.Minutes * 60 + sTime.Seconds;
+    #endif
     uint32_t prev_runtime = HAL_RTCEx_BKUPRead(&hrtc, BKP_TOTAL_RUNTIME);
     uint32_t prev_timestamp = HAL_RTCEx_BKUPRead(&hrtc, BKP_TIMESTAMP);
     uint32_t delta = (prev_timestamp > 0) ? (rtc_counter - prev_timestamp) : 0;

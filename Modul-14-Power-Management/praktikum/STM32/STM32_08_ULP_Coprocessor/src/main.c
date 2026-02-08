@@ -155,7 +155,11 @@ static void Backup_Init(void)
     hrtc.Init.AsynchPrediv = 127;
     hrtc.Init.SynchPrediv    = 255;
     #endif
+    #ifdef STM32F103xB
     hrtc.Init.OutPut = RTC_OUTPUTSOURCE_NONE;
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+    #endif
     HAL_RTC_Init(&hrtc);
 }
 /* ---- Simulated sensor reading -------------------------------------------- */

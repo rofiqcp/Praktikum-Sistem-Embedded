@@ -17,6 +17,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+
+#ifndef BATTERY_LOW_MV
+#define BATTERY_LOW_MV  3300
+#endif
+
+#ifndef VREF_MV
+#define VREF_MV      3300
+#endif
+#ifndef VDIV_RATIO
+#define VDIV_RATIO   2
+#endif
 /* ---- Private variables --------------------------------------------------- */
 static UART_HandleTypeDef huart1;
 static RTC_HandleTypeDef  hrtc;
@@ -146,7 +157,11 @@ static void Backup_Init(void)
     hrtc.Init.AsynchPrediv = 127;
     hrtc.Init.SynchPrediv    = 255;
     #endif
+    #ifdef STM32F103xB
     hrtc.Init.OutPut = RTC_OUTPUTSOURCE_NONE;
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+    #endif
     HAL_RTC_Init(&hrtc);
 }
 /* ---- ADC ----------------------------------------------------------------- */
@@ -161,19 +176,25 @@ static void ADC_Init(void)
     HAL_GPIO_Init(GPIOA, &gpio);
     hadc1.Instance                   = ADC1;
     hadc1.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
+    #ifdef STM32F103xB
     hadc1.Init.ScanConvMode          = ADC_SCAN_DISABLE;
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    hadc1.Init.ScanConvMode          = DISABLE;
+    #endif
     hadc1.Init.ContinuousConvMode    = DISABLE;
     hadc1.Init.NbrOfConversion       = 1;
     hadc1.Init.DiscontinuousConvMode = DISABLE;
     hadc1.Init.ExternalTrigConv      = ADC_SOFTWARE_START;
     HAL_ADC_Init(&hadc1);
+#ifdef STM32F103xB
     HAL_ADCEx_Calibration_Start(&hadc1);
+#endif
 }
 static uint16_t ADC_Read_Channel(uint32_t channel, uint32_t sample_time)
 {
     ADC_ChannelConfTypeDef cfg = {0};
     cfg.Channel      = channel;
-    cfg.Rank         = ADC_REGULAR_RANK_1;
+    cfg.Rank         = 1;
     cfg.SamplingTime = sample_time;
     HAL_ADC_ConfigChannel(&hadc1, &cfg);
     HAL_ADC_Start(&hadc1);
@@ -184,14 +205,22 @@ static uint16_t ADC_Read_Channel(uint32_t channel, uint32_t sample_time)
 }
 static uint32_t Read_Battery_mV(void)
 {
+    #ifdef STM32F103xB
     uint16_t raw = ADC_Read_Channel(ADC_CHANNEL_0, ADC_SAMPLETIME_71CYCLES_5);
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    uint16_t raw = ADC_Read_Channel(ADC_CHANNEL_0, ADC_SAMPLETIME_84CYCLES);
+    #endif
     /* Convert: mV = raw * VREF / 4095 * divider_ratio */
     return (uint32_t)raw * VREF_MV / 4095 * VDIV_RATIO;
 }
 static int32_t Read_Temperature_x10(void)
 {
     /* Internal temp sensor on CH16 */
+    #ifdef STM32F103xB
     uint16_t raw = ADC_Read_Channel(ADC_CHANNEL_TEMPSENSOR, ADC_SAMPLETIME_239CYCLES_5);
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    uint16_t raw = ADC_Read_Channel(ADC_CHANNEL_TEMPSENSOR, ADC_SAMPLETIME_480CYCLES);
+    #endif
     /* V_sense = raw * 3300 / 4095 mV
      * Temp = (V25 - V_sense) / Avg_slope + 25
      * V25 ~ 1430 mV, Avg_slope ~ 4.3 mV/°C */
@@ -203,20 +232,46 @@ static int32_t Read_Temperature_x10(void)
 static void Setup_RTC_Alarm_Wakeup(uint32_t seconds)
 {
     /* Read current RTC counter and set alarm seconds ahead */
+    #ifdef STM32F103xB
     uint32_t counter = RTC->CNTH;
     counter = (counter << 16) | RTC->CNTL;
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    RTC_TimeTypeDef sTime = {0};
+    RTC_DateTypeDef sDate = {0};
+    HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+    uint32_t counter = sTime.Hours * 3600 + sTime.Minutes * 60 + sTime.Seconds;
+    #endif
     uint32_t alarm_val = counter + seconds;
     /* Wait for RTC registers sync */
+    #ifdef STM32F103xB
     while ((RTC->CRL & RTC_CRL_RTOFF) == 0);
     RTC->CRL |= RTC_CRL_CNF;   /* Enter config mode */
     RTC->ALRH = (alarm_val >> 16) & 0xFFFF;
     RTC->ALRL = alarm_val & 0xFFFF;
     RTC->CRL &= ~RTC_CRL_CNF;  /* Exit config mode */
     while ((RTC->CRL & RTC_CRL_RTOFF) == 0);
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    /* F4xx: Use HAL RTC Alarm */
+    memset(&sTime, 0, sizeof(sTime));
+    memset(&sDate, 0, sizeof(sDate));
+    HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+    RTC_AlarmTypeDef sAlarm = {0};
+    sAlarm.AlarmTime.Hours   = sTime.Hours;
+    sAlarm.AlarmTime.Minutes = sTime.Minutes;
+    sAlarm.AlarmTime.Seconds = (sTime.Seconds + SLEEP_SECONDS) % 60;
+    sAlarm.AlarmMask         = RTC_ALARMMASK_DATEWEEKDAY | RTC_ALARMMASK_HOURS | RTC_ALARMMASK_MINUTES;
+    sAlarm.Alarm             = RTC_ALARM_A;
+    HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BIN);
+    #endif
     /* Enable RTC Alarm interrupt for EXTI line 17 (wakeup from Stop) */
     EXTI->IMR  |= (1 << 17);
     EXTI->RTSR |= (1 << 17);
+    #ifdef STM32F103xB
     RTC->CRH   |= RTC_CRH_ALRIE;
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    #endif
     HAL_NVIC_SetPriority(RTC_Alarm_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(RTC_Alarm_IRQn);
 }
@@ -225,7 +280,11 @@ void RTC_Alarm_IRQHandler(void)
     if (EXTI->PR & (1 << 17)) {
         EXTI->PR = (1 << 17);  /* Clear pending */
     }
+    #ifdef STM32F103xB
     RTC->CRL &= ~RTC_CRL_ALRF; /* Clear alarm flag */
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    __HAL_RTC_ALARM_CLEAR_FLAG(&hrtc, RTC_FLAG_ALRAF);
+    #endif
 }
 /* ---- Logger Task --------------------------------------------------------- */
 static void vLoggerTask(void *pvParameters)

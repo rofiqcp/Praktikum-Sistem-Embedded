@@ -13,6 +13,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+
+#ifndef SLEEP_SECONDS
+#define SLEEP_SECONDS  5
+#endif
 /* ---- Private variables --------------------------------------------------- */
 static UART_HandleTypeDef huart1;
 static RTC_HandleTypeDef  hrtc;
@@ -152,7 +156,11 @@ static void RTC_Init(void)
     __HAL_RCC_RTC_ENABLE();
     hrtc.Instance            = RTC;
     hrtc.Init.AsynchPrediv   = (40000 - 1); /* LSI ~40kHz -> 1Hz */
+    #ifdef STM32F103xB
     hrtc.Init.OutPut         = RTC_OUTPUTSOURCE_NONE;
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    hrtc.Init.OutPut         = RTC_OUTPUT_DISABLE;
+    #endif
     HAL_RTC_Init(&hrtc);
     /* Enable RTC Alarm interrupt via EXTI line 17 */
     HAL_NVIC_SetPriority(RTC_Alarm_IRQn, 5, 0);
@@ -161,7 +169,15 @@ static void RTC_Init(void)
 /* ---- Set RTC Alarm in N seconds ------------------------------------------ */
 static void RTC_SetAlarm_Seconds(uint32_t seconds)
 {
+    #ifdef STM32F103xB
     uint32_t current_counter = RTC->CNTH << 16 | RTC->CNTL;
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    RTC_TimeTypeDef sTime = {0};
+    RTC_DateTypeDef sDate = {0};
+    HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+    uint32_t current_counter = sTime.Hours * 3600 + sTime.Minutes * 60 + sTime.Seconds;
+    #endif
     uint32_t alarm_value = current_counter + seconds;
     RTC_AlarmTypeDef alarm = {0};
     alarm.AlarmTime.Hours   = 0;
@@ -169,12 +185,27 @@ static void RTC_SetAlarm_Seconds(uint32_t seconds)
     alarm.AlarmTime.Seconds = 0;
     HAL_RTC_DeactivateAlarm(&hrtc, RTC_ALARM_A);
     /* Write alarm directly to registers */
+    #ifdef STM32F103xB
     while (!(RTC->CRL & RTC_CRL_RTOFF));
     RTC->CRL |= RTC_CRL_CNF;
     RTC->ALRH = (alarm_value >> 16) & 0xFFFF;
     RTC->ALRL = alarm_value & 0xFFFF;
     RTC->CRL &= ~RTC_CRL_CNF;
     while (!(RTC->CRL & RTC_CRL_RTOFF));
+    #elif defined(STM32F401xC) || defined(STM32F411xE)
+    /* F4xx: Use HAL RTC Alarm */
+    memset(&sTime, 0, sizeof(sTime));
+    memset(&sDate, 0, sizeof(sDate));
+    HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+    RTC_AlarmTypeDef sAlarm = {0};
+    sAlarm.AlarmTime.Hours   = sTime.Hours;
+    sAlarm.AlarmTime.Minutes = sTime.Minutes;
+    sAlarm.AlarmTime.Seconds = (sTime.Seconds + SLEEP_SECONDS) % 60;
+    sAlarm.AlarmMask         = RTC_ALARMMASK_DATEWEEKDAY | RTC_ALARMMASK_HOURS | RTC_ALARMMASK_MINUTES;
+    sAlarm.Alarm             = RTC_ALARM_A;
+    HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BIN);
+    #endif
     /* Enable alarm interrupt */
     __HAL_RTC_ALARM_ENABLE_IT(&hrtc, RTC_IT_ALRA);
     /* Configure EXTI Line 17 for RTC Alarm */

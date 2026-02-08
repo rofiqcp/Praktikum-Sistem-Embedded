@@ -106,7 +106,7 @@ static esp_err_t init_spi(void)
         .post_cb        = spi_post_transfer_callback,
     };
 
-    ret = spi_device_add(SPI_HOST_ID, &dev_cfg, &spi_dev);
+    ret = spi_bus_add_device(SPI_HOST_ID, &dev_cfg, &spi_dev);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "SPI device add failed: %s", esp_err_to_name(ret));
     }

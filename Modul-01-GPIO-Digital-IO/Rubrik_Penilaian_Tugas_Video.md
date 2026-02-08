@@ -29,12 +29,12 @@ Pilih SATU dari topik berikut:
 | No | Topik | Tingkat Kesulitan |
 |----|-------|-------------------|
 | 1 | Penjelasan Konsep GPIO dan Mode Operasi | ⭐⭐ |
-| 2 | Tutorial LED Blink dengan Penjelasan Kode | ⭐ |
-| 3 | Implementasi Software Debouncing | ⭐⭐⭐ |
-| 4 | Perbandingan GPIO STM32 vs ESP32 | ⭐⭐ |
-| 5 | Tutorial Running LED Pattern | ⭐⭐ |
+| 2 | Tutorial LED Blink dengan ESP-IDF dan STM32 HAL | ⭐ |
+| 3 | LED Binary Counter dan Bit Manipulation | ⭐⭐ |
+| 4 | Implementasi Software Debouncing | ⭐⭐⭐ |
+| 5 | Perbandingan GPIO STM32 vs ESP32 | ⭐⭐ |
 | 6 | Long Press vs Short Press Detection | ⭐⭐⭐ |
-| 7 | Kontrol LED via Serial Monitor | ⭐⭐ |
+| 7 | GPIO Register Access (BSRR, ODR, GPIO_OUT_REG) | ⭐⭐⭐ |
 | 8 | Safety: Emergency Stop Implementation | ⭐⭐⭐ |
 
 ---

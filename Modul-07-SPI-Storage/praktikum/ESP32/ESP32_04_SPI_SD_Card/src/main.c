@@ -237,7 +237,7 @@ static esp_err_t sd_list_directory(const char *path)
         }
 
         // Get file size
-        char full_path[256];
+        char full_path[512];
         snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
         long size = sd_get_file_size(full_path);
 

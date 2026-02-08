@@ -596,7 +596,7 @@ void app_main(void)
                 NULL, DEEP_PRIORITY, &xDeepHandle);
 
     /* Monitor task - stack cukup besar untuk printf */
-    xTaskCreate(stack_monitor_task, "StackMon", TASK_STACK_SIZE * 2,
+    xTaskCreate(stack_monitor_task, "StackMon", LARGE_STACK_SIZE * 2,
                 NULL, MONITOR_PRIORITY, &xMonitorHandle);
 
     ESP_LOGI(TAG, "Semua task dibuat. Monitoring stack usage...");

@@ -278,7 +278,8 @@ uint8_t sendDataPacket(SensorDataPayload* data) {
     frame[frameLen++] = 0x03;  // ETX
     frame[frameLen++] = 0x0A;  // LF
     
-    Serial2.write(frame, frameLen);
+    // STM32 HAL: send frame via USART2
+    HAL_UART_Transmit(&huart2, frame, frameLen, HAL_MAX_DELAY);
     
     return waitForAck(500);  // 500ms timeout
 }
@@ -411,10 +412,10 @@ Project-03-Sensor-Gateway/
 ├── STM32-Sensor-Node/
 │   ├── platformio.ini
 │   ├── src/
-│   │   ├── main.cpp
-│   │   ├── sensors.cpp
-│   │   ├── protocol.cpp
-│   │   └── uart_handler.cpp
+│   │   ├── main.c
+│   │   ├── sensors.c
+│   │   ├── protocol.c
+│   │   └── uart_handler.c
 │   └── include/
 │       ├── config.h
 │       ├── sensors.h
@@ -424,10 +425,10 @@ Project-03-Sensor-Gateway/
 ├── ESP32-Gateway/
 │   ├── platformio.ini
 │   ├── src/
-│   │   ├── main.cpp
-│   │   ├── protocol.cpp
-│   │   ├── web_server.cpp
-│   │   └── data_manager.cpp
+│   │   ├── main.c
+│   │   ├── protocol.c
+│   │   ├── web_server.c
+│   │   └── data_manager.c
 │   ├── include/
 │   │   ├── config.h
 │   │   └── protocol.h
@@ -549,8 +550,8 @@ Project-03-Sensor-Gateway/
 3. ESP-IDF Web Server Documentation
 
 ### Libraries
-1. ArduinoJson - JSON handling
-2. ESPAsyncWebServer - Async web server
+1. cJSON (ESP-IDF built-in) - JSON handling
+2. ESP HTTP Server (ESP-IDF built-in) - Web server
 3. DHT sensor library - Temperature/humidity
 
 ### Standards

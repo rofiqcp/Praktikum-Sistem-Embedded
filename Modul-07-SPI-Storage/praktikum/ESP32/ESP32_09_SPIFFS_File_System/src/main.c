@@ -322,7 +322,7 @@ static void demo_list_files(void)
     size_t total_size = 0;
     struct dirent *entry;
     struct stat st;
-    char filepath[256];
+    char filepath[512];
 
     ESP_LOGI(TAG, "%-30s %-10s", "Filename", "Size (bytes)");
     ESP_LOGI(TAG, "------------------------------ ----------");

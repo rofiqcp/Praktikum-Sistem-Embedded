@@ -6,7 +6,7 @@
 |------|------------|
 | **Topik** | Serial UART Communication |
 | **Platform** | STM32F103C8T6 (Blue Pill), ESP32 DevKitC |
-| **Framework** | Arduino (PlatformIO) |
+| **Framework** | ESP-IDF (ESP32), STM32Cube HAL (STM32) |
 | **Jumlah Program STM32** | 12 |
 | **Jumlah Program ESP32** | 12 |
 | **Durasi** | 3 x 50 menit |
@@ -183,36 +183,36 @@ Setelah menyelesaikan praktikum ini, mahasiswa mampu:
 ### Program ESP32
 
 | No | Nama Program | Topik | Tingkat |
-|----|--------------|-------|---------|
-| 1 | Modul-01 | Serial Print Basic | Dasar |
-| 2 | Modul-02 | Serial Read Character | Dasar |
-| 3 | Modul-03 | Serial Command Parser | Menengah |
-| 4 | Modul-04 | Serial with Interrupt | Menengah |
-| 5 | Modul-05 | Multi-UART Configuration | Menengah |
-| 6 | Modul-06 | Serial Data Logger | Menengah |
-| 7 | Modul-07 | Serial Protocol Implementation | Lanjut |
-| 8 | Modul-08 | Circular Buffer RX | Lanjut |
-| 9 | Modul-09 | Checksum Validation | Menengah |
-| 10 | Modul-10 | MCU Communication (Receiver) | Lanjut |
-| 11 | Modul-11 | Serial JSON Parser | Lanjut |
-| 12 | Modul-12 | Complete Serial Application | Lanjut |
+|----|--------------|-------|----------|
+| 1 | ESP32_01_UART_Echo | UART Echo (Polling) | Dasar |
+| 2 | ESP32_02_UART_Interrupt_RX | UART Interrupt Receive | Dasar |
+| 3 | ESP32_03_UART_Ring_Buffer | Ring Buffer Management | Menengah |
+| 4 | ESP32_04_UART_Printf_Redirect | Printf Redirect via UART | Menengah |
+| 5 | ESP32_05_UART_Command_Parser | Serial Command Parser | Menengah |
+| 6 | ESP32_06_UART_JSON_Protocol | JSON Protocol Communication | Menengah |
+| 7 | ESP32_07_UART_Line_Editor | Interactive Line Editor | Lanjut |
+| 8 | ESP32_08_UART_Framing_STX_ETX | STX/ETX Frame Protocol | Lanjut |
+| 9 | ESP32_09_UART_CRC_Checksum | CRC Checksum Validation | Menengah |
+| 10 | ESP32_10_UART_Timeout_Parser | Timeout-based Parser | Lanjut |
+| 11 | ESP32_11_UART_Bridge_Multi | Multi-UART Bridge | Lanjut |
+| 12 | ESP32_12_UART_Error_Statistics | Error Statistics Monitor | Lanjut |
 
 ### Program STM32
 
 | No | Nama Program | Topik | Tingkat |
-|----|--------------|-------|---------|
-| 1 | STM32_01 | USART Basic Print | Dasar |
-| 2 | STM32_02 | USART Read Character | Dasar |
-| 3 | STM32_03 | USART Command Handler | Menengah |
-| 4 | STM32_04 | USART Interrupt Mode | Menengah |
-| 5 | STM32_05 | Multi-USART Setup | Menengah |
-| 6 | STM32_06 | USART with DMA | Lanjut |
-| 7 | STM32_07 | Protocol Implementation | Lanjut |
-| 8 | STM32_08 | Ring Buffer Implementation | Lanjut |
-| 9 | STM32_09 | Error Detection (Checksum) | Menengah |
-| 10 | STM32_10 | MCU Communication (Sender) | Lanjut |
-| 11 | STM32_11 | Binary Protocol | Lanjut |
-| 12 | STM32_12 | Complete Serial System | Lanjut |
+|----|--------------|-------|----------|
+| 1 | STM32_01_UART_Echo | USART Echo (Polling) | Dasar |
+| 2 | STM32_02_UART_Interrupt_RX | USART Interrupt Receive | Dasar |
+| 3 | STM32_03_UART_Ring_Buffer | Ring Buffer Management | Menengah |
+| 4 | STM32_04_UART_Printf_Redirect | Printf Redirect via USART | Menengah |
+| 5 | STM32_05_UART_Command_Parser | USART Command Parser | Menengah |
+| 6 | STM32_06_UART_JSON_Protocol | JSON Protocol Communication | Menengah |
+| 7 | STM32_07_UART_Line_Editor | Interactive Line Editor | Lanjut |
+| 8 | STM32_08_UART_Framing_STX_ETX | STX/ETX Frame Protocol | Lanjut |
+| 9 | STM32_09_UART_CRC_Checksum | CRC Checksum Validation | Menengah |
+| 10 | STM32_10_UART_Timeout_Parser | Timeout-based Parser | Lanjut |
+| 11 | STM32_11_UART_Bridge_Multi | Multi-USART Bridge | Lanjut |
+| 12 | STM32_12_UART_Error_Statistics | Error Statistics Monitor | Lanjut |
 
 ---
 
@@ -230,17 +230,23 @@ Setelah menyelesaikan praktikum ini, mahasiswa mampu:
    - Create new project atau buka Modul-01
 
 2. **Serial Print Test (10 menit)**
-   ```cpp
-   void setup() {
-       Serial.begin(115200);
-       delay(1000);  // Wait for serial
-       Serial.println("ESP32 UART Test Started!");
-   }
-   
-   void loop() {
-       Serial.println("Hello from ESP32!");
-       Serial.printf("Millis: %lu\n", millis());
-       delay(1000);
+   ```c
+   #include <stdio.h>
+   #include "driver/uart.h"
+   #include "esp_log.h"
+   #include "esp_timer.h"
+
+   #define UART_PORT UART_NUM_0
+
+   void app_main(void) {
+       // UART0 sudah di-init untuk console
+       printf("ESP32 UART Test Started!\n");
+
+       while (1) {
+           printf("Hello from ESP32!\n");
+           printf("Uptime: %lld ms\n", esp_timer_get_time() / 1000);
+           vTaskDelay(pdMS_TO_TICKS(1000));
+       }
    }
    ```
    - Upload program
@@ -248,17 +254,26 @@ Setelah menyelesaikan praktikum ini, mahasiswa mampu:
    - Verifikasi output
 
 3. **Serial Read Test (15 menit)**
-   ```cpp
-   void setup() {
-       Serial.begin(115200);
-       Serial.println("Type something:");
-   }
-   
-   void loop() {
-       if (Serial.available()) {
-           String input = Serial.readStringUntil('\n');
-           Serial.print("You typed: ");
-           Serial.println(input);
+   ```c
+   #include <stdio.h>
+   #include <string.h>
+   #include "driver/uart.h"
+
+   #define UART_PORT UART_NUM_0
+   #define BUF_SIZE  256
+
+   void app_main(void) {
+       uart_driver_install(UART_PORT, BUF_SIZE * 2, 0, 0, NULL, 0);
+       printf("Type something:\n");
+
+       uint8_t data[BUF_SIZE];
+       while (1) {
+           int len = uart_read_bytes(UART_PORT, data, BUF_SIZE - 1,
+                                     100 / portTICK_PERIOD_MS);
+           if (len > 0) {
+               data[len] = '\0';
+               printf("You typed: %s\n", (char *)data);
+           }
        }
    }
    ```
@@ -273,7 +288,7 @@ Setelah menyelesaikan praktikum ini, mahasiswa mampu:
    - Hubungkan ST-Link untuk programming
 
 2. **Serial Print Test (10 menit)**
-   - Buka program STM32_01
+   - Buka program STM32_01_UART_Echo
    - Upload via ST-Link
    - Buka serial terminal (HTerm/RealTerm)
    - Pilih COM port USB-TTL, 115200 baud
@@ -281,8 +296,8 @@ Setelah menyelesaikan praktikum ini, mahasiswa mampu:
 
 **Pertanyaan Analisis:**
 1. Apa yang terjadi jika baud rate tidak cocok?
-2. Mengapa ESP32 menggunakan Serial sedangkan STM32 menggunakan Serial2?
-3. Jelaskan fungsi `delay(1000)` setelah `Serial.begin()`!
+2. Mengapa ESP32 menggunakan `uart_read_bytes()` sedangkan STM32 menggunakan `HAL_UART_Receive()`?
+3. Jelaskan perbedaan mode polling dan interrupt pada UART!
 
 ---
 
@@ -292,33 +307,44 @@ Setelah menyelesaikan praktikum ini, mahasiswa mampu:
 
 **Langkah Kerja:**
 
-1. **Buka program Modul-03 (ESP32) atau STM32_03**
+1. **Buka program ESP32_05_UART_Command_Parser (ESP32) atau STM32_05_UART_Command_Parser**
 
 2. **Implementasi Command Parser:**
-   ```cpp
+   ```c
    // Commands: LED ON, LED OFF, STATUS, HELP
-   
-   void processCommand(String cmd) {
-       cmd.trim();  // Remove whitespace
-       cmd.toUpperCase();  // Case insensitive
-       
-       if (cmd == "LED ON") {
-           digitalWrite(LED_PIN, HIGH);
-           Serial.println("OK: LED is ON");
+   #include <stdio.h>
+   #include <string.h>
+   #include "driver/gpio.h"
+   #include "driver/uart.h"
+   #include "esp_timer.h"
+
+   #define LED_PIN   GPIO_NUM_2
+   #define UART_PORT UART_NUM_0
+
+   void processCommand(char *cmd) {
+       // Trim whitespace
+       while (*cmd == ' ' || *cmd == '\r' || *cmd == '\n') cmd++;
+       char *end = cmd + strlen(cmd) - 1;
+       while (end > cmd && (*end == ' ' || *end == '\r' || *end == '\n')) *end-- = '\0';
+
+       // Case-insensitive compare
+       if (strcasecmp(cmd, "LED ON") == 0) {
+           gpio_set_level(LED_PIN, 1);
+           printf("OK: LED is ON\n");
        }
-       else if (cmd == "LED OFF") {
-           digitalWrite(LED_PIN, LOW);
-           Serial.println("OK: LED is OFF");
+       else if (strcasecmp(cmd, "LED OFF") == 0) {
+           gpio_set_level(LED_PIN, 0);
+           printf("OK: LED is OFF\n");
        }
-       else if (cmd == "STATUS") {
-           Serial.printf("LED: %s\n", digitalRead(LED_PIN) ? "ON" : "OFF");
-           Serial.printf("Uptime: %lu ms\n", millis());
+       else if (strcasecmp(cmd, "STATUS") == 0) {
+           printf("LED: %s\n", gpio_get_level(LED_PIN) ? "ON" : "OFF");
+           printf("Uptime: %lld ms\n", esp_timer_get_time() / 1000);
        }
-       else if (cmd == "HELP") {
-           Serial.println("Commands: LED ON, LED OFF, STATUS, HELP");
+       else if (strcasecmp(cmd, "HELP") == 0) {
+           printf("Commands: LED ON, LED OFF, STATUS, HELP\n");
        }
        else {
-           Serial.println("ERROR: Unknown command");
+           printf("ERROR: Unknown command\n");
        }
    }
    ```
@@ -352,41 +378,55 @@ Tambahkan command baru:
    ```
 
 2. **Program STM32 sebagai Sender (15 menit)**
-   - Buka STM32_10
+   - Buka STM32_10_UART_Timeout_Parser
    - Program mengirim data sensor simulasi
-   ```cpp
-   void loop() {
-       // Format: $DATA,temperature,humidity*checksum\n
-       float temp = 25.0 + random(-50, 50) / 10.0;
-       float hum = 60.0 + random(-100, 100) / 10.0;
-       
+   ```c
+   // STM32 HAL - mengirim data sensor via USART2
+   extern UART_HandleTypeDef huart2;
+
+   void sendSensorData(void) {
+       float temp = 25.0f + (float)(rand() % 100 - 50) / 10.0f;
+       float hum  = 60.0f + (float)(rand() % 200 - 100) / 10.0f;
+
        char buffer[64];
-       sprintf(buffer, "$DATA,%.1f,%.1f", temp, hum);
-       
-       // Calculate checksum
+       int len = snprintf(buffer, sizeof(buffer), "$DATA,%.1f,%.1f", temp, hum);
+
+       // Calculate XOR checksum
        uint8_t checksum = 0;
-       for (int i = 1; buffer[i]; i++) {
+       for (int i = 1; i < len; i++) {
            checksum ^= buffer[i];
        }
-       
-       Serial2.printf("%s*%02X\n", buffer, checksum);
-       delay(1000);
+
+       char frame[80];
+       int frameLen = snprintf(frame, sizeof(frame), "%s*%02X\n", buffer, checksum);
+       HAL_UART_Transmit(&huart2, (uint8_t *)frame, frameLen, HAL_MAX_DELAY);
+       HAL_Delay(1000);
    }
    ```
 
 3. **Program ESP32 sebagai Receiver (15 menit)**
-   - Buka Modul-10
+   - Buka ESP32_10_UART_Timeout_Parser
    - Program menerima dan mem-parse data
-   ```cpp
-   void loop() {
-       if (Serial2.available()) {
-           String msg = Serial2.readStringUntil('\n');
-           
-           if (validateMessage(msg)) {
-               parseData(msg);
-               displayData();
-           } else {
-               Serial.println("Invalid message!");
+   ```c
+   // ESP-IDF - menerima data dari STM32 via UART2
+   #include "driver/uart.h"
+
+   #define UART_PORT UART_NUM_2
+   #define BUF_SIZE  256
+
+   void receiver_task(void *pvParam) {
+       uint8_t data[BUF_SIZE];
+       while (1) {
+           int len = uart_read_bytes(UART_PORT, data, BUF_SIZE - 1,
+                                     200 / portTICK_PERIOD_MS);
+           if (len > 0) {
+               data[len] = '\0';
+               if (validateMessage((char *)data)) {
+                   parseData((char *)data);
+                   displayData();
+               } else {
+                   printf("Invalid message!\n");
+               }
            }
        }
    }
@@ -533,6 +573,6 @@ Commands:
 1. **STM32F103 Reference Manual** - Chapter 27: USART
 2. **ESP32 Technical Reference** - Chapter 12: UART Controller
 3. **RS-232 Standard** - EIA/TIA-232-F
-4. [Arduino Serial Reference](https://www.arduino.cc/reference/en/language/functions/communication/serial/)
-5. [ESP-IDF UART Driver](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/uart.html)
+4. [ESP-IDF UART API Reference](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/uart.html)
+5. [STM32 HAL UART Documentation](https://wiki.st.com/stm32mcu/wiki/Getting_started_with_UART)
 

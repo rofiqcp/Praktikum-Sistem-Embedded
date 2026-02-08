@@ -6,6 +6,7 @@
 > - Color scheme: Biru tua (#1a365d), Hijau (#38a169), Abu-abu (#718096)
 > - Resolusi: 1920x1080 (16:9)
 > - Font style: Modern sans-serif
+> - **Framework: STM32Cube HAL (STM32) dan ESP-IDF (ESP32) — BUKAN Arduino**
 
 ---
 
@@ -28,11 +29,11 @@ Tambahkan logo universitas di pojok kanan atas dan nama institusi di bawah.
 ```
 Buat slide "Capaian Pembelajaran" dengan 6 poin dalam format numbered list:
 1. Memahami konsep interrupt dan perbedaan dengan polling
-2. Menguasai konfigurasi NVIC pada STM32
-3. Mengimplementasikan External Interrupt pada ESP32
-4. Mengkonfigurasi Hardware Timer pada kedua platform
+2. Menguasai konfigurasi NVIC dan EXTI pada STM32 menggunakan HAL
+3. Mengimplementasikan GPIO Interrupt pada ESP32 menggunakan ESP-IDF
+4. Mengkonfigurasi Hardware Timer pada kedua platform (HAL & gptimer)
 5. Menerapkan teknik debouncing berbasis interrupt/timer
-6. Mengembangkan aplikasi real-time dengan interrupt dan timer
+6. Memahami Watchdog Timer dan Timer Cascade
 
 Gunakan ikon target/crosshair di samping judul. Background dengan pattern 
 subtle circuit board.
@@ -47,9 +48,11 @@ subtle circuit board.
 Buat slide "Outline Materi" dengan diagram mind-map sederhana:
 - Pusat: "Interrupt & Timer"
 - Cabang 1: "Konsep Interrupt" → Polling vs Interrupt, ISR, Priority
-- Cabang 2: "External Interrupt" → NVIC STM32, GPIO ESP32
+- Cabang 2: "External Interrupt" → NVIC/EXTI STM32, GPIO ISR ESP32
 - Cabang 3: "Hardware Timer" → Counter, Prescaler, Auto-reload
-- Cabang 4: "Aplikasi" → Debouncing, Timing, Event counting
+- Cabang 4: "Watchdog Timer" → IWDG, WWDG, esp_task_wdt
+- Cabang 5: "Timer Cascade" → Master-Slave, Software Chaining
+- Cabang 6: "Aplikasi" → Debouncing, Timing, Event counting
 
 Gunakan warna berbeda untuk setiap cabang. Style: clean infographic.
 ```
@@ -202,66 +205,80 @@ Warna: gunakan warna berbeda untuk setiap GPIO port.
 
 ---
 
-## Slide 10: Konfigurasi EXTI STM32
+## Slide 10: Konfigurasi EXTI STM32 (HAL)
 
 **Prompt:**
 ```
-Buat slide "Konfigurasi EXTI STM32" dengan code snippet dan diagram:
+Buat slide "Konfigurasi EXTI STM32 dengan HAL" dengan code dan diagram:
 
-Langkah Konfigurasi:
-┌────────────────────────────────────────────────┐
-│ 1. Enable Clock GPIO & AFIO                    │
-│    RCC->APB2ENR |= RCC_APB2ENR_IOPAEN |       │
-│                    RCC_APB2ENR_AFIOEN;         │
-├────────────────────────────────────────────────┤
-│ 2. Konfigurasi GPIO sebagai Input              │
-│    GPIOA->CRL &= ~(GPIO_CRL_MODE0);           │
-│    GPIOA->CRL |= GPIO_CRL_CNF0_1; // Pull-up  │
-├────────────────────────────────────────────────┤
-│ 3. Map GPIO ke EXTI Line                       │
-│    AFIO->EXTICR[0] = AFIO_EXTICR1_EXTI0_PA;   │
-├────────────────────────────────────────────────┤
-│ 4. Konfigurasi Trigger Edge                    │
-│    EXTI->FTSR |= EXTI_FTSR_TR0; // Falling    │
-├────────────────────────────────────────────────┤
-│ 5. Enable Interrupt Mask                       │
-│    EXTI->IMR |= EXTI_IMR_MR0;                  │
-├────────────────────────────────────────────────┤
-│ 6. Enable di NVIC                              │
-│    NVIC_EnableIRQ(EXTI0_IRQn);                 │
-└────────────────────────────────────────────────┘
+Langkah Konfigurasi menggunakan STM32Cube HAL:
+┌────────────────────────────────────────────────────┐
+│ 1. CubeMX: Konfigurasi pin sebagai GPIO_EXTI       │
+│    Pilih PA0 → GPIO_EXTI0, Trigger = Falling Edge  │
+├────────────────────────────────────────────────────┤
+│ 2. HAL Init (auto-generated):                      │
+│    GPIO_InitTypeDef GPIO_InitStruct = {0};          │
+│    GPIO_InitStruct.Pin = GPIO_PIN_0;               │
+│    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;    │
+│    GPIO_InitStruct.Pull = GPIO_PULLUP;             │
+│    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);         │
+├────────────────────────────────────────────────────┤
+│ 3. Enable NVIC:                                    │
+│    HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);        │
+│    HAL_NVIC_EnableIRQ(EXTI0_IRQn);                 │
+├────────────────────────────────────────────────────┤
+│ 4. Callback (user code):                           │
+│    void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){ │
+│        if (GPIO_Pin == GPIO_PIN_0) {               │
+│            button_flag = 1;                        │
+│        }                                           │
+│    }                                               │
+└────────────────────────────────────────────────────┘
 
-Highlight setiap langkah dengan nomor dalam circle.
+Highlight: HAL menangani clear flag secara otomatis!
 ```
 
 ---
 
-## Slide 11: Interrupt Handler STM32
+## Slide 11: Interrupt Handler STM32 (HAL)
 
 **Prompt:**
 ```
-Buat slide "Interrupt Handler (ISR) STM32" dengan code box:
+Buat slide "Interrupt Handler STM32 (HAL)" dengan code box:
 
+/* stm32f1xx_it.c - auto-generated */
 void EXTI0_IRQHandler(void) {
-    // 1. Cek pending flag
-    if (EXTI->PR & EXTI_PR_PR0) {
-        
-        // 2. Clear pending flag (WAJIB!)
-        EXTI->PR = EXTI_PR_PR0;
-        
-        // 3. Handle interrupt
-        button_flag = true;
-        led_toggle();
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+}
+
+/* main.c - user callback */
+volatile uint8_t button_flag = 0;
+volatile uint32_t press_count = 0;
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_Pin == GPIO_PIN_0) {
+        button_flag = 1;
+        press_count++;
+    }
+}
+
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    
+    while (1) {
+        if (button_flag) {
+            button_flag = 0;
+            HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
+        }
     }
 }
 
 PENTING:
-⚠️ Clear flag dengan menulis '1', bukan '0'
+⚠️ HAL_GPIO_EXTI_IRQHandler() otomatis clear pending flag
 ⚠️ ISR harus singkat (< 1ms)
 ⚠️ Gunakan volatile untuk shared variables
-⚠️ Nama handler HARUS sesuai vector table
-
-Gunakan syntax highlighting dan warning box untuk poin penting.
 ```
 
 ---
@@ -298,30 +315,35 @@ Highlight: Dual-core = interrupt bisa di-route ke core manapun
 
 ---
 
-## Slide 13: GPIO Interrupt ESP32
+## Slide 13: GPIO Interrupt ESP32 (ESP-IDF)
 
 **Prompt:**
 ```
-Buat slide "GPIO Interrupt ESP32" dengan:
+Buat slide "GPIO Interrupt ESP32 (ESP-IDF)" dengan:
 
 1. Available Pins:
    ✓ GPIO 0-33: Support interrupt
-   ✗ GPIO 34-39: Input-only, NO interrupt output
+   ✗ GPIO 34-39: Input-only, TIDAK bisa output
 
 2. Interrupt Modes (dengan waveform):
-   - RISING: LOW → HIGH
-   - FALLING: HIGH → LOW
-   - CHANGE: Both edges
-   - ONLOW: Level LOW
-   - ONHIGH: Level HIGH
-   - LOW_WE/HIGH_WE: Dengan wakeup dari sleep
+   - GPIO_INTR_POSEDGE: Rising Edge
+   - GPIO_INTR_NEGEDGE: Falling Edge
+   - GPIO_INTR_ANYEDGE: Both Edges
+   - GPIO_INTR_LOW_LEVEL: Level LOW
+   - GPIO_INTR_HIGH_LEVEL: Level HIGH
 
-3. Code snippet:
-   pinMode(GPIO_NUM_4, INPUT_PULLUP);
-   attachInterrupt(digitalPinToInterrupt(GPIO_NUM_4), 
-                   myISR, FALLING);
+3. Code snippet ESP-IDF:
+   gpio_config_t io_conf = {
+       .pin_bit_mask = (1ULL << GPIO_NUM_4),
+       .mode = GPIO_MODE_INPUT,
+       .pull_up_en = GPIO_PULLUP_ENABLE,
+       .intr_type = GPIO_INTR_NEGEDGE,
+   };
+   gpio_config(&io_conf);
+   gpio_install_isr_service(0);
+   gpio_isr_handler_add(GPIO_NUM_4, button_isr, NULL);
 
-Gunakan checkmark hijau dan X merah untuk available/unavailable.
+Catatan: ESP-IDF menggunakan gpio_config() bukan pinMode()
 ```
 
 ---
@@ -349,9 +371,11 @@ TANPA IRAM_ATTR:
 DENGAN IRAM_ATTR:
 ✓ ISR di IRAM → Selalu tersedia → Consistent fast access
 
-Code:
-void IRAM_ATTR buttonISR() {
-    // ISR code - ALWAYS in IRAM
+Code ESP-IDF:
+static void IRAM_ATTR button_isr_handler(void *arg) {
+    uint32_t gpio_num = (uint32_t)arg;
+    // Set flag atau kirim ke queue
+    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
 }
 
 ⚠️ IRAM terbatas (~200KB) - gunakan bijak!
@@ -444,42 +468,45 @@ Tampilkan dengan calculator-style box dan step-by-step.
 
 ---
 
-## Slide 18: Konfigurasi Timer STM32
+## Slide 18: Konfigurasi Timer STM32 (HAL)
 
 **Prompt:**
 ```
-Buat slide "Konfigurasi Timer STM32" dengan code dan diagram:
+Buat slide "Konfigurasi Timer STM32 dengan HAL" dengan code dan diagram:
 
-// Timer 2: Interrupt setiap 100ms
+/* Konfigurasi TIM2 via CubeMX / HAL_TIM_Base_Init */
+TIM_HandleTypeDef htim2;
 
-// 1. Enable clock
-RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+void MX_TIM2_Init(void) {
+    htim2.Instance = TIM2;
+    htim2.Init.Prescaler = 7200 - 1;      // 72MHz/7200 = 10kHz
+    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim2.Init.Period = 10000 - 1;         // 10kHz/10000 = 1Hz
+    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    HAL_TIM_Base_Init(&htim2);
+}
 
-// 2. Set prescaler (72MHz / 7200 = 10kHz)
-TIM2->PSC = 7200 - 1;
+/* Start timer dengan interrupt */
+HAL_TIM_Base_Start_IT(&htim2);
 
-// 3. Set auto-reload (10kHz / 10Hz = 1000)
-TIM2->ARR = 1000 - 1;
+/* Callback (user code) */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == TIM2) {
+        HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
+    }
+}
 
-// 4. Enable update interrupt
-TIM2->DIER |= TIM_DIER_UIE;
-
-// 5. Enable di NVIC
-NVIC_EnableIRQ(TIM2_IRQn);
-
-// 6. Start timer
-TIM2->CR1 |= TIM_CR1_CEN;
-
-Diagram timing di bawah menunjukkan PSC counting → ARR counting → Update event.
+Diagram timing: PSC counting → ARR counting → Update event.
+Catatan: HAL menangani NVIC enable dan clear flag secara otomatis.
 ```
 
 ---
 
-## Slide 19: Timer ESP32
+## Slide 19: Timer ESP32 (ESP-IDF gptimer)
 
 **Prompt:**
 ```
-Buat slide "Timer pada ESP32" dengan:
+Buat slide "Timer pada ESP32 (ESP-IDF gptimer API)" dengan:
 
 Fitur Hardware Timer ESP32:
 ┌────────────────────────────────────────┐
@@ -487,7 +514,7 @@ Fitur Hardware Timer ESP32:
 │ • Timer Group 0: Timer 0, Timer 1      │
 │ • Timer Group 1: Timer 0, Timer 1      │
 │ • Base clock: 80 MHz (APB)             │
-│ • Prescaler: 2 - 65536                 │
+│ • Resolusi via gptimer: configurable    │
 │ • Auto-reload support                  │
 └────────────────────────────────────────┘
 
@@ -498,43 +525,55 @@ Perbandingan dengan STM32:
 │ Resolusi        │ 16-bit        │ 64-bit        │
 │ Max Count       │ 65,535        │ 18 quintillion│
 │ Jumlah          │ 4             │ 4             │
-│ PWM Channels    │ 4 per timer   │ Separate      │
+│ API Framework   │ HAL_TIM_*     │ gptimer_*     │
+│ PWM Channels    │ 4 per timer   │ Separate LEDC │
 └─────────────────┴───────────────┴───────────────┘
 ```
 
 ---
 
-## Slide 20: Konfigurasi Timer ESP32
+## Slide 20: Konfigurasi Timer ESP32 (ESP-IDF)
 
 **Prompt:**
 ```
-Buat slide "Konfigurasi Timer ESP32" dengan code:
+Buat slide "Konfigurasi Timer ESP32 dengan ESP-IDF gptimer" dengan code:
 
-hw_timer_t *timer = NULL;
-portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
-volatile int counter = 0;
+#include "driver/gptimer.h"
 
-void IRAM_ATTR onTimer() {
-    portENTER_CRITICAL_ISR(&timerMux);
-    counter++;
-    portEXIT_CRITICAL_ISR(&timerMux);
+gptimer_handle_t gptimer = NULL;
+
+/* Callback function */
+static bool IRAM_ATTR timer_alarm_cb(
+    gptimer_handle_t timer,
+    const gptimer_alarm_event_data_t *edata,
+    void *user_ctx)
+{
+    // Toggle LED atau set flag
+    gpio_set_level(LED_PIN, !gpio_get_level(LED_PIN));
+    return true;  // need yield?
 }
 
-void setup() {
-    // Timer 0, prescaler 80 (1MHz = 1µs per tick)
-    timer = timerBegin(0, 80, true);
-    
-    // Attach interrupt
-    timerAttachInterrupt(timer, &onTimer, true);
-    
-    // Alarm setiap 1 detik (1,000,000 µs)
-    timerAlarmWrite(timer, 1000000, true);
-    
-    // Enable alarm
-    timerAlarmEnable(timer);
-}
+/* Konfigurasi */
+gptimer_config_t timer_config = {
+    .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+    .direction = GPTIMER_COUNT_UP,
+    .resolution_hz = 1000000,  // 1MHz = 1µs per tick
+};
+gptimer_new_timer(&timer_config, &gptimer);
 
-Highlight dengan callout: "80 = 80MHz/80 = 1MHz", "1000000µs = 1s"
+gptimer_alarm_config_t alarm_config = {
+    .alarm_count = 1000000,    // 1 detik
+    .reload_count = 0,
+    .flags.auto_reload_on_alarm = true,
+};
+gptimer_set_alarm_action(gptimer, &alarm_config);
+
+gptimer_event_callbacks_t cbs = { .on_alarm = timer_alarm_cb };
+gptimer_register_event_callbacks(gptimer, &cbs, NULL);
+gptimer_enable(gptimer);
+gptimer_start(gptimer);
+
+Catatan: gptimer API menggantikan timer_group API lama
 ```
 
 ---
@@ -553,7 +592,7 @@ MASALAH - Race Condition:
 │ ⚡ Interrupt terjadi di tengah operasi = BUG!   │
 └──────────────────────────────────────────────────┘
 
-SOLUSI - Critical Section:
+SOLUSI - Critical Section (ESP-IDF):
 ┌──────────────────────────────────────────────────┐
 │ portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED; │
 │                                                  │
@@ -583,29 +622,32 @@ Buat slide "Best Practices ISR" dengan DO dan DON'T list:
 • Keep ISR short (< 100µs)
 • Use volatile for shared variables
 • Set flag, process in main loop
-• Clear interrupt flags
+• Clear interrupt flags (HAL does it automatically)
 • Use IRAM_ATTR on ESP32
 • Use critical sections for shared data
 
 ❌ DON'T:
-• Don't use delay() in ISR
-• Don't use Serial.print() in ISR
+• Don't use HAL_Delay() / vTaskDelay() in ISR
+• Don't use printf() / ESP_LOGI() in ISR
 • Don't do complex calculations
-• Don't allocate memory
+• Don't allocate memory (malloc)
 • Don't call non-reentrant functions
-• Don't forget to clear flags
+• Don't forget volatile keyword
 
-Code Example:
+Code Example (ESP-IDF):
 volatile bool flag = false;
 
-void IRAM_ATTR myISR() {
+static void IRAM_ATTR my_isr(void *arg) {
     flag = true;  // ✅ Simple!
 }
 
-void loop() {
-    if (flag) {
-        flag = false;
-        doComplexProcessing();  // ✅ In main
+void app_main(void) {
+    while (1) {
+        if (flag) {
+            flag = false;
+            ESP_LOGI(TAG, "Event!");  // ✅ In main
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 ```
@@ -624,83 +666,199 @@ MASALAH - Button Bounce:
 TANPA DEBOUNCE:
 "1 tekan = 5-10 interrupt!"
 
-SOLUSI - Timer-based Debounce:
+SOLUSI - Timer-based Debounce (ESP-IDF):
 ┌────────────────────────────────────────────────────┐
-│ volatile unsigned long lastTime = 0;               │
-│ const unsigned long DEBOUNCE_MS = 50;              │
+│ static int64_t last_time = 0;                      │
+│ #define DEBOUNCE_US 50000  // 50ms                 │
 │                                                    │
-│ void IRAM_ATTR buttonISR() {                       │
-│     unsigned long now = millis();                  │
-│     if (now - lastTime > DEBOUNCE_MS) {            │
-│         buttonPressed = true;                      │
-│         lastTime = now;                            │
+│ static void IRAM_ATTR button_isr(void *arg) {      │
+│     int64_t now = esp_timer_get_time();            │
+│     if (now - last_time > DEBOUNCE_US) {           │
+│         button_pressed = true;                     │
+│         last_time = now;                           │
 │     }                                              │
 │ }                                                  │
 └────────────────────────────────────────────────────┘
 
-Timing diagram showing: Button press → Debounce window → Valid detection
+Timing diagram: Button press → Debounce window → Valid detection
 ```
 
 ---
 
-## Slide 24: Perbandingan STM32 vs ESP32
+## Slide 24: Watchdog Timer
 
 **Prompt:**
 ```
-Buat slide "Perbandingan Interrupt & Timer: STM32 vs ESP32" dengan tabel komprehensif:
+Buat slide "Watchdog Timer" dengan:
 
-┌─────────────────────┬────────────────────┬────────────────────┐
-│ Aspek               │ STM32F103C8T6      │ ESP32              │
-├─────────────────────┼────────────────────┼────────────────────┤
-│ Core                │ ARM Cortex-M3      │ Xtensa LX6 Dual    │
-│ Interrupt Ctrl      │ NVIC               │ Interrupt Matrix   │
-│ Priority Levels     │ 16 (4-bit)         │ 7 levels           │
-│ External Int        │ 16 EXTI lines      │ All GPIO pins      │
-│ Timer Count         │ 4 (16-bit)         │ 4 (64-bit)         │
-│ ISR Attribute       │ None               │ IRAM_ATTR required │
-│ Critical Section    │ __disable_irq()    │ portENTER_CRITICAL │
-│ Vector Table        │ Fixed location     │ Configurable       │
-│ Latency             │ 12 cycles          │ ~20-50 cycles      │
-└─────────────────────┴────────────────────┴────────────────────┘
+Definisi: "Watchdog = timer khusus yang mereset MCU jika program hang"
+
+Cara Kerja:
+┌────────────────────────────────────────────────────┐
+│ 1. Watchdog dimulai dengan timeout tertentu         │
+│ 2. Program harus "feed/refresh" sebelum timeout    │
+│ 3. Jika program hang → WDT timeout → RESET!       │
+└────────────────────────────────────────────────────┘
+
+STM32 - Dua Jenis Watchdog:
+┌──────────────┬─────────────────────────────────────┐
+│ IWDG         │ Independent WDT, clock LSI 40kHz    │
+│              │ Selalu running, tidak bisa dihentikan│
+├──────────────┼─────────────────────────────────────┤
+│ WWDG         │ Window WDT, clock APB1              │
+│              │ Refresh hanya di window tertentu     │
+└──────────────┴─────────────────────────────────────┘
+
+ESP32 - Task Watchdog:
+┌──────────────────────────────────────────────────┐
+│ esp_task_wdt: monitor per-task                   │
+│ Bisa add/remove task dari watchdog              │
+│ esp_task_wdt_reset() untuk refresh              │
+└──────────────────────────────────────────────────┘
+
+Diagram: Normal operation vs Hang → Reset
 ```
 
 ---
 
-## Slide 25: Latihan Perhitungan
+## Slide 25: Watchdog Timer - Code
+
+**Prompt:**
+```
+Buat slide "Watchdog Timer - Implementasi" dengan code:
+
+STM32 HAL - IWDG:
+┌────────────────────────────────────────────────────┐
+│ IWDG_HandleTypeDef hiwdg;                          │
+│                                                    │
+│ hiwdg.Instance = IWDG;                             │
+│ hiwdg.Init.Prescaler = IWDG_PRESCALER_64;         │
+│ hiwdg.Init.Reload = 625;  // ~1 detik timeout     │
+│ HAL_IWDG_Init(&hiwdg);                            │
+│                                                    │
+│ while (1) {                                        │
+│     // ... proses normal ...                       │
+│     HAL_IWDG_Refresh(&hiwdg);  // Feed watchdog   │
+│ }                                                  │
+└────────────────────────────────────────────────────┘
+
+ESP32 ESP-IDF - Task WDT:
+┌────────────────────────────────────────────────────┐
+│ #include "esp_task_wdt.h"                          │
+│                                                    │
+│ esp_task_wdt_config_t wdt_cfg = {                  │
+│     .timeout_ms = 5000,                            │
+│     .trigger_panic = true,                         │
+│ };                                                 │
+│ esp_task_wdt_reconfigure(&wdt_cfg);                │
+│ esp_task_wdt_add(NULL);  // Add current task       │
+│                                                    │
+│ while (1) {                                        │
+│     // ... proses normal ...                       │
+│     esp_task_wdt_reset();  // Feed watchdog        │
+│     vTaskDelay(pdMS_TO_TICKS(100));                │
+│ }                                                  │
+└────────────────────────────────────────────────────┘
+```
+
+---
+
+## Slide 26: Timer Cascade (Master-Slave)
+
+**Prompt:**
+```
+Buat slide "Timer Cascade - Master-Slave" dengan:
+
+Konsep: Menghubungkan 2 timer untuk mendapatkan resolusi lebih tinggi
+
+STM32 - Hardware Timer Cascade:
+┌───────────────────────────────────────────────────┐
+│ TIM2 (Master)         TIM3 (Slave)                │
+│ ┌─────────┐          ┌─────────┐                  │
+│ │ PSC=71  │ TRGO     │ ITR1    │                  │
+│ │ ARR=999 │─────────►│ Slave   │                  │
+│ │ 1kHz    │ Update   │ Mode    │                  │
+│ └─────────┘          └─────────┘                  │
+│                                                   │
+│ Efektif: TIM2 overflow → TIM3 increment           │
+│ Total: 16-bit × 16-bit = 32-bit counter!         │
+└───────────────────────────────────────────────────┘
+
+HAL Configuration:
+• Master: TIM_MasterConfigTypeDef, TriggerOutput = UPDATE
+• Slave: TIM_SlaveConfigTypeDef, SlaveMode = EXTERNAL_CLOCK
+
+ESP32 - Software Chaining:
+┌───────────────────────────────────────────────────┐
+│ gptimer 0 overflow → callback increments counter  │
+│ Counter overflow → trigger gptimer 1 action       │
+│ Software chaining (ESP32 timer sudah 64-bit)      │
+└───────────────────────────────────────────────────┘
+```
+
+---
+
+## Slide 27: Perbandingan STM32 vs ESP32
+
+**Prompt:**
+```
+Buat slide "Perbandingan Interrupt & Timer: STM32 vs ESP32" dengan tabel:
+
+┌─────────────────────┬──────────────────────┬──────────────────────┐
+│ Aspek               │ STM32F103 (HAL)      │ ESP32 (ESP-IDF)      │
+├─────────────────────┼──────────────────────┼──────────────────────┤
+│ Core                │ ARM Cortex-M3        │ Xtensa LX6 Dual      │
+│ Interrupt Ctrl      │ NVIC                 │ Interrupt Matrix     │
+│ Priority Levels     │ 16 (4-bit)           │ 7 levels             │
+│ External Int        │ 16 EXTI lines        │ All GPIO pins        │
+│ Timer Count         │ 4 (16-bit)           │ 4 (64-bit)           │
+│ Timer API           │ HAL_TIM_*            │ gptimer_*            │
+│ ISR Attribute       │ None                 │ IRAM_ATTR required   │
+│ GPIO Config         │ HAL_GPIO_Init()      │ gpio_config()        │
+│ ISR Install         │ HAL_NVIC_EnableIRQ() │ gpio_install_isr_svc │
+│ Watchdog            │ IWDG / WWDG          │ esp_task_wdt         │
+│ Timer Cascade       │ Hardware Master-Slave│ Software chaining    │
+│ Latency             │ 12 cycles            │ ~20-50 cycles        │
+└─────────────────────┴──────────────────────┴──────────────────────┘
+```
+
+---
+
+## Slide 28: Latihan Perhitungan
 
 **Prompt:**
 ```
 Buat slide "Latihan Perhitungan Timer" dengan soal:
 
-SOAL 1: STM32 Timer
+SOAL 1: STM32 Timer (HAL)
 Buatlah timer yang menghasilkan interrupt setiap 250ms
 Clock APB1 = 72 MHz
 
 Jawab:
-PSC = _____, ARR = _____
+Prescaler = _____, Period (ARR) = _____
 (Hint: 250ms = 4 Hz)
 
-SOAL 2: ESP32 Timer
-Buatlah timer untuk LED blink dengan periode 500ms
-Base clock = 80 MHz, Prescaler = 80
+SOAL 2: ESP32 Timer (gptimer)
+Buatlah gptimer untuk LED blink dengan periode 500ms
+Resolution = 1MHz (1µs per tick)
 
 Jawab:
-Alarm value = _____ µs
+alarm_count = _____ ticks
 (Hint: 500ms = 500,000 µs)
 
-SOAL 3: Debounce Time
-Button bounce berlangsung selama 15ms.
-Berapa minimum debounce delay yang aman?
+SOAL 3: STM32 IWDG
+LSI clock = 40kHz, Prescaler = 64
+Berapa nilai Reload untuk timeout 2 detik?
 
-Jawab: _____ ms
-(Hint: Tambah margin safety)
+Jawab: Reload = _____
+(Hint: 40kHz / 64 = 625 Hz)
 
-Format: kotak soal dengan tempat jawaban kosong, jawaban di slide berikutnya.
+Format: kotak soal dengan tempat jawaban kosong.
 ```
 
 ---
 
-## Slide 26: Jawaban Latihan
+## Slide 29: Jawaban Latihan
 
 **Prompt:**
 ```
@@ -714,21 +872,21 @@ Pilihan: PSC = 7199, ARR = 2499
 Check: 72MHz / (7200 × 2500) = 4 Hz ✓
 
 SOAL 2 - Jawaban:
-Prescaler 80 → 80MHz/80 = 1MHz = 1µs per tick
+Resolution 1MHz → 1µs per tick
 500ms = 500,000 µs
-Alarm value = 500000
+alarm_count = 500000
 
 SOAL 3 - Jawaban:
-Minimum debounce = 15ms
-Safety margin = 2-3x
-Recommended: 30-50ms
+IWDG clock = 40kHz / 64 = 625 Hz
+Timeout 2 detik = 2 × 625 = 1250
+Reload = 1250
 
 Gunakan checkmark hijau untuk jawaban benar.
 ```
 
 ---
 
-## Slide 27: Summary
+## Slide 30: Summary
 
 **Prompt:**
 ```
@@ -742,17 +900,21 @@ Buat slide "Summary" dengan ringkasan dalam format infographic:
 │    Interrupt = Efisien, Real-time                     │
 │    Polling = Simple, CPU-intensive                    │
 │                                                        │
-│ 2️⃣ STM32 INTERRUPT                                    │
-│    NVIC + EXTI → 16 lines, 16 priority levels        │
+│ 2️⃣ STM32 INTERRUPT (HAL)                              │
+│    NVIC + EXTI → HAL_GPIO_EXTI_Callback()            │
 │                                                        │
-│ 3️⃣ ESP32 INTERRUPT                                    │
-│    Interrupt Matrix + IRAM_ATTR = WAJIB              │
+│ 3️⃣ ESP32 INTERRUPT (ESP-IDF)                          │
+│    gpio_config() + gpio_isr_handler_add()            │
+│    IRAM_ATTR = WAJIB                                 │
 │                                                        │
 │ 4️⃣ TIMER                                              │
-│    Timer_Freq = Clock / (PSC+1)                      │
-│    Period = (ARR+1) / Timer_Freq                     │
+│    STM32: HAL_TIM_Base_Start_IT()                    │
+│    ESP32: gptimer_new_timer() + gptimer_start()      │
 │                                                        │
-│ 5️⃣ BEST PRACTICE                                      │
+│ 5️⃣ WATCHDOG & CASCADE                                 │
+│    Safety reset + Extended counting                   │
+│                                                        │
+│ 6️⃣ BEST PRACTICE                                      │
 │    Short ISR + Flag + Process in main loop           │
 │                                                        │
 └────────────────────────────────────────────────────────┘
@@ -760,7 +922,7 @@ Buat slide "Summary" dengan ringkasan dalam format infographic:
 
 ---
 
-## Slide 28: Referensi
+## Slide 31: Referensi
 
 **Prompt:**
 ```
@@ -770,16 +932,16 @@ Buat slide "Referensi" dengan daftar:
 1. STM32F103 Reference Manual (RM0008) - ST
 2. ARM Cortex-M3 Technical Reference - ARM
 3. ESP32 Technical Reference Manual - Espressif
-4. ESP-IDF Programming Guide - Espressif
+4. ESP-IDF Programming Guide (gptimer, GPIO ISR)
 
 📖 Buku:
-1. "Mastering STM32" - Carmine Noviello
-2. "The Definitive Guide to ARM Cortex-M3" - Joseph Yiu
+1. "Mastering STM32" - Carmine Noviello (Ch7: Interrupts, Ch11: Timers)
+2. "Kolban's Book on ESP32" (p267-268: ISR, p300-302: Timers)
 
 🔗 Online Resources:
-1. DeepBlue Embedded - STM32 Tutorials
-2. Random Nerd Tutorials - ESP32 Guide
-3. Espressif GitHub Examples
+1. STM32Cube HAL Documentation
+2. ESP-IDF Official Examples (gpio, gptimer, wdt)
+3. Espressif GitHub - esp-idf examples
 
 Format dengan ikon buku, dokumen, dan link untuk setiap kategori.
 ```
@@ -793,12 +955,17 @@ Format dengan ikon buku, dokumen, dan link untuk setiap kategori.
    - Manual design di PowerPoint/Canva
    - Referensi konten untuk presentasi
 
-2. **Konsistensi Visual:**
+2. **Framework yang digunakan:**
+   - STM32: STM32Cube HAL (BUKAN Arduino/HardwareTimer)
+   - ESP32: ESP-IDF native (BUKAN Arduino framework)
+   - Semua code menggunakan file .c (bukan .cpp)
+
+3. **Konsistensi Visual:**
    - Maintain color scheme di semua slide
    - Gunakan font yang sama
    - Ukuran diagram proporsional
 
-3. **Interaktivitas:**
+4. **Interaktivitas:**
    - Slide latihan bisa dijadikan quiz
    - Timing diagram bisa dianimasikan
    - Code snippet highlight satu per satu

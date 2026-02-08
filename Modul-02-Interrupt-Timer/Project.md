@@ -255,32 +255,33 @@ $CMD,<command_id>,<parameter>*<checksum>\r\n
 | STM32 Firmware | Edge controller dengan interrupt dan timer | 15% |
 | ESP32 Firmware | Hub controller dengan logging dan alert | 15% |
 | Communication Protocol | Implementasi protokol reliable | 5% |
-| Configuration | Konfigurasi PlatformIO yang benar | 5% |
+| Configuration | Konfigurasi STM32CubeMX / CMake yang benar | 5% |
 
 **Struktur Project:**
 ```
 Project-02-Security-Monitoring/
 ├── STM32-Edge-Controller/
-│   ├── platformio.ini
-│   ├── src/
-│   │   ├── main.cpp
-│   │   ├── interrupt_handler.cpp
-│   │   ├── timer_manager.cpp
-│   │   └── uart_protocol.cpp
-│   └── include/
+│   ├── STM32-Edge-Controller.ioc
+│   ├── Src/
+│   │   ├── main.c
+│   │   ├── interrupt_handler.c
+│   │   ├── timer_manager.c
+│   │   └── uart_protocol.c
+│   └── Inc/
 │       ├── config.h
 │       ├── interrupt_handler.h
 │       ├── timer_manager.h
 │       └── uart_protocol.h
 │
 ├── ESP32-Hub-Controller/
-│   ├── platformio.ini
-│   ├── src/
-│   │   ├── main.cpp
-│   │   ├── event_logger.cpp
-│   │   ├── alert_manager.cpp
-│   │   └── uart_handler.cpp
-│   └── include/
+│   ├── CMakeLists.txt
+│   ├── main/
+│   │   ├── CMakeLists.txt
+│   │   ├── main.c
+│   │   ├── event_logger.c
+│   │   ├── alert_manager.c
+│   │   └── uart_handler.c
+│   └── main/
 │       ├── config.h
 │       ├── event_logger.h
 │       ├── alert_manager.h

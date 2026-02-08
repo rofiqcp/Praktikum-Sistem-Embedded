@@ -100,7 +100,7 @@ static esp_err_t add_spi_device(int clock_hz, spi_device_handle_t *handle)
         .flags          = 0,
     };
 
-    return spi_device_add(SPI_HOST_ID, &dev_cfg, handle);
+    return spi_bus_add_device(SPI_HOST_ID, &dev_cfg, handle);
 }
 
 /**

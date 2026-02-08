@@ -10,6 +10,7 @@
 | **Nama Project** | Smart Home Control Panel |
 | **Tingkat Kesulitan** | ⭐⭐⭐ (Intermediate) |
 | **Platform** | STM32F103C8T6 + ESP32 (Dual MCU) |
+| **Framework** | STM32Cube HAL (STM32), ESP-IDF (ESP32) |
 | **Durasi Pengerjaan** | 2 minggu |
 | **Tipe** | Kelompok (2-3 orang) |
 
@@ -185,7 +186,7 @@ ESP32 → STM32:
 ```
 STM32_Smart_Home_Local/
 ├── src/
-│   └── main.cpp           # Main program
+│   └── main.c             # Main program (STM32Cube HAL)
 ├── include/
 │   ├── config.h           # Pin definitions
 │   ├── debounce.h         # Debounce library
@@ -200,7 +201,7 @@ STM32_Smart_Home_Local/
 ```
 ESP32_Smart_Home_Remote/
 ├── src/
-│   └── main.cpp           # Main program
+│   └── main.c             # Main program (ESP-IDF)
 ├── include/
 │   ├── config.h           # Pin definitions
 │   ├── command_parser.h   # Serial command parser
@@ -213,27 +214,40 @@ ESP32_Smart_Home_Remote/
 
 ### Contoh Code Template
 
-**config.h (STM32)**
-```cpp
+**config.h (STM32 - HAL)**
+```c
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// Button Pins
-#define BTN_ROOM1   PB0
-#define BTN_ROOM2   PB1
-#define BTN_ROOM3   PB10
-#define BTN_ROOM4   PB11
-#define BTN_ESTOP   PA0
+#include "stm32f1xx_hal.h"
+
+// Button GPIO Ports and Pins
+#define BTN_ROOM1_PORT    GPIOB
+#define BTN_ROOM1_PIN     GPIO_PIN_0
+#define BTN_ROOM2_PORT    GPIOB
+#define BTN_ROOM2_PIN     GPIO_PIN_1
+#define BTN_ROOM3_PORT    GPIOB
+#define BTN_ROOM3_PIN     GPIO_PIN_10
+#define BTN_ROOM4_PORT    GPIOB
+#define BTN_ROOM4_PIN     GPIO_PIN_11
+#define BTN_ESTOP_PORT    GPIOA
+#define BTN_ESTOP_PIN     GPIO_PIN_0
 
 // DIP Switch Pins
-#define DIP_BIT0    PA4
-#define DIP_BIT1    PA5
+#define DIP_BIT0_PORT     GPIOA
+#define DIP_BIT0_PIN      GPIO_PIN_4
+#define DIP_BIT1_PORT     GPIOA
+#define DIP_BIT1_PIN      GPIO_PIN_5
 
 // LED Pins (Room 1-2 on STM32)
-#define LED_R1A     PA1
-#define LED_R1B     PA2
-#define LED_R2A     PA3
-#define LED_R2B     PA6
+#define LED_R1A_PORT      GPIOA
+#define LED_R1A_PIN       GPIO_PIN_1
+#define LED_R1B_PORT      GPIOA
+#define LED_R1B_PIN       GPIO_PIN_2
+#define LED_R2A_PORT      GPIOA
+#define LED_R2A_PIN       GPIO_PIN_3
+#define LED_R2B_PORT      GPIOA
+#define LED_R2B_PIN       GPIO_PIN_6
 
 // Timing
 #define DEBOUNCE_MS     50
@@ -246,48 +260,49 @@ ESP32_Smart_Home_Remote/
 #endif
 ```
 
-**main.cpp (STM32) - Skeleton**
-```cpp
-#include <Arduino.h>
+**main.c (STM32 - HAL) - Skeleton**
+```c
+#include "stm32f1xx_hal.h"
 #include "config.h"
 
 // State variables
-bool ledStates[4] = {false, false, false, false};
-bool emergencyMode = false;
+static uint8_t led_states[4] = {0};
+static volatile uint8_t emergency_mode = 0;
 
 // Debounce variables
-unsigned long lastDebounce[5] = {0};
-bool lastButtonState[5] = {HIGH, HIGH, HIGH, HIGH, HIGH};
+static uint32_t last_debounce[5] = {0};
+static GPIO_PinState last_btn_state[5] = {GPIO_PIN_SET};
 
-void setup() {
-    Serial.begin(SERIAL_BAUD);  // To ESP32
-    Serial1.begin(115200);       // Debug
-    
-    // Initialize buttons
-    pinMode(BTN_ROOM1, INPUT_PULLUP);
-    // ... more pins
-    
-    // Initialize LEDs
-    pinMode(LED_R1A, OUTPUT);
-    // ... more pins
-    
-    // Emergency stop interrupt
-    attachInterrupt(digitalPinToInterrupt(BTN_ESTOP), 
-                    emergencyStopISR, FALLING);
-    
-    Serial1.println("STM32 Smart Home Ready");
+static UART_HandleTypeDef huart1;  // To ESP32
+static UART_HandleTypeDef huart2;  // Debug
+
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_USART1_UART_Init(void);
+
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+
+    char msg[] = "STM32 Smart Home Ready\r\n";
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
+    while (1) {
+        handle_buttons();
+        handle_serial();
+        update_leds();
+    }
 }
 
-void loop() {
-    handleButtons();
-    handleSerial();
-    updateLEDs();
-}
-
-void emergencyStopISR() {
-    emergencyMode = true;
-    // Send to ESP32
-    Serial.println("ESTOP");
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_Pin == BTN_ESTOP_PIN) {
+        emergency_mode = 1;
+        // Send ESTOP to ESP32
+        char estop[] = "ESTOP\n";
+        HAL_UART_Transmit(&huart1, (uint8_t*)estop, strlen(estop), 100);
+    }
 }
 
 // TODO: Implement other functions
@@ -373,7 +388,7 @@ Kelompok_XX_SmartHome.zip
 2. **Incremental development:** Satu fitur at a time
 3. **Test communication:** Pastikan Serial antar MCU bekerja sebelum integrasi
 4. **Version control:** Gunakan Git untuk backup
-5. **Debug print:** Gunakan Serial.println() untuk tracking
+5. **Debug print:** Gunakan `ESP_LOGI()` (ESP32) atau `HAL_UART_Transmit()` (STM32) untuk tracking
 6. **Common ground:** PASTIKAN kedua MCU share ground!
 
 ---
@@ -397,9 +412,10 @@ A: Ya, asalkan didokumentasikan dengan baik.
 ## 📚 Referensi
 
 1. [PlatformIO Documentation](https://docs.platformio.org/)
-2. [STM32duino Wiki](https://github.com/stm32duino/wiki)
-3. [ESP32 Arduino Core](https://docs.espressif.com/projects/arduino-esp32/)
-4. [Serial Communication Tutorial](https://www.arduino.cc/reference/en/language/functions/communication/serial/)
+2. [STM32Cube HAL User Manual](https://www.st.com/resource/en/user_manual/um1850-description-of-stm32f1-hal-and-lowlayer-drivers-stmicroelectronics.pdf)
+3. [ESP-IDF Programming Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
+4. [ESP-IDF GPIO API Reference](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/gpio.html)
+5. [ESP-IDF UART API Reference](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/uart.html)
 
 ---
 

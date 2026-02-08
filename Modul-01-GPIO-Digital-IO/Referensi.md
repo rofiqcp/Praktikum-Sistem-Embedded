@@ -19,11 +19,17 @@
 | **ESP32 Datasheet** | [Espressif](https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf) | Spesifikasi hardware |
 | **ESP-IDF GPIO Documentation** | [Espressif Docs](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/gpio.html) | API reference GPIO |
 
-### Arduino Framework
+### ESP-IDF Framework
 | Dokumen | Link | Deskripsi |
 |---------|------|-----------|
-| **Arduino Reference** | [Arduino.cc](https://www.arduino.cc/reference/en/) | Fungsi-fungsi Arduino |
-| **Digital Pins Tutorial** | [Arduino.cc](https://www.arduino.cc/en/Tutorial/Foundations/DigitalPins) | Tutorial GPIO Arduino |
+| **ESP-IDF Programming Guide** | [Espressif Docs](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/) | Panduan lengkap ESP-IDF |
+| **ESP-IDF GPIO Driver** | [Espressif Docs](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/gpio.html) | API reference driver GPIO |
+
+### STM32Cube HAL Framework
+| Dokumen | Link | Deskripsi |
+|---------|------|-----------|
+| **STM32Cube HAL User Manual** | [STMicroelectronics](https://www.st.com/resource/en/user_manual/um1850-description-of-stm32f1-hal-and-lowlayer-drivers-stmicroelectronics.pdf) | Manual HAL driver STM32F1 |
+| **STM32CubeF1 Package** | [GitHub](https://github.com/STMicroelectronics/STM32CubeF1) | Source code HAL + contoh |
 
 ---
 
@@ -32,15 +38,15 @@
 ### Wajib Baca
 1. **"Mastering STM32" - Second Edition**
    - Penulis: Carmine Noviello
-   - Chapter: 6 (GPIO Management)
+   - **Chapter 6: GPIO Management** (konfigurasi, mode, register access)
    - Tersedia di: [leanpub.com](https://leanpub.com/mastering-stm32)
-   - *Catatan: Referensi utama untuk STM32*
+   - *Catatan: Referensi utama untuk STM32 HAL programming*
 
 2. **"Kolban's Book on ESP32"**
    - Penulis: Neil Kolban
-   - Chapter: GPIO and RTC GPIO
+   - Chapter: GPIO and RTC GPIO, **Halaman 251-257**
    - Tersedia gratis di: [leanpub.com](https://leanpub.com/kolban-ESP32)
-   - *Catatan: Referensi utama untuk ESP32*
+   - *Catatan: Referensi utama untuk ESP32, fokus pada bagian GPIO*
 
 ### Bacaan Tambahan
 3. **"The Definitive Guide to ARM Cortex-M3"**
@@ -125,7 +131,7 @@
 | **VS Code** | Code Editor | [code.visualstudio.com](https://code.visualstudio.com/) |
 | **PlatformIO** | Build System | [platformio.org](https://platformio.org/) |
 | **STM32CubeIDE** | STM32 IDE Official | [st.com](https://www.st.com/en/development-tools/stm32cubeide.html) |
-| **Arduino IDE** | Alternative IDE | [arduino.cc](https://www.arduino.cc/en/software) |
+| **ESP-IDF Tools** | ESP32 Build System | [espressif.com](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/) |
 
 ### Debugging Tools
 | Tool | Fungsi | Link |
@@ -171,16 +177,16 @@
 ### GitHub Repositories
 | Repository | Deskripsi | Link |
 |------------|-----------|------|
-| **STM32duino** | Arduino core for STM32 | [GitHub](https://github.com/stm32duino/Arduino_Core_STM32) |
-| **arduino-esp32** | ESP32 Arduino Core | [GitHub](https://github.com/espressif/arduino-esp32) |
-| **STM32 Examples** | HAL Examples | [GitHub](https://github.com/STMicroelectronics/STM32CubeF1) |
-| **ESP-IDF Examples** | Official Examples | [GitHub](https://github.com/espressif/esp-idf/tree/master/examples) |
+| **STM32CubeF1** | HAL Examples & Drivers | [GitHub](https://github.com/STMicroelectronics/STM32CubeF1) |
+| **ESP-IDF** | Official ESP-IDF Framework | [GitHub](https://github.com/espressif/esp-idf) |
+| **ESP-IDF Examples** | GPIO Examples | [GitHub](https://github.com/espressif/esp-idf/tree/master/examples/peripherals/gpio) |
+| **STM32 HAL GPIO Example** | Nucleo GPIO Example | [GitHub](https://github.com/STMicroelectronics/STM32CubeF1/tree/master/Projects) |
 
 ### Code Examples Spesifik GPIO
 ```
 # Clone untuk referensi
-git clone https://github.com/stm32duino/Arduino_Core_STM32.git
-git clone https://github.com/espressif/arduino-esp32.git
+git clone https://github.com/STMicroelectronics/STM32CubeF1.git
+git clone --recursive https://github.com/espressif/esp-idf.git
 ```
 
 ---
@@ -192,7 +198,7 @@ git clone https://github.com/espressif/arduino-esp32.git
 |-------|------|
 | **STM32 Community** | [community.st.com](https://community.st.com/) |
 | **ESP32 Forum** | [esp32.com/forum](https://www.esp32.com/) |
-| **Arduino Forum** | [forum.arduino.cc](https://forum.arduino.cc/) |
+| **ESP-IDF Issues/Discuss** | [github.com/espressif](https://github.com/espressif/esp-idf/issues) |
 | **EEVBlog Forum** | [eevblog.com/forum](https://www.eevblog.com/forum/) |
 | **Stack Overflow** | Tag: stm32, esp32, gpio |
 | **Reddit** | r/embedded, r/esp32, r/stm32 |

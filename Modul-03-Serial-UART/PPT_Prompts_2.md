@@ -11,7 +11,7 @@
 | **Jumlah Slide** | 28 Slide |
 | **Durasi** | 90-120 menit (Sesi Lab) |
 | **Fokus** | Hands-on, Wiring, Coding, Debugging |
-| **Platform** | STM32F103 (Arduino framework) & ESP32 |
+| **Platform** | STM32F103 (STM32Cube HAL) & ESP32 (ESP-IDF) |
 
 ---
 
@@ -124,28 +124,34 @@ Buat slide kode program untuk percobaan 1.
 
 Judul: "Kode Percobaan 1: Simple Echo & Control"
 
-Code Snippet (C++):
-```cpp
-void setup() {
-    pinMode(PC13, OUTPUT);
-    Serial.begin(9600);
-    Serial.println("STM32 Ready!");
+Code Snippet (C - STM32 HAL):
+```c
+// Menggunakan STM32Cube HAL
+extern UART_HandleTypeDef huart2;  // USART2: PA2(TX), PA3(RX)
+static uint8_t rxByte;
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    char msg[32];
+    int len = snprintf(msg, sizeof(msg), "Received: %c\r\n", rxByte);
+    HAL_UART_Transmit(&huart2, (uint8_t *)msg, len, HAL_MAX_DELAY);
+
+    if (rxByte == '1') HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET); // LED ON
+    if (rxByte == '0') HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);   // LED OFF
+
+    HAL_UART_Receive_IT(&huart2, &rxByte, 1);  // Re-arm
 }
 
-void loop() {
-    if (Serial.available()) {
-        char c = Serial.read();
-        Serial.print("Received: ");
-        Serial.println(c);
-        
-        if (c == '1') digitalWrite(PC13, LOW); // LED ON
-        if (c == '0') digitalWrite(PC13, HIGH); // LED OFF
-    }
+int main(void) {
+    HAL_Init();
+    // ... clock & GPIO init by CubeMX
+    HAL_UART_Transmit(&huart2, (uint8_t *)"STM32 Ready!\r\n", 14, HAL_MAX_DELAY);
+    HAL_UART_Receive_IT(&huart2, &rxByte, 1);
+    while (1) { /* main loop */ }
 }
 ```
 Penjelasan singkat:
-- `Serial.available()` cek data masuk
-- `Serial.read()` ambil 1 byte
+- `HAL_UART_Receive_IT()` start interrupt receive
+- `HAL_UART_RxCpltCallback()` dipanggil saat byte diterima
 - Logic LED PC13 active LOW
 ```
 
@@ -198,29 +204,53 @@ Buat slide kode parsing command pada ESP32.
 
 Judul: "Kode Percobaan 2: String Parsing"
 
-Code Snippet:
-```cpp
-String inString = "";
-void loop() {
-  while (Serial.available()) {
-    char inChar = (char)Serial.read();
-    if (inChar == '\n') {
-      processCommand(inString);
-      inString = "";
-    } else {
-      inString += inChar;
+Code Snippet (C - ESP-IDF):
+```c
+#include "driver/uart.h"
+#include "driver/gpio.h"
+#include <string.h>
+
+#define UART_PORT UART_NUM_0
+#define BUF_SIZE  256
+#define LED_PIN   GPIO_NUM_2
+
+void processCommand(char *cmd) {
+    // Trim trailing whitespace
+    char *end = cmd + strlen(cmd) - 1;
+    while (end > cmd && (*end == '\r' || *end == '\n' || *end == ' ')) *end-- = '\0';
+
+    if (strcmp(cmd, "LED:ON") == 0) {
+        gpio_set_level(LED_PIN, 1);
+        printf("Execute Turn ON\n");
+    } else if (strcmp(cmd, "LED:OFF") == 0) {
+        gpio_set_level(LED_PIN, 0);
+        printf("Execute Turn OFF\n");
+    } else if (strncmp(cmd, "PWM:", 4) == 0) {
+        int val = atoi(cmd + 4);
+        printf("Set PWM Duty to %d\n", val);
     }
-  }
 }
 
-void processCommand(String cmd) {
-  cmd.trim(); // Hapus whitespace
-  if (cmd == "LED:ON") digitalWrite(2, HIGH);
-  else if (cmd == "LED:OFF") digitalWrite(2, LOW);
-  else if (cmd.startsWith("PWM:")) {
-    int val = cmd.substring(4).toInt();
-    // Set PWM logic here
-  }
+void app_main(void) {
+    uart_driver_install(UART_PORT, BUF_SIZE*2, 0, 0, NULL, 0);
+    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
+    uint8_t data[BUF_SIZE];
+    char line[BUF_SIZE];
+    int idx = 0;
+
+    while (1) {
+        int len = uart_read_bytes(UART_PORT, data, BUF_SIZE-1,
+                                  100/portTICK_PERIOD_MS);
+        for (int i = 0; i < len; i++) {
+            if (data[i] == '\n') {
+                line[idx] = '\0';
+                processCommand(line);
+                idx = 0;
+            } else if (idx < BUF_SIZE-1) {
+                line[idx++] = data[i];
+            }
+        }
+    }
 }
 ```
 ```
@@ -276,23 +306,28 @@ Buat slide kode sender untuk STM32.
 Judul: "Percobaan 3: Kode Sender (STM32)"
 
 Code config:
-- Gunakan `Serial2` (HardwareSerial)
+- Gunakan HAL_UART_Transmit via USART2
 - Baudrate 115200
 
 Snippet:
-```cpp
-int counter = 0;
-void setup() {
-  Serial2.begin(115200); // PA2, PA3
-}
-void loop() {
-  counter++;
-  Serial2.print("DATA:");
-  Serial2.println(counter);
-  delay(1000);
+```c
+// STM32 HAL Sender
+extern UART_HandleTypeDef huart2;  // PA2(TX), PA3(RX)
+static uint32_t counter = 0;
+
+int main(void) {
+    HAL_Init();
+    // ... CubeMX init ...
+    while (1) {
+        counter++;
+        char buf[32];
+        int len = snprintf(buf, sizeof(buf), "DATA:%lu\r\n", counter);
+        HAL_UART_Transmit(&huart2, (uint8_t*)buf, len, HAL_MAX_DELAY);
+        HAL_Delay(1000);
+    }
 }
 ```
-Note: Gunakan `Serial2` bukan `Serial` (Serial untuk upload/debug).
+Note: Gunakan USART2 (PA2/PA3) karena USART1 dipakai ST-Link.
 ```
 
 ---
@@ -305,26 +340,45 @@ Buat slide kode receiver untuk ESP32.
 Judul: "Percobaan 3: Kode Receiver (ESP32)"
 
 Code config:
-- Gunakan `Serial1` atau `Serial2` dengan pin remapping
-- ESP32 HardwareSerial: Serial2 default pin 16, 17
+- Gunakan ESP-IDF uart_read_bytes via UART2
+- ESP-IDF UART: uart_set_pin() untuk GPIO 16, 17
 
 Snippet:
-```cpp
-void setup() {
-  Serial.begin(115200);  // Debug ke PC
-  Serial2.begin(115200); // RX dari STM32 (Pin 16, 17)
-}
-void loop() {
-  if (Serial2.available()) {
-    String data = Serial2.readStringUntil('\n');
-    Serial.print("Received from STM32: ");
-    Serial.println(data);
-  }
+```c
+// ESP-IDF Receiver
+#include "driver/uart.h"
+
+#define UART2_PORT UART_NUM_2
+#define BUF_SIZE   256
+
+void app_main(void) {
+    // UART0 untuk debug (sudah di-init oleh ESP-IDF)
+    // UART2 untuk menerima data dari STM32
+    const uart_config_t cfg = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+    };
+    uart_driver_install(UART2_PORT, BUF_SIZE*2, 0, 0, NULL, 0);
+    uart_param_config(UART2_PORT, &cfg);
+    uart_set_pin(UART2_PORT, 17, 16, -1, -1);
+
+    uint8_t data[BUF_SIZE];
+    while (1) {
+        int len = uart_read_bytes(UART2_PORT, data, BUF_SIZE-1,
+                                  200 / portTICK_PERIOD_MS);
+        if (len > 0) {
+            data[len] = '\0';
+            printf("Received from STM32: %s\n", (char*)data);
+        }
+    }
 }
 ```
 
 Visual: Alur data
-STM32 (Serial2) → [Kabel] → ESP32 (Serial2) → [Internal] → ESP32 (Serial) → PC
+STM32 (USART2/HAL) → [Kabel] → ESP32 (UART2/ESP-IDF) → [printf] → UART0 → PC
 ```
 
 ---
@@ -384,20 +438,26 @@ Buat slide kode pengiriman raw bytes.
 Judul: "Kode Sender Biner (STM32)"
 
 Snippet:
-```cpp
+```c
+// STM32 HAL - Binary sender
+extern UART_HandleTypeDef huart2;
+extern ADC_HandleTypeDef hadc1;
+
 Packet pkt;
 pkt.startByte = 0xAA;
 
-void loop() {
-  pkt.sensor1 = analogRead(PA0);
-  pkt.sensor2 = analogRead(PA1);
+while (1) {
+  HAL_ADC_Start(&hadc1);
+  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+  pkt.sensor1 = HAL_ADC_GetValue(&hadc1);
+  // ... read sensor2 similarly
   pkt.checksum = (pkt.startByte + pkt.sensor1 + pkt.sensor2) & 0xFF;
   
-  Serial2.write((uint8_t*)&pkt, sizeof(pkt));
-  delay(100);
+  HAL_UART_Transmit(&huart2, (uint8_t*)&pkt, sizeof(pkt), HAL_MAX_DELAY);
+  HAL_Delay(100);
 }
 ```
-Penjelasan `Serial.write` vs `Serial.print`.
+Penjelasan `HAL_UART_Transmit` mengirim raw bytes, bukan string.
 ```
 
 ---
@@ -410,20 +470,27 @@ Buat slide kode penerimaan raw bytes.
 Judul: "Kode Receiver Biner (ESP32)"
 
 Snippet:
-```cpp
-void loop() {
-  if (Serial2.available() >= sizeof(Packet)) {
-    Packet received;
-    Serial2.readBytes((uint8_t*)&received, sizeof(Packet));
-    
-    // Validasi start byte dan checksum
-    uint8_t calcChecksum = (...);
-    
-    if (received.startByte == 0xAA && calcChecksum == received.checksum) {
-      Serial.printf("S1: %d, S2: %d\n", received.sensor1, received.sensor2);
-    } else {
-      Serial.println("Packet Corrupted!");
-      // Flush buffer cleanup code
+```c
+// ESP-IDF - Binary receiver
+#define UART2_PORT UART_NUM_2
+
+void receiver_task(void *pvParam) {
+  Packet received;
+  while (1) {
+    // Read exactly sizeof(Packet) bytes
+    int len = uart_read_bytes(UART2_PORT, (uint8_t*)&received,
+                              sizeof(Packet), 200/portTICK_PERIOD_MS);
+    if (len == sizeof(Packet)) {
+      // Validasi start byte dan checksum
+      uint8_t calcChecksum = (received.startByte +
+                              received.sensor1 + received.sensor2) & 0xFF;
+      
+      if (received.startByte == 0xAA && calcChecksum == received.checksum) {
+        printf("S1: %d, S2: %d\n", received.sensor1, received.sensor2);
+      } else {
+        printf("Packet Corrupted!\n");
+        uart_flush_input(UART2_PORT);  // Flush buffer cleanup
+      }
     }
   }
 }
@@ -627,9 +694,9 @@ Buat slide link belajar mandiri.
 
 Judul: "Resources & Reference"
 
-- STM32UART Reference Manual
-- ESP32 Serial API Docs
-- JSON Serialization Library (ArduinoJson)
+- STM32 UART Reference Manual (RM0008 Chapter 27)
+- ESP-IDF UART API Documentation
+- STM32 HAL UART Driver (UM1850)
 - Tutorial Circular Buffer C/C++
 ```
 

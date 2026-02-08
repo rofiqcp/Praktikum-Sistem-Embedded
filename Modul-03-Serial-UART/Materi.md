@@ -289,78 +289,130 @@ ESP32 memiliki 3 UART:
 
 **Catatan:** UART0 biasanya digunakan untuk programming dan Serial Monitor. Gunakan UART1 atau UART2 untuk komunikasi dengan device lain.
 
-#### 4.2 Konfigurasi UART ESP32 (Arduino)
+#### 4.2 Konfigurasi UART ESP32 (ESP-IDF)
 
-```cpp
-// Basic Serial initialization
-void setup() {
-    // UART0 - USB Serial (default)
-    Serial.begin(115200);
-    
-    // UART2 - Custom pins
-    Serial2.begin(9600, SERIAL_8N1, 16, 17);  // RX=GPIO16, TX=GPIO17
-    
-    Serial.println("UART initialized!");
-}
+```c
+#include "driver/uart.h"
+#include "esp_log.h"
 
-// Dengan konfigurasi lengkap
-void setupUART() {
-    // Configure UART parameters
+#define UART_PORT      UART_NUM_2
+#define TX_PIN         GPIO_NUM_17
+#define RX_PIN         GPIO_NUM_16
+#define BUF_SIZE       256
+
+static const char *TAG = "UART";
+
+void uart_init(void) {
+    // Konfigurasi parameter UART
     const uart_config_t uart_config = {
         .baud_rate = 115200,
         .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
+        .parity    = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
     };
-    
-    uart_param_config(UART_NUM_2, &uart_config);
-    uart_set_pin(UART_NUM_2, 17, 16, -1, -1);  // TX, RX, RTS, CTS
-    uart_driver_install(UART_NUM_2, 256, 256, 0, NULL, 0);
+
+    // Install UART driver dengan TX & RX buffer
+    ESP_ERROR_CHECK(uart_driver_install(UART_PORT, BUF_SIZE * 2, BUF_SIZE * 2, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_param_config(UART_PORT, &uart_config));
+    ESP_ERROR_CHECK(uart_set_pin(UART_PORT, TX_PIN, RX_PIN,
+                                 UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+
+    ESP_LOGI(TAG, "UART%d initialized: 115200 8N1", UART_PORT);
 }
 ```
 
-#### 4.3 Fungsi Serial ESP32
+#### 4.3 Fungsi UART ESP-IDF
 
-```cpp
-// Transmit
-Serial2.print("Hello");           // String tanpa newline
-Serial2.println("World");         // String dengan newline
-Serial2.printf("Value: %d\n", x); // Formatted print
-Serial2.write(0x55);              // Raw byte
-Serial2.write(buffer, length);    // Raw bytes
+```c
+// === Transmit ===
+// Kirim string
+uart_write_bytes(UART_PORT, "Hello\n", 6);
 
-// Receive
-if (Serial2.available()) {
-    char c = Serial2.read();          // Single byte
-    int val = Serial2.parseInt();     // Parse integer
-    float f = Serial2.parseFloat();   // Parse float
-    String s = Serial2.readString();  // Read until timeout
-    String line = Serial2.readStringUntil('\n');  // Read line
+// Kirim formatted string
+char buf[64];
+int len = snprintf(buf, sizeof(buf), "Value: %d\n", x);
+uart_write_bytes(UART_PORT, buf, len);
+
+// Kirim raw byte
+uint8_t byte = 0x55;
+uart_write_bytes(UART_PORT, (const char *)&byte, 1);
+
+// Kirim buffer
+uart_write_bytes(UART_PORT, (const char *)buffer, length);
+
+// === Receive ===
+uint8_t data[128];
+// Blocking read dengan timeout (100ms = 100 / portTICK_PERIOD_MS)
+int rxBytes = uart_read_bytes(UART_PORT, data, sizeof(data),
+                              100 / portTICK_PERIOD_MS);
+if (rxBytes > 0) {
+    data[rxBytes] = '\0';  // Null-terminate jika string
+    ESP_LOGI(TAG, "Received %d bytes: %s", rxBytes, data);
 }
 
-// Buffer management
-Serial2.flush();      // Wait until TX complete
-Serial2.available();  // Bytes available in RX buffer
-Serial2.peek();       // Read next byte without removing
+// === Buffer management ===
+size_t buffered;
+uart_get_buffered_data_len(UART_PORT, &buffered);  // Bytes in RX buffer
+uart_wait_tx_done(UART_PORT, 100 / portTICK_PERIOD_MS);  // Wait TX complete
+uart_flush(UART_PORT);  // Flush RX buffer
 ```
 
-#### 4.4 Hardware Serial dengan Custom Pins
+#### 4.4 UART Event-Driven dengan ESP-IDF
 
-```cpp
-#include <HardwareSerial.h>
+```c
+#include "driver/uart.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
-HardwareSerial MySerial(2);  // UART2
+#define UART_PORT   UART_NUM_2
+#define BUF_SIZE    256
 
-void setup() {
-    // Custom pins: RX=GPIO16, TX=GPIO17
-    MySerial.begin(9600, SERIAL_8N1, 16, 17);
+static QueueHandle_t uart_queue;
+
+void uart_event_init(void) {
+    const uart_config_t uart_config = {
+        .baud_rate = 9600,
+        .data_bits = UART_DATA_8_BITS,
+        .parity    = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+    uart_driver_install(UART_PORT, BUF_SIZE * 2, BUF_SIZE * 2, 20, &uart_queue, 0);
+    uart_param_config(UART_PORT, &uart_config);
+    uart_set_pin(UART_PORT, GPIO_NUM_17, GPIO_NUM_16,
+                 UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 }
 
-void loop() {
-    if (MySerial.available()) {
-        char data = MySerial.read();
-        Serial.printf("Received: %c\n", data);
+static void uart_event_task(void *pvParameters) {
+    uart_event_t event;
+    uint8_t data[BUF_SIZE];
+
+    for (;;) {
+        if (xQueueReceive(uart_queue, &event, portMAX_DELAY)) {
+            switch (event.type) {
+            case UART_DATA:
+                int len = uart_read_bytes(UART_PORT, data, event.size,
+                                          100 / portTICK_PERIOD_MS);
+                if (len > 0) {
+                    data[len] = '\0';
+                    ESP_LOGI(TAG, "Received: %s", (char *)data);
+                }
+                break;
+            case UART_FIFO_OVF:
+                ESP_LOGW(TAG, "FIFO overflow");
+                uart_flush_input(UART_PORT);
+                break;
+            case UART_BUFFER_FULL:
+                ESP_LOGW(TAG, "Buffer full");
+                uart_flush_input(UART_PORT);
+                break;
+            default:
+                break;
+            }
+        }
     }
 }
 ```
@@ -415,36 +467,38 @@ $DATA,25.5,60*C3\r\n → Send temperature and humidity
 ```
 
 **Implementation:**
-```cpp
-// STM32 (Sender)
-void sendCommand(const char* cmd) {
+```c
+// STM32 (Sender) - using HAL
+void sendCommand(UART_HandleTypeDef *huart, const char *cmd) {
     char buffer[64];
     uint8_t checksum = calculateChecksum(cmd);
-    sprintf(buffer, "$%s*%02X\r\n", cmd, checksum);
-    Serial1.print(buffer);
+    int len = snprintf(buffer, sizeof(buffer), "$%s*%02X\r\n", cmd, checksum);
+    HAL_UART_Transmit(huart, (uint8_t *)buffer, len, HAL_MAX_DELAY);
 }
 
-// ESP32 (Receiver)
-String readCommand() {
-    if (Serial2.available()) {
-        String cmd = Serial2.readStringUntil('\n');
-        
-        // Validate format
-        if (cmd.startsWith("$") && cmd.indexOf('*') > 0) {
-            // Extract and verify checksum
-            int starPos = cmd.indexOf('*');
-            String data = cmd.substring(1, starPos);
-            String checksumStr = cmd.substring(starPos + 1);
-            
-            uint8_t receivedChecksum = strtol(checksumStr.c_str(), NULL, 16);
-            uint8_t calculatedChecksum = calculateChecksum(data.c_str());
-            
-            if (receivedChecksum == calculatedChecksum) {
-                return data;  // Valid command
-            }
-        }
-    }
-    return "";  // Invalid or no data
+// ESP32 (Receiver) - using ESP-IDF
+int readCommand(char *out, size_t maxLen) {
+    uint8_t data[128];
+    int len = uart_read_bytes(UART_NUM_2, data, sizeof(data),
+                              100 / portTICK_PERIOD_MS);
+    if (len <= 0) return 0;
+    data[len] = '\0';
+
+    char *start = strchr((char *)data, '$');
+    char *star  = strchr((char *)data, '*');
+    if (!start || !star || star <= start) return 0;
+
+    // Extract payload between '$' and '*'
+    size_t payloadLen = star - start - 1;
+    memcpy(out, start + 1, payloadLen);
+    out[payloadLen] = '\0';
+
+    // Verify checksum
+    uint8_t rxChecksum = (uint8_t)strtol(star + 1, NULL, 16);
+    uint8_t calcChecksum = calculateChecksum(out);
+    if (rxChecksum != calcChecksum) return -1;  // Checksum error
+
+    return (int)payloadLen;  // Valid command
 }
 ```
 
@@ -520,30 +574,30 @@ void USART_DMA_Send(const uint8_t* data, uint16_t length) {
 
 #### 6.3 Error Detection dan Handling
 
-```cpp
-// UART Error Flags STM32
-void checkUARTErrors(void) {
-    uint32_t sr = USART1->SR;
+```c
+// UART Error Flags STM32 (HAL-based)
+void checkUARTErrors(UART_HandleTypeDef *huart) {
+    uint32_t sr = huart->Instance->SR;
     
     if (sr & USART_SR_ORE) {
         // Overrun Error - data lost
-        Serial.println("Overrun!");
-        volatile uint32_t dummy = USART1->DR;  // Clear
+        printf("Overrun!\n");
+        volatile uint32_t dummy = huart->Instance->DR;  // Clear
     }
     
     if (sr & USART_SR_FE) {
         // Framing Error - wrong stop bit
-        Serial.println("Frame Error!");
+        printf("Frame Error!\n");
     }
     
     if (sr & USART_SR_NE) {
         // Noise Error - noise detected
-        Serial.println("Noise Error!");
+        printf("Noise Error!\n");
     }
     
     if (sr & USART_SR_PE) {
         // Parity Error - parity mismatch
-        Serial.println("Parity Error!");
+        printf("Parity Error!\n");
     }
 }
 
@@ -599,12 +653,12 @@ uint8_t calculateChecksum(const char* data) {
 
 #### 8.2 Common Mistakes
 
-```cpp
+```c
 // ❌ SALAH: Blocking di ISR
 void USART1_IRQHandler(void) {
     char c = USART1->DR;
-    Serial.println(c);  // BLOCKING!
-    delay(10);          // BLOCKING!
+    printf("%c", c);       // BLOCKING!
+    HAL_Delay(10);         // BLOCKING!
 }
 
 // ✓ BENAR: Non-blocking ISR
@@ -616,7 +670,8 @@ void USART1_IRQHandler(void) {
     dataReady = true;  // Set flag only
 }
 
-void loop() {
+// Dalam main loop
+while (1) {
     if (dataReady) {
         dataReady = false;
         processChar(receivedChar);  // Process in main
@@ -624,13 +679,11 @@ void loop() {
 }
 ```
 
-```cpp
-// ❌ SALAH: String comparison di ISR
+```c
+// ❌ SALAH: Dynamic allocation di ISR
 void USART1_IRQHandler(void) {
-    String cmd = readCommand();  // Dynamic memory!
-    if (cmd == "LED_ON") {       // String comparison!
-        digitalWrite(LED, HIGH);
-    }
+    char *cmd = malloc(64);  // Dynamic memory!
+    // ... string operations in ISR
 }
 
 // ✓ BENAR: Use buffer dan process later
@@ -676,22 +729,29 @@ void USART1_IRQHandler(void) {
 
 #### 9.1 Serial Command Parser
 
-```cpp
+```c
 // Struktur command parser
 typedef struct {
-    const char* command;
-    void (*handler)(char* params);
+    const char *command;
+    void (*handler)(char *params);
 } CommandEntry;
 
-void cmdLED(char* params) {
-    if (strcmp(params, "ON") == 0) digitalWrite(LED, HIGH);
-    else digitalWrite(LED, LOW);
+void cmdLED(char *params) {
+    if (strcmp(params, "ON") == 0)
+        HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+    else
+        HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 }
 
-void cmdADC(char* params) {
+void cmdADC(char *params) {
     int pin = atoi(params);
-    int value = analogRead(pin);
-    Serial.printf("ADC%d=%d\n", pin, value);
+    // Start ADC conversion and read value
+    HAL_ADC_Start(&hadc1);
+    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+    uint32_t value = HAL_ADC_GetValue(&hadc1);
+    char buf[32];
+    int len = snprintf(buf, sizeof(buf), "ADC%d=%lu\n", pin, value);
+    HAL_UART_Transmit(&huart2, (uint8_t *)buf, len, HAL_MAX_DELAY);
 }
 
 CommandEntry commands[] = {
@@ -700,9 +760,9 @@ CommandEntry commands[] = {
     {NULL, NULL}
 };
 
-void processCommand(char* input) {
-    char* cmd = strtok(input, " ");
-    char* params = strtok(NULL, "");
+void processCommand(char *input) {
+    char *cmd = strtok(input, " ");
+    char *params = strtok(NULL, "");
     
     for (int i = 0; commands[i].command != NULL; i++) {
         if (strcmp(cmd, commands[i].command) == 0) {
@@ -710,13 +770,14 @@ void processCommand(char* input) {
             return;
         }
     }
-    Serial.println("Unknown command");
+    const char *msg = "Unknown command\n";
+    HAL_UART_Transmit(&huart2, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
 }
 ```
 
 #### 9.2 Data Logging Protocol
 
-```cpp
+```c
 // Structured data packet
 typedef struct __attribute__((packed)) {
     uint8_t header;      // 0xAA
@@ -726,7 +787,8 @@ typedef struct __attribute__((packed)) {
     uint16_t crc;        // CRC-16
 } DataPacket;
 
-void sendPacket(uint8_t type, uint8_t* data, uint16_t len) {
+// ESP-IDF: send packet via UART
+void sendPacket(uint8_t type, uint8_t *data, uint16_t len) {
     DataPacket pkt;
     pkt.header = 0xAA;
     pkt.type = type;
@@ -734,7 +796,20 @@ void sendPacket(uint8_t type, uint8_t* data, uint16_t len) {
     memcpy(pkt.data, data, len);
     pkt.crc = calculateCRC16(&pkt, sizeof(pkt) - 2);
     
-    Serial.write((uint8_t*)&pkt, sizeof(pkt));
+    uart_write_bytes(UART_NUM_2, (const char *)&pkt, sizeof(pkt));
+}
+
+// STM32 HAL: send packet via UART
+void sendPacket_HAL(UART_HandleTypeDef *huart, uint8_t type,
+                    uint8_t *data, uint16_t len) {
+    DataPacket pkt;
+    pkt.header = 0xAA;
+    pkt.type = type;
+    pkt.length = len;
+    memcpy(pkt.data, data, len);
+    pkt.crc = calculateCRC16(&pkt, sizeof(pkt) - 2);
+    
+    HAL_UART_Transmit(huart, (uint8_t *)&pkt, sizeof(pkt), HAL_MAX_DELAY);
 }
 ```
 

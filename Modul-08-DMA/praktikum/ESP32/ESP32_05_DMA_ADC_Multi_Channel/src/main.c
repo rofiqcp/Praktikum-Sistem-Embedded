@@ -44,7 +44,7 @@ static const int channel_ids[NUM_ADC_CHANNELS] = {
     ADC_CH0, ADC_CH1, ADC_CH2
 };
 
-static const int channel_gpios[NUM_ADC_CHANNELS] = {
+static const int channel_gpios[NUM_ADC_CHANNELS] __attribute__((unused)) = {
     ADC_CH0_GPIO, ADC_CH1_GPIO, ADC_CH2_GPIO
 };
 

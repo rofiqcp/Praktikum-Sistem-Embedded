@@ -433,35 +433,36 @@ Table common baud rates dengan BRR values
 
 ---
 
-### Slide 15: STM32 UART dengan Arduino
+### Slide 15: STM32 UART dengan STM32Cube HAL
 **Prompt:**
 ```
-Buat slide implementasi UART STM32 dengan Arduino framework.
+Buat slide implementasi UART STM32 dengan STM32Cube HAL framework.
 
-Judul: "UART STM32 dengan Arduino Framework"
+Judul: "UART STM32 dengan STM32Cube HAL"
 
-Inisialisasi:
+Inisialisasi (di main.c setelah MX_USARTx_UART_Init):
 ┌────────────────────────────────────────────────────┐
-│ void setup() {                                     │
-│     // USART1 untuk debug (PA9-TX, PA10-RX)        │
-│     Serial.begin(115200);                          │
+│ // USART2 untuk komunikasi (PA2-TX, PA3-RX)        │
+│ extern UART_HandleTypeDef huart2;                   │
 │                                                    │
-│     // USART2 untuk komunikasi (PA2-TX, PA3-RX)   │
-│     Serial2.begin(9600);                           │
+│ // Transmit blocking                               │
+│ char msg[] = "Hello STM32\r\n";                     │
+│ HAL_UART_Transmit(&huart2, (uint8_t*)msg,           │
+│                   strlen(msg), HAL_MAX_DELAY);      │
 │                                                    │
-│     // USART3 (PB10-TX, PB11-RX)                   │
-│     Serial3.begin(38400);                          │
-│ }                                                  │
+│ // Receive interrupt                                │
+│ uint8_t rxByte;                                     │
+│ HAL_UART_Receive_IT(&huart2, &rxByte, 1);           │
 └────────────────────────────────────────────────────┘
 
-Fungsi dasar:
-• Serial.print("text")   - Kirim string
-• Serial.println(value)  - Kirim dengan newline
-• Serial.available()     - Cek data tersedia
-• Serial.read()          - Baca 1 byte
-• Serial.write(byte)     - Kirim 1 byte
+Fungsi HAL UART:
+• HAL_UART_Transmit()      - Kirim data (blocking)
+• HAL_UART_Receive()       - Terima data (blocking)
+• HAL_UART_Transmit_IT()   - Kirim via interrupt
+• HAL_UART_Receive_IT()    - Terima via interrupt
+• HAL_UART_RxCpltCallback() - Callback saat RX selesai
 
-Notes: STM32duino menggunakan object Serial untuk USART
+Notes: STM32CubeMX generates UART init code, HAL menyediakan API high-level
 ```
 
 ---
@@ -499,38 +500,39 @@ Blok diagram ESP32 UART dengan GPIO matrix
 
 ---
 
-### Slide 17: ESP32 UART dengan Arduino
+### Slide 17: ESP32 UART dengan ESP-IDF
 **Prompt:**
 ```
-Buat slide implementasi UART ESP32 dengan Arduino.
+Buat slide implementasi UART ESP32 dengan ESP-IDF framework.
 
-Judul: "UART ESP32 dengan Arduino Framework"
+Judul: "UART ESP32 dengan ESP-IDF Framework"
 
 Inisialisasi:
 ┌────────────────────────────────────────────────────┐
-│ void setup() {                                     │
-│     // UART0 - USB debug                           │
-│     Serial.begin(115200);                          │
+│ #include "driver/uart.h"                            │
 │                                                    │
-│     // UART2 - Default pins (16, 17)               │
-│     Serial2.begin(9600);                           │
+│ const uart_config_t uart_cfg = {                    │
+│     .baud_rate = 115200,                            │
+│     .data_bits = UART_DATA_8_BITS,                  │
+│     .parity    = UART_PARITY_DISABLE,               │
+│     .stop_bits = UART_STOP_BITS_1,                  │
+│     .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,          │
+│ };                                                  │
 │                                                    │
-│     // UART1 - Custom pins (remapped!)             │
-│     Serial1.begin(38400, SERIAL_8N1, 25, 26);      │
-│     //                    RX_PIN  TX_PIN           │
-│ }                                                  │
+│ uart_driver_install(UART_NUM_2, 256, 256, 0,        │
+│                     NULL, 0);                       │
+│ uart_param_config(UART_NUM_2, &uart_cfg);           │
+│ uart_set_pin(UART_NUM_2, 17, 16, -1, -1);           │
 └────────────────────────────────────────────────────┘
 
-Signature lengkap:
-SerialX.begin(baud, config, rxPin, txPin);
+Fungsi utama ESP-IDF UART:
+• uart_driver_install()     - Install UART driver
+• uart_param_config()       - Set baud, parity, etc.
+• uart_set_pin()            - Map TX/RX ke GPIO
+• uart_write_bytes()        - Kirim data
+• uart_read_bytes()         - Baca data (blocking + timeout)
 
-Configurations:
-• SERIAL_8N1 (default)
-• SERIAL_8E1 (even parity)
-• SERIAL_8O1 (odd parity)
-• SERIAL_7N1, SERIAL_7E1, etc.
-
-Pin remapping advantage: Flexible hardware design!
+ Pin remapping: uart_set_pin() allows flexible GPIO assignment!
 ```
 
 ---
@@ -712,18 +714,17 @@ Judul: "Interrupt-Driven UART Communication"
 Polling vs Interrupt:
 
 POLLING (blocking):
-while (!Serial.available()) {
+while (!(USART1->SR & USART_SR_RXNE)) {
     // Menunggu, CPU sibuk
 }
-data = Serial.read();
+data = USART1->DR;
 → Membuang CPU cycles
 
 INTERRUPT (non-blocking):
-void serialEvent() {
-    while (Serial.available()) {
-        data = Serial.read();
-        buffer[index++] = data;
-    }
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    // Dipanggil otomatis saat byte diterima
+    buffer[index++] = rxByte;
+    HAL_UART_Receive_IT(huart, &rxByte, 1);  // Re-arm
 }
 → CPU bebas untuk tugas lain
 
@@ -790,7 +791,7 @@ Judul: "Debugging UART Communication"
 
 Tools untuk Debugging:
 
-1. Serial Monitor (Arduino IDE / PlatformIO)
+1. Serial Monitor (PlatformIO / ESP-IDF Monitor)
    - View incoming/outgoing data
    - Set baud rate
    - Line ending options

@@ -1,57 +1,76 @@
-# Prompt untuk Slide Presentasi Teori (Minggu 2)
-## Topik: Application Protocols (HTTP & MQTT)
+# Prompts untuk Pembuatan PPT — Modul 13 (Bagian 2: Praktikum)
 
-Buatkan outline slide presentasi tentang protokol aplikasi IoT.
+## Slide 1: Judul
+**MODUL 13: Network & IoT — Panduan Praktikum**
 
-### Slide 1: Judul
-- **Judul**: IoT Application Protocols
-- **Subjudul**: Memahami HTTP, MQTT, dan REST API
-- **Visual**: Logo HTTP dan MQTT berdampingan.
+## Slide 2: Daftar Percobaan
+- 12 percobaan ESP32 (native WiFi/BLE)
+- 12 percobaan STM32 (via modul external)
+- Total: 24 percobaan + 3 project
 
-### Slide 2: HTTP (HyperText Transfer Protocol)
-- **Poin Utama**:
-  - Protokol dasar Web.
-  - Model: Request (Client) - Response (Server).
-  - Stateless (Tidak menyimpan state koneksi).
-- **Visual**: Diagram panah Request/Response antara Client dan Server.
+## Slide 3-4: Percobaan 1-3 ESP32 WiFi
+- WiFi Scan: screenshot serial output, tabel AP
+- WiFi Station: diagram koneksi, event handler flow
+- WiFi AP: smartphone connect ke ESP32
 
-### Slide 3: HTTP Methods & Status Codes
-- **Poin Utama**:
-  - **GET**: Meminta data.
-  - **POST**: Mengirim data.
-  - **PUT/DELETE**: Update/Hapus data.
-  - **Status Code**: 200 OK, 404 Not Found, 500 Server Error.
-- **Visual**: Tabel method dan contoh penggunaannya.
+## Slide 5-6: Percobaan 4-5 TCP/UDP
+- TCP echo server: diagram client-server
+- UDP broadcast: diagram komunikasi
+- Demo: terminal netcat
 
-### Slide 4: Mengenal MQTT (Message Queuing Telemetry Transport)
-- **Poin Utama**:
-  - Didesain khusus untuk IoT (Machine-to-Machine).
-  - Sangat ringan (header kecil, hemat data).
-  - Model: **Publish-Subscribe**.
-- **Visual**: Ilustrasi Publisher, Broker, dan Subscriber.
+## Slide 7-8: Percobaan 6-7 HTTP
+- HTTP Server: screenshot dashboard HTML
+- HTTP Client: GET request flow
+- Code walkthrough: handler registration
 
-### Slide 5: Arsitektur Pub-Sub
-- **Poin Utama**:
-  - Tidak ada koneksi langsung antara pengirim dan penerima.
-  - **Broker**: Perantara (Post Office).
-  - **Topic**: Alamat pengiriman (e.g., "polinema/lab1/suhu").
-- **Analogi**: Sama seperti subscribe channel YouTube atau Follow IG (dapat update otomatis).
+## Slide 9-10: Percobaan 8 MQTT
+- MQTT architecture diagram
+- Screenshot MQTT Explorer
+- Topic hierarchy example
+- QoS comparison
 
-### Slide 6: HTTP vs MQTT
-- **Poin Utama**:
-  - **HTTP**: Berat, overhead besar, satu arah (client pull). Cocok untuk kirim file gambar/dokumen.
-  - **MQTT**: Ringan, real-time, dua arah (push). Cocok untuk data sensor serial & kontrol.
-- **Visual**: Grafik perbandingan Overhead data & Latency.
+## Slide 11-12: Percobaan 9-10 BLE
+- BLE advertising: screenshot nRF Connect
+- GATT server: service/characteristic diagram
+- Read/Write/Notify demo
 
-### Slide 7: Data Serialization (JSON)
-- **Poin Utama**:
-  - Bagaimana data dikemas agar bisa dibaca di berbagai bahasa pemrograman (C++, Python, JS).
-  - Struktur Key-Value Pair.
-  - Library: ArduinoJson.
-- **Visual**: Contoh snippet JSON data sensor.
+## Slide 13: Percobaan 11 WebSocket
+- Real-time dashboard demo
+- WebSocket vs HTTP polling comparison
 
-### Slide 8: Kesimpulan & Tips Project
-- **Poin Utama**:
-  - Gunakan HTTP untuk konfigurasi awal / update firmware (OTA).
-  - Gunakan MQTT untuk telemetri data real-time & kontrol.
-  - Pastikan menggunakan QoS yang tepat.
+## Slide 14: Percobaan 12 IoT Dashboard
+- Full system diagram
+- Screenshot dashboard
+- MQTT data flow
+
+## Slide 15-16: STM32 + ESP-01
+- Wiring diagram ESP-01 ke STM32
+- AT command sequence
+- WiFi connect → TCP → HTTP → MQTT
+
+## Slide 17-18: STM32 + W5500
+- Wiring diagram W5500 SPI
+- Ethernet init → TCP server → HTTP server
+- SPI register access
+
+## Slide 19: STM32 + HM-10 BLE
+- Wiring diagram HM-10
+- AT commands untuk BLE
+
+## Slide 20: Python Debug Scripts
+- Cara menjalankan debug_analysis.py
+- Contoh visualisasi matplotlib
+- Demo real-time monitoring
+
+## Slide 21: Project Ideas
+- Smart Home Controller
+- BLE Sensor Network
+- Industrial IoT Gateway
+
+## Slide 22: Tips & Best Practices
+- Gunakan event-driven programming
+- Handle error dan timeout
+- Test dengan Python scripts dulu
+- Keamanan: WPA2, TLS
+
+## Slide 23: Tugas & Deadline

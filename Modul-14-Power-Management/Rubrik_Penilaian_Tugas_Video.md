@@ -1,159 +1,132 @@
-# Rubrik Penilaian Tugas Video Modul 14: Power Management & Low-Power Design
+# Rubrik Penilaian Tugas Video — Modul 14: Power Management
 
 ## Informasi Umum
 
 | Item | Keterangan |
-|------|------------|
-| **Modul** | 14 - Power Management & Low-Power Design |
-| **Format** | Video MP4, 720p minimum |
-| **Durasi** | 5 - 10 menit |
-| **Total Nilai** | 100 poin |
+|------|-----------|
+| **Modul** | 14 — Power Management |
+| **Platform** | STM32 (HAL) & ESP32 (ESP-IDF / Arduino) |
+| **Tipe Penilaian** | Tugas Video Individu |
+| **Durasi Video** | 5–8 menit |
+| **Format** | MP4 (resolusi minimal 720p) |
+| **Total Bobot** | 100% |
 
 ---
 
-## A. Konten Teknis (40 poin)
+## Ringkasan Komponen Penilaian
 
-### A1. Penjelasan Konsep (15 poin)
-
-| Kriteria | Bobot | 0 | 1-5 | 6-10 | 11-13 | 14-15 |
-|----------|-------|---|-----|------|-------|-------|
-| Penjelasan sleep modes (deep sleep, stop, standby) | 5 | Tidak ada | Menyebut saja | Penjelasan dasar | Perbandingan mode | Detail + kapan pakai |
-| Penjelasan wake-up sources | 5 | Tidak ada | 1 source | 2-3 source | Semua source | + timing analysis |
-| Penjelasan power optimization strategy | 5 | Tidak ada | Konsep dasar | Duty cycling | Adaptive | + kalkulasi |
-
-### A2. Demonstrasi Praktikum (15 poin)
-
-| Kriteria | Bobot | 0 | 1-5 | 6-10 | 11-13 | 14-15 |
-|----------|-------|---|-----|------|-------|-------|
-| Demo deep sleep + wake-up bekerja | 5 | Tidak ada | Screenshot saja | Video tapi error | Berjalan baik | + penjelasan output |
-| Demo adaptive duty cycling | 5 | Tidak ada | Tidak jalan | Partial | Berjalan | + variasi baterai |
-| Demo battery monitoring | 5 | Tidak ada | Tidak jalan | ADC raw | Voltage + % | + visual bar |
-
-### A3. Code Walkthrough (10 poin)
-
-| Kriteria | Bobot | 0 | 1-3 | 4-6 | 7-8 | 9-10 |
-|----------|-------|---|-----|------|-----|------|
-| Penjelasan kode ESP-IDF / STM32Cube HAL | 5 | Tidak ada | Baca kode saja | Jelaskan fungsi utama | Detail per blok | + best practice |
-| Penjelasan konfigurasi & build (platformio.ini, framework) | 5 | Tidak ada | Sekilas | Konfigurasi dasar | Detail | + troubleshooting |
+| No | Komponen | Bobot |
+|----|----------|-------|
+| 1 | Konten Teknis | 30% |
+| 2 | Demonstrasi Praktis | 25% |
+| 3 | Analisis Data | 20% |
+| 4 | Kualitas Video | 15% |
+| 5 | Pemahaman Konsep | 10% |
+| | **Total** | **100%** |
 
 ---
 
-## B. Kualitas Presentasi (30 poin)
+## 1. Konten Teknis (30%)
 
-### B1. Struktur & Alur (10 poin)
-
-| Kriteria | Bobot | 0 | 1-3 | 4-6 | 7-8 | 9-10 |
-|----------|-------|---|-----|------|-----|------|
-| Opening (intro topik, tujuan) | 3 | Tidak ada | Terlalu singkat | Standar | Menarik | Hook + context |
-| Body (alur logis, transisi smooth) | 4 | Acak | Loncat-loncat | Linear | Logis | Narrative flow |
-| Closing (kesimpulan, key takeaway) | 3 | Tidak ada | Tiba-tiba selesai | Summary singkat | Recap + insight | + next steps |
-
-### B2. Kemampuan Komunikasi (10 poin)
-
-| Kriteria | Bobot | 0 | 1-3 | 4-6 | 7-8 | 9-10 |
-|----------|-------|---|-----|------|-----|------|
-| Kejelasan penjelasan | 5 | Tidak jelas | Membingungkan | Cukup jelas | Jelas | Sangat jelas |
-| Penggunaan istilah teknis yang tepat | 5 | Banyak salah | Sering salah | Kadang salah | Mayoritas benar | Akurat + natural |
-
-### B3. Visual Aids (10 poin)
-
-| Kriteria | Bobot | 0 | 1-3 | 4-6 | 7-8 | 9-10 |
-|----------|-------|---|-----|------|-----|------|
-| Diagram / ilustrasi pendukung | 5 | Tidak ada | Minimal | Standar | Informatif | Custom + animasi |
-| Tampilan kode yang readable | 5 | Tidak terlihat | Terlalu kecil | Cukup | Jelas + highlight | + zoom ke bagian penting |
+| Kriteria | Sangat Baik (90–100) | Baik (75–89) | Cukup (60–74) | Kurang (<60) |
+|----------|----------------------|--------------|----------------|--------------|
+| **Akurasi Penjelasan** | Penjelasan konsep power management (sleep modes, wakeup sources, clock gating, voltage scaling) 100% akurat dan sesuai dengan datasheet/referensi resmi; tidak ada kesalahan fakta | Penjelasan sebagian besar akurat (>85%); ada minor inakurasi yang tidak signifikan | Penjelasan cukup akurat (>70%); terdapat beberapa kesalahan fakta yang perlu dikoreksi | Penjelasan banyak kesalahan; konsep dasar salah atau membingungkan |
+| **Terminologi** | Menggunakan terminologi teknis yang benar dan konsisten: deep sleep, light sleep, standby, stop mode, wakeup source, RTC, backup domain, power domain, current consumption, duty cycle | Terminologi sebagian besar benar; sesekali menggunakan istilah kurang tepat namun masih dapat dipahami | Terminologi dasar benar namun sering menggunakan istilah umum/non-teknis; inkonsisten | Terminologi salah atau tidak menggunakan istilah teknis sama sekali |
+| **Kelengkapan Materi** | Mencakup semua topik utama: mode sleep (light/deep/hibernation), wakeup source (timer, GPIO, touch), data retention (RTC memory, backup register), power budget, battery management | Mencakup ≥4 topik utama dengan penjelasan yang memadai | Mencakup 2–3 topik utama; beberapa topik hanya disinggung sekilas | Hanya mencakup 1 topik atau penjelasan sangat dangkal |
+| **Perbandingan ESP32 vs STM32** | Menjelaskan perbedaan arsitektur power management kedua platform secara detail: power domain, available modes, typical current consumption, wakeup capability; tabel perbandingan disajikan | Menjelaskan perbedaan utama kedua platform; beberapa aspek dibandingkan dengan cukup detail | Menyebutkan perbedaan secara umum tanpa detail teknis yang memadai | Tidak ada perbandingan antar platform |
 
 ---
 
-## C. Kualitas Produksi (20 poin)
+## 2. Demonstrasi Praktis (25%)
 
-### C1. Audio Quality (7 poin)
-
-| Kriteria | Bobot | 0-1 | 2-3 | 4-5 | 6-7 |
-|----------|-------|-----|-----|-----|-----|
-| Kejelasan suara, minim noise | 7 | Tidak terdengar | Banyak noise | Cukup jelas | Jernih |
-
-### C2. Video Quality (7 poin)
-
-| Kriteria | Bobot | 0-1 | 2-3 | 4-5 | 6-7 |
-|----------|-------|-----|-----|-----|-----|
-| Resolusi, framing, pencahayaan | 7 | Blur/gelap | Kurang baik | Cukup | Profesional |
-
-### C3. Editing (6 poin)
-
-| Kriteria | Bobot | 0-1 | 2-3 | 4-5 | 6 |
-|----------|-------|-----|-----|-----|---|
-| Transisi, pacing, efisiensi waktu | 6 | Raw footage | Minimal edit | Rapi | Polished |
+| Kriteria | Sangat Baik (90–100) | Baik (75–89) | Cukup (60–74) | Kurang (<60) |
+|----------|----------------------|--------------|----------------|--------------|
+| **Demo Sleep Modes** | Mendemonstrasikan ≥3 sleep mode secara langsung (light sleep, deep sleep, standby/hibernation) pada hardware asli; transisi antar mode terlihat jelas di serial monitor; LED indikator menunjukkan state | Mendemonstrasikan 2 sleep mode secara langsung dengan hasil yang jelas terlihat | Mendemonstrasikan 1 sleep mode; hasil kurang jelas terlihat di video | Tidak ada demo sleep mode atau hanya simulasi tanpa hardware |
+| **Pengukuran Arus** | Menunjukkan pengukuran arus real-time menggunakan multimeter/INA219/power profiler di setiap mode; nilai terukur ditampilkan dan dibandingkan dengan datasheet; setup pengukuran dijelaskan | Pengukuran arus ditunjukkan di ≥2 mode; nilai ditampilkan; setup cukup jelas | Pengukuran arus ditunjukkan di 1 mode; nilai ditampilkan namun tanpa perbandingan datasheet | Tidak ada pengukuran arus yang ditunjukkan |
+| **Wakeup Behavior** | Demo wakeup dari berbagai sumber (timer, button/GPIO, touch pad) pada hardware asli; waktu wakeup terukur; behavior setelah wakeup (reinisialisasi, data recovery) ditunjukkan dengan jelas | Demo wakeup dari ≥2 sumber; behavior setelah wakeup ditunjukkan | Demo wakeup dari 1 sumber; behavior setelah wakeup kurang jelas | Tidak ada demo wakeup atau demo gagal |
+| **Wiring & Setup** | Hardware setup ditunjukkan dengan jelas (close-up wiring, pin assignment); diagram skematik ditampilkan; komponen yang digunakan disebutkan dan dijelaskan fungsinya | Hardware setup ditunjukkan; pin assignment disebutkan; diagram skematik ada | Hardware terlihat namun wiring kurang jelas; tidak ada diagram skematik | Hardware setup tidak ditunjukkan |
 
 ---
 
-## D. Originalitas & Kreativitas (10 poin)
+## 3. Analisis Data (20%)
 
-| Kriteria | Bobot | 0-2 | 3-5 | 6-8 | 9-10 |
-|----------|-------|-----|-----|-----|------|
-| Pendekatan unik dalam presentasi | 5 | Copy-paste | Standar | Modifikasi | Original |
-| Nilai tambah (analogi, real-world example) | 5 | Tidak ada | Minimal | Beberapa | Banyak + relevan |
-
----
-
-## ⚠️ Penalti
-
-| Pelanggaran | Pengurangan |
-|-------------|-------------|
-| Durasi > 15 menit | -5 poin |
-| Durasi < 3 menit | -10 poin |
-| Plagiarisme (copy video orang lain) | -50% total |
-| Tidak ada live demo | -15 poin |
-| Terlambat submit | -10 poin per hari |
-| Format file salah (bukan MP4) | -5 poin |
+| Kriteria | Sangat Baik (90–100) | Baik (75–89) | Cukup (60–74) | Kurang (<60) |
+|----------|----------------------|--------------|----------------|--------------|
+| **Power Budget Calculation** | Perhitungan power budget lengkap ditampilkan: $I_{avg}$, duty cycle, estimasi battery life; formula ditunjukkan step-by-step; asumsi dijelaskan; hasil realistis dan divalidasi | Perhitungan power budget ada dengan formula yang benar; estimasi battery life dihitung; asumsi sebagian dijelaskan | Perhitungan power budget ada namun formula kurang lengkap; estimasi battery life ada tapi kurang akurat | Tidak ada perhitungan power budget |
+| **Visualisasi Matplotlib** | Menampilkan ≥3 plot matplotlib yang informatif: current profile vs time, power mode distribution (pie/bar chart), battery discharge curve; plot rapi dengan label, title, legend, grid | Menampilkan 2 plot matplotlib dengan label dan title yang memadai | Menampilkan 1 plot matplotlib sederhana; label/title kurang lengkap | Tidak ada visualisasi matplotlib |
+| **Perbandingan Data ESP32 vs STM32** | Data pengukuran kedua platform disajikan dalam tabel/grafik perbandingan; analisis perbedaan konsumsi daya per mode; rekomendasi pemilihan platform berdasarkan use case | Data perbandingan kedua platform ada dalam bentuk tabel; analisis singkat perbedaan | Menyebutkan angka konsumsi daya kedua platform tanpa tabel/grafik perbandingan | Tidak ada perbandingan data antar platform |
+| **Interpretasi Hasil** | Interpretasi data mendalam: menjelaskan mengapa arus berbeda antar mode, faktor yang mempengaruhi (peripheral aktif, clock speed), korelasi dengan teori; insight untuk optimasi | Interpretasi data cukup baik; menjelaskan perbedaan antar mode; beberapa insight untuk optimasi | Interpretasi data dasar; mendeskripsikan hasil tanpa analisis mendalam | Tidak ada interpretasi; hanya menampilkan angka tanpa penjelasan |
 
 ---
 
-## 📊 Ringkasan Penilaian
+## 4. Kualitas Video (15%)
 
-| Komponen | Bobot | Nilai |
-|----------|-------|-------|
-| A. Konten Teknis | 40 | /40 |
-| B. Kualitas Presentasi | 30 | /30 |
-| C. Kualitas Produksi | 20 | /20 |
-| D. Originalitas & Kreativitas | 10 | /10 |
-| **Total** | **100** | **/100** |
-| Penalti | - | |
-| **Nilai Akhir** | | **/100** |
+| Kriteria | Sangat Baik (90–100) | Baik (75–89) | Cukup (60–74) | Kurang (<60) |
+|----------|----------------------|--------------|----------------|--------------|
+| **Kualitas Audio** | Audio jernih tanpa noise; volume konsisten; narasi mudah didengar dan dipahami; tidak ada echo/distorsi; menggunakan mikrofon yang memadai | Audio cukup jernih; volume stabil; narasi dapat didengar dengan baik; sedikit background noise | Audio dapat didengar namun ada noise yang cukup mengganggu; volume tidak konsisten | Audio sangat buruk; narasi sulit/tidak terdengar; noise dominan |
+| **Kualitas Video** | Resolusi ≥1080p; frame rate stabil; pencahayaan baik; teks/kode di layar terbaca jelas; close-up hardware cukup detail; komposisi visual rapi | Resolusi ≥720p; pencahayaan cukup; teks/kode sebagian besar terbaca; hardware terlihat jelas | Resolusi 720p; pencahayaan kurang optimal; teks/kode agak sulit dibaca; hardware kurang jelas | Resolusi <720p; pencahayaan buruk; teks/kode tidak terbaca; video blur/gelap |
+| **Editing & Struktur** | Video di-edit dengan baik; ada opening/closing; transisi antar segmen halus; screen recording kode/terminal jelas; timestamps/chapter markers untuk navigasi; tidak ada bagian yang tidak relevan | Video di-edit cukup baik; ada struktur pembukaan dan penutup; transisi antar segmen ada; screen recording cukup jelas | Video di-edit minimal; struktur kurang terorganisir; beberapa bagian terlalu panjang atau tidak relevan | Video tidak di-edit; tidak ada struktur; banyak bagian tidak relevan atau kosong |
+| **Durasi** | Durasi 5–8 menit; konten padat tanpa pengulangan; pacing tepat (tidak terlalu cepat/lambat); setiap menit memiliki konten bermakna | Durasi 5–8 menit; konten cukup padat; sedikit pengulangan; pacing cukup baik | Durasi di luar range (4–5 atau 8–10 menit); ada pengulangan/bagian kosong; pacing kurang tepat | Durasi <4 menit atau >10 menit; banyak pengulangan/bagian kosong; pacing buruk |
 
 ---
 
-## 📋 Konversi Nilai
+## 5. Pemahaman Konsep (10%)
 
-| Range | Grade | Keterangan |
-|-------|-------|------------|
-| 90 - 100 | A | Sangat Baik |
-| 80 - 89 | B+ | Baik Sekali |
-| 70 - 79 | B | Baik |
-| 60 - 69 | C+ | Cukup Baik |
-| 50 - 59 | C | Cukup |
-| < 50 | D/E | Kurang |
+| Kriteria | Sangat Baik (90–100) | Baik (75–89) | Cukup (60–74) | Kurang (<60) |
+|----------|----------------------|--------------|----------------|--------------|
+| **Penguasaan Materi** | Menjelaskan konsep power management tanpa membaca teks/catatan; dapat mengelaborasi di luar materi dasar; menghubungkan konsep dengan aplikasi nyata (IoT, wearable, remote sensor) | Menjelaskan konsep dengan baik; sesekali merujuk catatan; dapat memberikan contoh aplikasi | Menjelaskan konsep dasar; sering membaca catatan/slide; contoh aplikasi kurang relevan | Membaca seluruh penjelasan; tidak menguasai konsep yang disampaikan |
+| **Pemahaman Trade-off** | Menjelaskan trade-off power management dengan mendalam: latensi wakeup vs penghematan daya, data retention vs konsumsi arus, responsivitas vs battery life; keputusan desain dijelaskan dengan reasoning yang kuat | Memahami beberapa trade-off utama; dapat menjelaskan alasan pemilihan konfigurasi power mode | Menyebutkan trade-off secara umum tanpa analisis mendalam; alasan desain kurang kuat | Tidak memahami trade-off; tidak dapat menjelaskan alasan keputusan desain |
+| **Jawaban Pertanyaan** | Mampu menjawab pertanyaan mendalam (diajukan dosen/asisten atau self-posed) dengan benar dan elaboratif; menunjukkan pemahaman menyeluruh terhadap materi modul | Mampu menjawab pertanyaan dengan benar; penjelasan cukup detail | Menjawab pertanyaan dasar; penjelasan kurang detail atau sebagian kurang tepat | Tidak dapat menjawab pertanyaan atau jawaban salah |
 
 ---
 
-## ✅ Checklist Submission
+## Perhitungan Nilai Akhir
 
-- [ ] File MP4, resolusi minimal 720p
-- [ ] Durasi 5-10 menit
-- [ ] Ada penjelasan konsep power management
-- [ ] Ada live demo sleep mode + wake-up
-- [ ] Ada code walkthrough (ESP-IDF / STM32Cube HAL)
-- [ ] Ada kesimpulan / key takeaway
-- [ ] Nama & NIM disebutkan di video
+$$\text{Nilai Akhir} = \sum_{i=1}^{5} \left( \text{Skor Komponen}_i \times \text{Bobot}_i \right)$$
+
+### Contoh Perhitungan
+
+| Komponen | Skor | Bobot | Kontribusi |
+|----------|------|-------|------------|
+| Konten Teknis | 85 | 30% | 25.50 |
+| Demonstrasi Praktis | 80 | 25% | 20.00 |
+| Analisis Data | 78 | 20% | 15.60 |
+| Kualitas Video | 90 | 15% | 13.50 |
+| Pemahaman Konsep | 82 | 10% | 8.20 |
+| **Total** | | **100%** | **82.80** |
+
+### Kategori Nilai Akhir
+
+| Rentang Nilai | Huruf | Predikat |
+|---------------|-------|----------|
+| 90 – 100 | A | Sangat Baik |
+| 75 – 89 | B | Baik |
+| 60 – 74 | C | Cukup |
+| < 60 | D | Kurang |
 
 ---
 
-## ✍️ Feedback Penilai
+## Ketentuan Pengumpulan
 
-| Item | Isi |
-|------|-----|
-| Nama Mahasiswa | |
-| NIM | |
-| Tanggal Review | |
-| Kelebihan | |
-| Kekurangan | |
-| Saran Perbaikan | |
+1. **Format**: Video diunggah ke YouTube (Unlisted) atau Google Drive; link disubmit melalui LMS.
+2. **Deadline**: Sesuai jadwal yang ditentukan dosen pengampu.
+3. **Keterlambatan**: Pengurangan **10 poin per hari** keterlambatan (maksimal 3 hari).
+4. **Thumbnail**: Sertakan thumbnail yang menunjukkan judul modul dan nama mahasiswa.
+5. **Deskripsi Video**: Cantumkan nama, NIM, kelas, dan daftar timestamp konten video.
+6. **Plagiarisme**: Video yang terbukti menjiplak konten orang lain akan mendapat nilai **0**.
+7. **Source Code**: Sertakan link repository GitHub berisi source code yang didemonstrasikan dalam deskripsi video.
+
+---
+
+## Checklist Sebelum Pengumpulan
+
+- [ ] Video berdurasi 5–8 menit
+- [ ] Resolusi minimal 720p, audio jernih
+- [ ] Demo sleep mode pada hardware asli (ESP32 dan/atau STM32)
+- [ ] Pengukuran arus ditunjukkan dengan nilai terukur
+- [ ] Perhitungan power budget ditampilkan
+- [ ] Minimal 1 plot matplotlib ditampilkan
+- [ ] Perbandingan ESP32 vs STM32 dibahas
+- [ ] Trade-off power management dijelaskan
+- [ ] Link YouTube/Google Drive dapat diakses
+- [ ] Source code tersedia di GitHub

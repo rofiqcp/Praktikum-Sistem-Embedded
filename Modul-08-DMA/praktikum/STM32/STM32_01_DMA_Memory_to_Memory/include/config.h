@@ -1,32 +1,58 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-/* Program 07 Configuration */
+/* ============================================================
+ * STM32_01_DMA_Memory_to_Memory - Configuration
+ * DMA1 Channel 1 Memory-to-Memory Transfer
+ * Target: STM32F103C8T6 Blue Pill
+ * ============================================================ */
 
-/* Hardware */
-#define HSE_VALUE       8000000U
-#define SYSCLK_FREQ     72000000U
+/* System Clock */
+#define HSE_VALUE_HZ            8000000U
+#define SYSCLK_FREQ_HZ         72000000U
 
-/* UART */
-#define UART_BAUD       115200
-#define UART_TX_PIN     GPIO_PIN_9
-#define UART_RX_PIN     GPIO_PIN_10
+/* UART1 Debug */
+#define DEBUG_UART              USART1
+#define DEBUG_UART_BAUD         115200
+#define DEBUG_UART_TX_PIN       GPIO_PIN_9
+#define DEBUG_UART_RX_PIN       GPIO_PIN_10
+#define DEBUG_UART_PORT         GPIOA
 
-/* LED Pins (STM32) */
-#define LED_RED         GPIO_PIN_1
-#define LED_YEL         GPIO_PIN_2
-#define LED_GRN         GPIO_PIN_3
+/* LED (PC13 - active low on Blue Pill) */
+#define LED_PIN                 GPIO_PIN_13
+#define LED_PORT                GPIOC
+#define LED_ON()                HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_RESET)
+#define LED_OFF()               HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET)
+#define LED_TOGGLE()            HAL_GPIO_TogglePin(LED_PORT, LED_PIN)
 
-/* ESP32 Pins */
-#define LED_GPIO_RED    GPIO_NUM_2
-#define LED_GPIO_YEL    GPIO_NUM_4
-#define LED_GPIO_GRN    GPIO_NUM_5
+/* DMA Configuration */
+#define DMA_CHANNEL             DMA1_Channel1
+#define DMA_IRQn                DMA1_Channel1_IRQn
 
-/* FreeRTOS Stack Sizes */
-#define TASK_STACK_SIZE 512
-#define QUEUE_LENGTH    10
+/* Buffer Configuration */
+#define BUFFER_SIZE_WORDS       256
+#define BUFFER_SIZE_BYTES       (BUFFER_SIZE_WORDS * 4)
 
-/* Chip name */
-#define CHIP_NAME "ESP32"
+/* Test transfer sizes (in 32-bit words) */
+#define TEST_SIZE_1             16
+#define TEST_SIZE_2             32
+#define TEST_SIZE_3             64
+#define TEST_SIZE_4             128
+#define TEST_SIZE_5             256
+#define NUM_TEST_SIZES          5
 
-#endif // CONFIG_H
+/* DMA Transfer timeout (ms) */
+#define DMA_TIMEOUT_MS          1000
+
+/* Number of iterations for averaging */
+#define NUM_ITERATIONS          100
+
+/* DWT Cycle Counter */
+#define DWT_CTRL_REG            (*(volatile uint32_t *)0xE0001000)
+#define DWT_CYCCNT_REG          (*(volatile uint32_t *)0xE0001004)
+#define DWT_DEMCR_REG           (*(volatile uint32_t *)0xE000EDFC)
+
+/* Print interval */
+#define PRINT_INTERVAL_MS       3000
+
+#endif /* CONFIG_H */

@@ -1,567 +1,283 @@
-# Prompt untuk Pembuatan PPT - Bagian 1
-## Modul 06: I2C Bus dan Sensor Integration
+# 🎨 PPT Prompts Modul 06 — Bagian 1: Teori I2C Protocol (Slide 1-20)
 
-### Instruksi Umum untuk AI Image Generator
-- Style: Modern, professional, technical illustration
-- Color scheme: Blue (#0066CC), Green (#00AA55), White background
-- Resolution: 1920x1080 (16:9 aspect ratio)
-- Font style: Clean sans-serif (Roboto, Open Sans)
+## Petunjuk Penggunaan
+Gunakan prompt berikut untuk membuat slide presentasi di PowerPoint, Google Slides, atau Canva. Setiap prompt menghasilkan 1 slide.
 
 ---
 
-## SLIDE 1 - Judul Utama
-
-**Prompt:**
+## Slide 1: Cover
 ```
-Create a professional presentation title slide with:
-- Main title "I2C Bus dan Sensor Integration" in large bold blue text
-- Subtitle "Modul 06 - Praktikum Sistem Embedded" 
-- Background: Modern circuit board pattern with I2C data lines highlighted
-- Visual elements: BME280, OLED SSD1306, DS3231 RTC, EEPROM chip icons
-- Two microcontroller boards: STM32 Blue Pill and ESP32 DevKit
-- I2C bus connections shown as two parallel lines (SDA, SCL) connecting all devices
-- University/institution logo placeholder in corner
-- Clean, professional, educational style
+Buatkan slide cover presentasi dengan judul "Modul 06: Komunikasi I2C & Interfacing Sensor" 
+dengan subtitle "Praktikum Sistem Embedded". Gunakan gambar latar yang menunjukkan 
+PCB dengan chip sensor dan jalur I2C. Tambahkan logo universitas, nama dosen, 
+dan semester. Warna tema: biru navy dan putih.
 ```
 
----
-
-## SLIDE 2 - Capaian Pembelajaran
-
-**Prompt:**
+## Slide 2: Outline Materi
 ```
-Create an educational slide showing learning objectives with:
-- Title "Capaian Pembelajaran" at top
-- 7 numbered objectives with checkmark icons:
-  1. Memahami prinsip kerja protokol I2C
-  2. Mengidentifikasi sinyal SDA dan SCL
-  3. Mengkonfigurasi I2C sebagai Master
-  4. Membaca data dari sensor I2C (BME280, DS3231, OLED)
-  5. Mengakses EEPROM eksternal
-  6. Menangani multiple device pada I2C bus
-  7. Troubleshooting komunikasi I2C
-- Background: Soft gradient with subtle circuit patterns
-- Icons representing each objective (sensor, clock, display, memory)
+Buatkan slide outline dengan judul "Topik Pembahasan" berisi daftar:
+1. Pengantar Protokol I2C
+2. Arsitektur Bus I2C (SDA & SCL)
+3. Sinyal START, STOP, ACK, NACK
+4. Addressing 7-bit dan 10-bit
+5. Mode Transfer Data (Read/Write)
+6. Clock Stretching & Arbitrasi
+7. Pull-up Resistor & Desain Hardware
+8. I2C pada ESP32 (ESP-IDF)
+9. I2C pada STM32 (HAL)
+10. Sensor & Device I2C Populer
+Gunakan icon yang relevan untuk setiap topik. Layout dua kolom.
 ```
 
----
-
-## SLIDE 3 - Apa itu I2C?
-
-**Prompt:**
+## Slide 3: Sejarah & Pengantar I2C
 ```
-Create an infographic explaining I2C protocol:
-- Title "Inter-Integrated Circuit (I2C)"
-- Developed by Philips (NXP) in 1982
-- Key features in visual boxes:
-  • 2-wire communication (SDA + SCL)
-  • Multi-master, multi-slave capable
-  • 7-bit addressing (127 devices)
-  • Speed: up to 3.4 Mbps
-- Simple diagram showing two wires connecting multiple devices
-- Historical timeline element
-- Philips/NXP logo reference
+Buatkan slide dengan judul "Apa itu I2C?" dengan konten:
+- I2C = Inter-Integrated Circuit, dikembangkan oleh Philips (sekarang NXP) tahun 1982
+- Protokol serial synchronous half-duplex
+- Hanya membutuhkan 2 jalur: SDA (data) dan SCL (clock)
+- Multi-master, multi-slave pada satu bus
+- Kecepatan: Standard (100kHz), Fast (400kHz), Fast+ (1MHz), High-speed (3.4MHz)
+- Digunakan di hampir semua sensor, EEPROM, RTC, display OLED, ADC/DAC
+Tambahkan gambar logo I2C dan timeline perkembangan.
 ```
 
----
-
-## SLIDE 4 - I2C vs SPI vs UART
-
-**Prompt:**
+## Slide 4: Perbandingan Protokol Komunikasi
 ```
-Create a comparison table slide with:
-- Title "Perbandingan Protokol Serial"
-- Three columns: I2C, SPI, UART
-- Rows comparing:
-  • Number of wires (2, 4+, 2)
-  • Topology (Bus, Point-to-point, P2P)
-  • Max devices (127, unlimited, 1)
-  • Duplex (Half, Full, Full)
-  • Max speed (3.4M, 10M+, 1M)
-  • Complexity (Medium, Low, Low)
-- Visual icons for each protocol
-- Highlight I2C column with accent color
-- Use checkmarks and X marks for pros/cons
+Buatkan slide dengan tabel perbandingan I2C vs SPI vs UART:
+
+| Aspek | I2C | SPI | UART |
+|-------|-----|-----|------|
+| Jumlah Pin | 2 (SDA, SCL) | 4+ (MOSI, MISO, SCK, CS) | 2 (TX, RX) |
+| Kecepatan | 100K - 3.4M | 10M - 50M+ | 9600 - 921600 |
+| Multi-Device | Ya (addressing) | Ya (CS per device) | Tidak (P2P) |
+| Jarak | Pendek (<1m) | Sangat pendek | Menengah |
+| Full/Half Duplex | Half-duplex | Full-duplex | Full-duplex |
+| Complexity | Medium | Low | Low |
+
+Highlight keunggulan I2C: minimum pin, multi-device. Gunakan warna berbeda per kolom.
 ```
 
----
-
-## SLIDE 5 - Arsitektur I2C Bus
-
-**Prompt:**
+## Slide 5: Arsitektur Bus I2C
 ```
-Create a detailed I2C bus architecture diagram:
-- Title "Arsitektur I2C Bus"
-- Show Vcc power rail at top (3.3V)
-- Two pull-up resistors (4.7kΩ labeled) connecting to SDA and SCL lines
-- Horizontal bus lines for SDA and SCL
-- Connected devices:
-  • Master (MCU) - highlighted
-  • Slave 1 (Sensor)
-  • Slave 2 (EEPROM)
-  • Slave 3 (RTC)
-- Ground rail at bottom
-- Open-drain output symbol
-- Color coding: SDA=green, SCL=blue
-- Labels for all components
+Buatkan slide dengan judul "Arsitektur Bus I2C" berisi diagram:
+- Satu bus dengan jalur SDA dan SCL
+- Pull-up resistor ke VCC pada kedua jalur
+- 1 Master (MCU) dan 4 Slave (Sensor, EEPROM, RTC, OLED)
+- Setiap device terhubung paralel ke bus
+- Open-drain/open-collector output
+- Label address setiap slave (0x76, 0x50, 0x68, 0x3C)
+Tambahkan keterangan: "Semua device berbagi 2 jalur yang sama"
 ```
 
----
-
-## SLIDE 6 - Sinyal I2C
-
-**Prompt:**
+## Slide 6: Sinyal SDA dan SCL
 ```
-Create a slide explaining I2C signals:
-- Title "Sinyal SDA dan SCL"
-- Two sections:
-  1. SDA (Serial Data):
-     - Bidirectional data line
-     - Open-drain output
-     - Data valid when SCL HIGH
-  2. SCL (Serial Clock):
-     - Clock from Master
-     - Open-drain output
-     - Controls timing
-- Simple waveform showing both signals
-- Pull-up resistor symbol
-- Bidirectional arrow for SDA
-- Unidirectional arrow for SCL
+Buatkan slide dengan judul "Sinyal SDA & SCL" berisi:
+- Diagram timing menunjukkan hubungan SDA dan SCL
+- SDA: Data berubah saat SCL LOW
+- SDA: Data harus stabil saat SCL HIGH
+- Penjelasan: SCL dikontrol oleh Master, SDA oleh Master atau Slave
+- Ilustrasi open-drain: device hanya bisa pull LOW, release HIGH via pull-up
+- Diagram equivalent circuit open-drain dengan pull-up resistor
 ```
 
----
-
-## SLIDE 7 - I2C Timing Diagram
-
-**Prompt:**
+## Slide 7: Kondisi START dan STOP
 ```
-Create a detailed I2C timing diagram showing:
-- Title "I2C Timing Diagram"
-- Three sections:
-  1. START Condition: SDA goes LOW while SCL is HIGH
-  2. Data Transfer: Multiple bits with setup/hold times labeled
-  3. STOP Condition: SDA goes HIGH while SCL is HIGH
-- Clear labeling of:
-  • Setup time
-  • Hold time
-  • Data valid region
-- SDA and SCL as two separate waveforms
-- Annotations with arrows pointing to key transitions
-- Clean, technical drawing style
+Buatkan slide dengan judul "START & STOP Condition" berisi:
+- Diagram timing START: SDA turun dari HIGH ke LOW saat SCL HIGH
+- Diagram timing STOP: SDA naik dari LOW ke HIGH saat SCL HIGH
+- Repeated START: START tanpa STOP sebelumnya (untuk combined transfer)
+- Keterangan: "START dan STOP adalah SATU-SATUNYA kondisi dimana SDA berubah saat SCL HIGH"
+- Ilustrasi sequence: IDLE → START → Data Transfer → STOP → IDLE
+Gunakan warna merah untuk START, hijau untuk STOP.
 ```
 
----
-
-## SLIDE 8 - I2C Frame Format
-
-**Prompt:**
+## Slide 8: Format Address I2C
 ```
-Create a slide showing I2C frame structure:
-- Title "Format Frame I2C (7-bit Address)"
-- Visual frame diagram with boxes:
-  | START | 7-bit Address | R/W | ACK | 8-bit Data | ACK | STOP |
-  |   1   |  A6...A0      |  1  |  1  |   D7...D0  |  1  |   1  |
-- Color coding for each field type
-- R/W bit explanation: 0=Write, 1=Read
-- ACK/NACK explanation with SDA LOW/HIGH
-- Bit counting for each field
-- Total bits calculation
+Buatkan slide dengan judul "I2C Addressing (7-bit)" berisi:
+- Byte pertama setelah START: 7-bit address + 1-bit R/W
+- Format: [A6][A5][A4][A3][A2][A1][A0][R/W]
+- R/W = 0: Master Write ke Slave
+- R/W = 1: Master Read dari Slave
+- Contoh: BMP280 address 0x76 → Write: 0xEC, Read: 0xED
+- Tabel reserved address: 0x00 (General Call), 0x01-0x07, 0x78-0x7F
+- Total: 112 address yang bisa digunakan (0x08-0x77)
+Tambahkan diagram bit-level dari address byte.
 ```
 
----
-
-## SLIDE 9 - I2C Speed Modes
-
-**Prompt:**
+## Slide 9: ACK dan NACK
 ```
-Create an infographic showing I2C speed modes:
-- Title "Mode Kecepatan I2C"
-- Horizontal speed scale/meter visualization
-- Four modes with icons:
-  1. Standard Mode: 100 kbps (Sensors, EEPROM)
-  2. Fast Mode: 400 kbps (Display, IMU)
-  3. Fast Mode Plus: 1 Mbps (High-speed sensors)
-  4. High Speed: 3.4 Mbps (Special applications)
-- Application examples for each mode
-- Speed comparison bar chart
-- Color gradient from slow (cool) to fast (warm)
+Buatkan slide dengan judul "ACK & NACK Response" berisi:
+- Diagram timing: Setelah 8 bit data, Master release SDA untuk bit ke-9
+- ACK: Slave pull SDA LOW pada clock ke-9 → data diterima
+- NACK: SDA tetap HIGH pada clock ke-9 → data tidak diterima
+- Kapan NACK terjadi:
+  1. Slave tidak ada di bus (wrong address)
+  2. Slave sedang busy
+  3. Master sinyal bahwa Read selesai (Master NACK)
+  4. Register yang diminta tidak valid
+- Ilustrasi: Timeline 9 clock cycles dengan ACK/NACK pada bit ke-9
 ```
 
----
-
-## SLIDE 10 - I2C pada STM32F103
-
-**Prompt:**
+## Slide 10: Write Operation
 ```
-Create a technical slide for STM32 I2C:
-- Title "I2C pada STM32F103"
-- STM32F103 chip diagram/icon
-- Features list with icons:
-  • 2 I2C peripherals (I2C1, I2C2)
-  • 7-bit and 10-bit addressing
-  • Multi-master capable
-  • DMA support
-  • SMBus compatible
-- Pin mapping table:
-  | Peripheral | SCL | SDA | Remap SCL | Remap SDA |
-  | I2C1       | PB6 | PB7 | PB8       | PB9       |
-  | I2C2       | PB10| PB11| -         | -         |
-- STM32 Blue Pill board image reference
+Buatkan slide dengan judul "I2C Write Operation" berisi diagram sequence:
+1. Master → START condition
+2. Master → Slave Address + W (0) [8 bit]
+3. Slave → ACK [1 bit]
+4. Master → Register Address [8 bit]
+5. Slave → ACK [1 bit]
+6. Master → Data Byte [8 bit]
+7. Slave → ACK [1 bit]
+8. Master → STOP condition
+
+Contoh: Menulis 0x27 ke register 0xF4 pada BMP280 (0x76)
+→ [START][0xEC][ACK][0xF4][ACK][0x27][ACK][STOP]
+Gunakan warna biru untuk Master, hijau untuk Slave.
 ```
 
----
-
-## SLIDE 11 - I2C pada ESP32
-
-**Prompt:**
+## Slide 11: Read Operation
 ```
-Create a technical slide for ESP32 I2C:
-- Title "I2C pada ESP32"
-- ESP32 chip/board diagram
-- Features list with icons:
-  • 2 I2C controllers (I2C_NUM_0, I2C_NUM_1)
-  • Flexible GPIO mapping (any GPIO)
-  • Master and Slave mode
-  • Internal pull-up support
-  • Clock stretching
-- Default pins highlight: SDA=GPIO21, SCL=GPIO22
-- ESP32 DevKit pinout reference
-- Comparison note with STM32
+Buatkan slide dengan judul "I2C Read Operation" berisi diagram sequence:
+1. Master → START condition
+2. Master → Slave Address + W (0) [set register pointer]
+3. Slave → ACK
+4. Master → Register Address
+5. Slave → ACK
+6. Master → Repeated START
+7. Master → Slave Address + R (1)
+8. Slave → ACK
+9. Slave → Data Byte
+10. Master → NACK (last byte) atau ACK (more bytes)
+11. Master → STOP
+
+Highlight: "Read membutuhkan 2 fase: Write register address, lalu Read data"
 ```
 
----
-
-## SLIDE 12 - BME280 Sensor Overview
-
-**Prompt:**
+## Slide 12: Multi-Byte Transfer
 ```
-Create a product overview slide for BME280:
-- Title "BME280 - Environmental Sensor"
-- BME280 module photo/illustration
-- Specification boxes:
-  • Temperature: -40°C to +85°C, ±1.0°C
-  • Humidity: 0-100% RH, ±3% RH
-  • Pressure: 300-1100 hPa, ±1 hPa
-- I2C Address: 0x76 or 0x77
-- Applications icons: Weather station, HVAC, IoT
-- Pinout diagram of BME280 module
-- Bosch logo reference
+Buatkan slide dengan judul "Multi-Byte Read/Write" berisi:
+- Burst Write: Master mengirim banyak byte berturut-turut setelah register address
+  → Register auto-increment pada kebanyakan device
+- Burst Read: Slave mengirim banyak byte, Master ACK setiap byte, NACK pada byte terakhir
+- Diagram: [START][ADDR+R][ACK][DATA0][ACK][DATA1][ACK][DATA2][NACK][STOP]
+- Contoh: Baca 6 byte dari BMP280 (temp + pressure = 3 byte × 2)
+- Keuntungan: Lebih efisien daripada read satu-satu (kurang overhead START/STOP)
 ```
 
----
-
-## SLIDE 13 - BME280 Register Map
-
-**Prompt:**
+## Slide 13: Clock Stretching
 ```
-Create a technical slide showing BME280 registers:
-- Title "BME280 Register Map"
-- Table format:
-  | Register | Address | Description |
-  | ID       | 0xD0    | Chip ID (0x60) |
-  | ctrl_hum | 0xF2    | Humidity control |
-  | ctrl_meas| 0xF4    | Temp & Press control |
-  | config   | 0xF5    | Rate, filter, interface |
-  | Data     | 0xF7-0xFE | Measurement data |
-- Memory map visualization
-- Highlighting data registers
-- Read/Write indicators
+Buatkan slide dengan judul "Clock Stretching" berisi:
+- Definisi: Slave menahan SCL LOW untuk memperlambat transfer
+- Kapan terjadi: Slave butuh waktu lebih untuk memproses data
+- Diagram timing: Master release SCL, tapi SCL tetap LOW karena Slave hold
+- Master harus menunggu sampai SCL benar-benar HIGH sebelum lanjut
+- Contoh: EEPROM write cycle (5-10ms), sensor ADC conversion
+- Peringatan: Tidak semua Master mendukung clock stretching!
+- ESP32: Mendukung ✅ | STM32: Mendukung ✅
 ```
 
----
-
-## SLIDE 14 - SSD1306 OLED Display
-
-**Prompt:**
+## Slide 14: Arbitrasi Multi-Master
 ```
-Create a product overview slide for SSD1306:
-- Title "SSD1306 - OLED Display"
-- OLED display module photo showing 128x64 pixels
-- Specifications:
-  • Resolution: 128×64 pixels
-  • Type: Monochrome OLED
-  • I2C Address: 0x3C or 0x3D
-  • Voltage: 3.3V or 5V
-- Display showing sample graphics
-- Pinout diagram
-- Solomon Systech logo reference
-- Application examples: IoT dashboard, status display
+Buatkan slide dengan judul "Multi-Master Arbitration" berisi:
+- Skenario: 2 Master mencoba berkomunikasi bersamaan
+- Proses arbitrasi: Setiap Master monitor SDA saat mengirim
+- Jika Master kirim HIGH tapi SDA LOW → Master lain menang → mundur
+- Arbitrasi terjadi tanpa data corruption (non-destructive)
+- Diagram: Master A dan Master B mengirim address, salah satu mundur
+- Catatan: Dalam praktikum ini, kita hanya menggunakan single-master
+```
+
+## Slide 15: Pull-up Resistor Design
+```
+Buatkan slide dengan judul "Pull-up Resistor: Kenapa Penting?" berisi:
+- I2C menggunakan open-drain → butuh pull-up untuk level HIGH
+- Tanpa pull-up: bus mengambang (float), data corrupt
+- Pemilihan nilai resistor:
+  - Terlalu besar (10kΩ+): rise time lambat, kecepatan terbatas
+  - Terlalu kecil (1kΩ): arus berlebih saat LOW
+  - Optimal: 4.7kΩ untuk 400kHz, 2.2kΩ untuk 1MHz
+- Formula: R_pull-up = V_CC / I_sink_max
+- Diagram equivalent circuit dengan pull-up
+- Foto: Efek di osiloskop tanpa vs dengan pull-up
+```
+
+## Slide 16: Level Shifting & Voltage
+```
+Buatkan slide dengan judul "Level Shifting I2C" berisi:
+- Masalah: Sensor 3.3V + MCU 5V pada satu bus → bisa merusak sensor!
+- Solusi 1: Level shifter bidirectional (TXS0102, BSS138)
+- Solusi 2: Gunakan MCU dan sensor dengan VCC yang sama (3.3V)
+- ESP32: 3.3V I/O → langsung kompatibel dengan sensor 3.3V
+- STM32F103: 3.3V I/O, tapi 5V tolerant pada pin I2C ✅
+- Diagram: Level shifter circuit dengan MOSFET BSS138
+- Tabel kompatibilitas tegangan
+```
+
+## Slide 17: Bus Capacitance & Trace Length
+```
+Buatkan slide dengan judul "Limitasi Bus I2C" berisi:
+- Maximum bus capacitance: 400 pF (Standard/Fast mode)
+- Setiap device menambah ~10-15 pF
+- Kabel/trace menambah ~50-100 pF/meter
+- Implikasi: Jumlah device dan panjang kabel terbatas
+- Rekomendasi: <1 meter total panjang bus
+- Terlalu banyak device → rise time lambat → error
+- Solusi: I2C buffer/repeater (PCA9600) untuk bus panjang
+- Diagram: Kapasitansi parasitik pada bus
+```
+
+## Slide 18: Tabel Address Device Populer
+```
+Buatkan slide dengan judul "Address Device I2C Populer" berisi tabel besar:
+| Address | Device | Fungsi |
+|---------|--------|--------|
+| 0x20-0x27 | PCF8574 | I/O Expander |
+| 0x23, 0x5C | BH1750 | Light Sensor |
+| 0x3C, 0x3D | SSD1306 | OLED Display |
+| 0x48-0x4B | ADS1115 | ADC 16-bit |
+| 0x50-0x57 | AT24Cxx | EEPROM |
+| 0x68 | DS3231 | RTC |
+| 0x68, 0x69 | MPU6050 | IMU 6-axis |
+| 0x76, 0x77 | BMP280 | Temp/Pressure |
+Highlight konflik: DS3231 dan MPU6050 sama-sama 0x68!
+Solusi: I2C Multiplexer TCA9548A
+```
+
+## Slide 19: I2C Error Types
+```
+Buatkan slide dengan judul "Jenis Error pada I2C" berisi:
+1. NACK Error: Device tidak merespon → address salah atau device mati
+2. Bus Busy: SDA/SCL stuck LOW → perlu bus reset
+3. Arbitration Lost: Multi-master collision
+4. Timeout: Slave tidak merespon dalam waktu tertentu
+5. Clock Stretching Timeout: Slave hold SCL terlalu lama
+6. Data Corruption: Noise pada bus → CRC/checksum mismatch
+
+Untuk setiap error, tambahkan:
+- Penyebab umum
+- Cara mendeteksi
+- Cara recovery
+Gunakan icon warning merah untuk setiap error.
+```
+
+## Slide 20: I2C Bus Recovery
+```
+Buatkan slide dengan judul "I2C Bus Recovery" berisi:
+- Masalah: SDA stuck LOW (slave freeze mid-transfer)
+- Penyebab: Power glitch, noise, slave hang
+- Recovery procedure:
+  1. Master toggle SCL 9x → force slave release SDA
+  2. Generate STOP condition
+  3. Re-initialize I2C peripheral
+  4. Re-scan bus untuk verifikasi
+
+- ESP32: i2c_master_bus_reset() / manual GPIO toggle
+- STM32: HAL_I2C_DeInit() + GPIO toggle + HAL_I2C_Init()
+- Diagram flowchart recovery procedure
+- Tips: Tambahkan timeout + retry di production code
 ```
 
 ---
 
-## SLIDE 15 - DS3231 Real-Time Clock
-
-**Prompt:**
-```
-Create a product overview slide for DS3231:
-- Title "DS3231 - Real-Time Clock"
-- DS3231 module photo with battery
-- Key features:
-  • Accuracy: ±2ppm (±1 min/year)
-  • Battery backup (CR2032)
-  • Temperature compensated crystal
-  • I2C Address: 0x68 (fixed)
-- Register overview for time keeping
-- Module pinout
-- Maxim Integrated logo
-- Applications: Data logging, scheduling, timestamps
-```
-
----
-
-## SLIDE 16 - 24LC256 EEPROM
-
-**Prompt:**
-```
-Create a product overview slide for 24LC256:
-- Title "24LC256 - I2C EEPROM"
-- EEPROM chip DIP package illustration
-- Specifications:
-  • Capacity: 256 Kbit (32KB)
-  • Page size: 64 bytes
-  • I2C Address: 0x50-0x57
-  • Write cycle: 5ms max
-- Address configuration with A0, A1, A2 pins
-- Memory organization diagram
-- Microchip logo
-- Applications: Configuration storage, data logging
-```
-
----
-
-## SLIDE 17 - Konfigurasi I2C STM32
-
-**Prompt:**
-```
-Create a code walkthrough slide:
-- Title "Konfigurasi I2C STM32 (HAL)"
-- Code snippet with syntax highlighting:
-  I2C_HandleTypeDef hi2c1;
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 400000;
-  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  HAL_I2C_Init(&hi2c1);
-- Key parameters highlighted with arrows
-- GPIO configuration note (PB6, PB7 as AF_OD)
-- Visual flow diagram showing init sequence
-```
-
----
-
-## SLIDE 18 - Konfigurasi I2C ESP32
-
-**Prompt:**
-```
-Create a code walkthrough slide:
-- Title "Konfigurasi I2C ESP32 (Arduino)"
-- Two approaches:
-  1. Simple (Wire library):
-     Wire.begin(21, 22);
-     Wire.setClock(400000);
-  2. Advanced (ESP-IDF):
-     i2c_config_t conf;
-     i2c_param_config(I2C_NUM_0, &conf);
-     i2c_driver_install();
-- Flexible GPIO mapping highlight
-- Internal pull-up option
-- Comparison with STM32 approach
-```
-
----
-
-## SLIDE 19 - I2C Bus Scanning
-
-**Prompt:**
-```
-Create a slide about I2C bus scanning:
-- Title "I2C Bus Scanner"
-- Purpose: Detect all connected devices
-- Scanning process visualization:
-  1. Send address (0x03 to 0x77)
-  2. Check for ACK
-  3. List found devices
-- Sample output grid showing addresses
-- Common addresses highlighted with device names
-- Both STM32 and ESP32 code snippets
-- Troubleshooting tips
-```
-
----
-
-## SLIDE 20 - Pull-up Resistor Design
-
-**Prompt:**
-```
-Create a technical slide about pull-up resistors:
-- Title "Perhitungan Pull-up Resistor"
-- Formula diagram:
-  Rp_min = (Vcc - Vol) / Iol
-  Rp_max = tr / (0.8473 × Cb)
-- Variables explanation with icons
-- Recommended values table:
-  | Mode | Bus Cap | Rp Value |
-  | Standard | <100pF | 4.7kΩ |
-  | Standard | <200pF | 2.2kΩ |
-  | Fast | <100pF | 2.2kΩ |
-- Visual showing resistor placement in circuit
-- Rule of thumb: 4.7kΩ for most applications
-```
-
----
-
-## SLIDE 21 - Multi-Device I2C
-
-**Prompt:**
-```
-Create a slide showing multi-device I2C setup:
-- Title "Multi-Device pada I2C Bus"
-- Bus diagram with 4 devices:
-  • BME280 (0x76)
-  • SSD1306 OLED (0x3C)
-  • DS3231 RTC (0x68)
-  • 24LC256 EEPROM (0x50)
-- Single SDA/SCL lines connecting all
-- Address labels for each device
-- Data flow arrows
-- Conflict resolution note
-- Practical wiring tips
-```
-
----
-
-## SLIDE 22 - I2C Read Operation
-
-**Prompt:**
-```
-Create a timing diagram for I2C read:
-- Title "Operasi Read I2C"
-- Complete read sequence:
-  1. START
-  2. Device Address + Write
-  3. Register Address
-  4. Repeated START
-  5. Device Address + Read
-  6. Data byte(s)
-  7. NACK + STOP
-- Both master and slave perspectives
-- ACK/NACK indicators
-- Data direction arrows
-- Typical use case: Reading sensor data
-```
-
----
-
-## SLIDE 23 - I2C Write Operation
-
-**Prompt:**
-```
-Create a timing diagram for I2C write:
-- Title "Operasi Write I2C"
-- Complete write sequence:
-  1. START
-  2. Device Address + Write
-  3. Register Address
-  4. Data byte(s)
-  5. STOP
-- Master to slave data flow
-- ACK after each byte
-- Typical use case: Configuration register
-- Page write for EEPROM
-```
-
----
-
-## SLIDE 24 - Troubleshooting I2C
-
-**Prompt:**
-```
-Create a troubleshooting guide slide:
-- Title "Troubleshooting I2C"
-- Common problems table:
-  | Problem | Symptom | Solution |
-  | SDA stuck | No comm | Bus recovery |
-  | No ACK | NACK | Check address/power |
-  | Timeout | Hangs | Increase timeout |
-  | Data corruption | Wrong data | Check pull-ups |
-- Visual checklist icons
-- Logic analyzer screenshot example
-- Debug code snippet
-- Decision flowchart
-```
-
----
-
-## SLIDE 25 - I2C Bus Recovery
-
-**Prompt:**
-```
-Create a slide about bus recovery procedure:
-- Title "I2C Bus Recovery"
-- Problem: SDA stuck LOW
-- Recovery algorithm visualization:
-  1. Send 9 clock pulses on SCL
-  2. Check if SDA released
-  3. Generate STOP condition
-  4. Reinitialize I2C
-- Code snippet for recovery
-- Before/after waveforms
-- When to use recovery
-- Prevention tips
-```
-
----
-
-## SLIDE 26 - Best Practices
-
-**Prompt:**
-```
-Create a best practices slide:
-- Title "Best Practices I2C"
-- Hardware section:
-  • Use appropriate pull-up resistors
-  • Keep traces short (<30cm)
-  • Add decoupling capacitors
-  • Consider separate buses
-- Software section:
-  • Always check return values
-  • Implement timeout handling
-  • Use bus recovery
-  • Validate with CRC
-- Icons for each practice
-- Do's and Don'ts format
-```
-
----
-
-## SLIDE 27 - Praktikum Overview
-
-**Prompt:**
-```
-Create a practicum overview slide:
-- Title "Praktikum I2C Sensor"
-- 12 programs for each platform (STM32 & ESP32)
-- Program list with icons:
-  1-2. I2C Bus Scanner
-  3-4. BME280 Sensor Reading
-  5-6. SSD1306 OLED Display
-  7-8. DS3231 RTC Operations
-  9-10. 24LC256 EEPROM
-  11-12. Multi-Device Integration
-- Hardware requirements summary
-- Time allocation
-- Learning progression diagram
-```
-
----
-
-### Catatan untuk Pembuat PPT:
-
-1. **Konsistensi Visual**: Gunakan template yang sama untuk semua slide
-2. **Animasi**: Tambahkan animasi sederhana untuk diagram timing
-3. **Code Highlighting**: Gunakan syntax highlighting untuk semua code
-4. **Waveforms**: Animasikan sinyal I2C untuk menunjukkan komunikasi
-5. **Interactive Elements**: Tambahkan hyperlink untuk navigasi antar slide
-6. **Font Size**: Minimum 24pt untuk body text, 36pt untuk judul
-7. **Color Coding**: Konsisten gunakan warna untuk SDA (hijau) dan SCL (biru)
+*Modul 06 — Praktikum Sistem Embedded*
+*PPT Prompts Bagian 1: Teori Protokol I2C*

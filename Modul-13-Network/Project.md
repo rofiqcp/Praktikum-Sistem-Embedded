@@ -1,54 +1,83 @@
-# Project Modul 13: IoT Weather Station & Smart Control Dashboard
+# Project Modul 13: Network & IoT
 
-## 🎯 Deskripsi Proyek
-Buatlah sistem IoT sederhana yang mensimulasikan "Weather Station" yang dapat dimonitor dan dikontrol dari jarak jauh menggunakan protokol MQTT.
+## Project 1: Smart Home Controller
 
-## 📋 Spesifikasi Sistem
+### Deskripsi
+Bangun sistem Smart Home Controller menggunakan ESP32 yang menggabungkan WiFi, MQTT, HTTP dashboard, dan kontrol aktuator. Sistem dapat memonitor kondisi ruangan (suhu, cahaya) dan mengontrol perangkat (LED, relay) dari jarak jauh.
 
-### 1. Hardware
-- ESP32 atau STM32 + W5500.
-- LED (sebagai aktuator).
-- Sensor Dummy (Variable Random) atau Real Sensor (DHT11/Potensiometer).
+### Diagram Blok
+```
+┌─────────┐     WiFi      ┌──────────┐     MQTT     ┌──────────┐
+│ Sensor  │───────────────>│  ESP32   │─────────────>│  Broker  │
+│ DHT22   │               │(STA Mode)│              │Mosquitto │
+│ LDR     │               │          │<─────────────│          │
+└─────────┘               │ HTTP     │   Subscribe  └──────────┘
+                          │ Server   │                    │
+┌─────────┐               │ REST API │              ┌──────────┐
+│ Actuator│<──────────────│          │              │Dashboard │
+│ LED/Relay│              └──────────┘              │ Web/App  │
+└─────────┘                                         └──────────┘
+```
 
-### 2. Protokol & Koneksi
-- **Koneksi**: WiFi (ESP32) atau Ethernet (STM32).
-- **Protokol**: MQTT (Wajib).
-- **Format Data**: JSON.
+### Fitur Minimum
+1. Baca sensor DHT22 (suhu + kelembaban) setiap 5 detik
+2. Publish data sensor ke MQTT broker (topic: `home/sensor/...`)
+3. HTTP server dengan halaman HTML dashboard interaktif
+4. REST API: GET /api/sensor, POST /api/control
+5. Kontrol LED/relay via MQTT subscribe atau HTTP POST
+6. Alarm otomatis jika suhu > threshold
 
-### 3. Fitur Utama
-1.  **Telemetry (Publish)**:
-    - Perangkat mengirim data sensor setiap 5 detik ke topik: `iot/project/nim_anda/telemetry`.
-    - Format JSON: 
-      ```json
-      {
-        "status": "online",
-        "temperature": 28.5,
-        "humidity": 60,
-        "led_status": 1
-      }
-      ```
-2.  **Remote Control (Subscribe)**:
-    - Perangkat bisa dikontrol via topik: `iot/project/nim_anda/command`.
-    - Payload "ON" -> Menyalakan LED.
-    - Payload "OFF" -> Mematikan LED.
-3.  **Visualisasi**:
-    - Gunakan aplikasi Smartphone (MQTT Dash / IoT MQTT Panel) atau Web Client (HiveMQ Website) untuk membuat Dashboard.
-    - Tampilkan Gauge suhu dan Switch untuk LED.
+### Kriteria Penilaian
+| Komponen | Bobot | Deskripsi |
+|----------|-------|-----------|
+| Fungsionalitas | 40% | Semua fitur berjalan |
+| Kode Program | 25% | Bersih, terstruktur, terdokumentasi |
+| Dokumentasi | 20% | Laporan, diagram, screenshot |
+| Presentasi | 15% | Demonstrasi dan penjelasan |
 
-## 🛠️ Langkah Pengerjaan
-1.  Setup Library (WiFi/Ethernet & PubSubClient/ArduinoJson).
-2.  Buat koneksi ke Broker MQTT public (misal: `broker.hivemq.com`).
-3.  Implementasi fungsi Publish data sensor dummy secara periodik (non-blocking, gunakan `millis()`).
-4.  Implementasi Callback function untuk menangani pesan masuk (Subscribe) dan kontrol LED.
-5.  Setup Dashboard di HP/Browser.
+---
 
-## 📝 Format Laporan
-1.  **Diagram Blok Sistem**: Alur data dari Sensor -> MCU -> Broker -> Dashboard.
-2.  **Flowchart Program**: Logika koneksi WiFi, reconnect MQTT, dan loop utama.
-3.  **Source Code**: Full code dengan komentar.
-4.  **Dokumentasi**: Foto/Screenshot Dashboard saat menampilkan data real-time dan saat mengontrol LED.
-5.  **Analisa**: Jelaskan apa yang terjadi jika koneksi internet terputus? Bagaimana mekanisme *reconnect* bekerja?
+## Project 2: BLE Sensor Network
 
-## 🌟 Tantangan (Opsional - Nilai Tambah)
-- Tambahkan fitur "Last Will and Testament" (LWT) MQTT agar dashboard tahu jika device offline mendadak.
-- Implementasikan SSL/TLS untuk koneksi MQTT yang aman (port 8883).
+### Deskripsi
+Bangun jaringan sensor menggunakan BLE GATT. Satu ESP32 sebagai GATT server (peripheral) yang mengiklankan data sensor, dan smartphone sebagai central yang membaca data dan mengontrol aktuator.
+
+### Fitur Minimum
+1. BLE GATT server dengan custom service
+2. Characteristic untuk: sensor read (notify), LED write, device info
+3. Advertising dengan device name dan service UUID
+4. Smartphone app (nRF Connect) dapat read/write/subscribe
+5. Data sensor dikirim via BLE notification setiap 2 detik
+6. LED dikontrol via BLE write characteristic
+
+---
+
+## Project 3: Industrial IoT Gateway (STM32)
+
+### Deskripsi
+Bangun gateway IoT menggunakan STM32 + ESP-01 atau W5500. STM32 membaca sensor, mengemas data, dan mengirim ke cloud melalui modul external.
+
+### Diagram Blok
+```
+┌─────────┐     ADC      ┌──────────┐    UART/SPI   ┌──────────┐
+│ Sensor  │──────────────>│  STM32   │──────────────>│ ESP-01 / │
+│ Temp    │               │  F103    │               │ W5500    │
+│ Pot     │               │  HAL     │               │          │
+└─────────┘               └──────────┘               └──────────┘
+                                                          │
+                                                     WiFi/Ethernet
+                                                          │
+                                                     ┌──────────┐
+                                                     │  Cloud   │
+                                                     │  MQTT    │
+                                                     └──────────┘
+```
+
+### Fitur Minimum
+1. STM32 membaca minimal 2 sensor (ADC channels)
+2. Data dikemas dalam format JSON
+3. Dikirim via ESP-01 (AT commands + TCP/MQTT) atau W5500 (Ethernet)
+4. Retry logic jika koneksi gagal
+5. LED indikator status (connected/error/sending)
+6. Periodic reporting setiap 10 detik
+7. Python dashboard untuk monitoring

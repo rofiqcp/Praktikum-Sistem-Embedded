@@ -1,531 +1,272 @@
-# Prompt untuk Pembuatan PPT - Bagian 1
-## Modul 05: DAC & PWM Output
+# 🎨 Prompt Pembuatan Slide Presentasi - Modul 05 DAC & PWM (Bagian 1: Slide 1-20)
 
-### 📌 Informasi Umum
-- **Total Slide:** 25-30 slide
-- **Durasi Presentasi:** 45-50 menit
-- **Target Audiens:** Mahasiswa Teknik Elektro/Informatika semester 4-5
+## Instruksi Umum
+
+Prompt ini digunakan untuk men-generate slide presentasi menggunakan AI (ChatGPT/Gemini/Claude) atau sebagai panduan pembuatan manual di PowerPoint/Google Slides. Bagian 1 membahas teori DAC, jenis-jenis DAC, arsitektur DAC pada ESP32 dan STM32.
 
 ---
 
-## SLIDE 1: Judul
-**Prompt:**
-"Buatkan slide judul dengan desain modern dan profesional untuk materi kuliah 'BAB 05: DAC dan PWM Output'. Sertakan:
-- Judul utama: 'DAC (Digital-to-Analog Converter) dan PWM (Pulse Width Modulation)'
-- Subtitle: 'Praktikum Sistem Embedded'
-- Logo institusi (placeholder)
-- Informasi: 'Pertemuan 5 | Platform: STM32F103 & ESP32'
-- Warna tema: Biru elektrik dan oranye
-- Gambar ilustrasi: Waveform analog dan digital"
+## 📋 Prompt Utama
 
----
+```
+Buatkan presentasi PowerPoint dalam Bahasa Indonesia untuk mata kuliah Praktikum Sistem Embedded dengan topik "Digital-to-Analog Converter (DAC)" sebanyak 20 slide (Bagian 1 dari 2). Gunakan desain profesional dengan tema warna hijau-abu-abu. Setiap slide harus memiliki header, konten yang jelas, dan visual pendukung (diagram/ilustrasi). Target audiens adalah mahasiswa Teknik Elektro/Informatika semester 5-6.
 
-## SLIDE 2: Capaian Pembelajaran
-**Prompt:**
-"Buatkan slide Capaian Pembelajaran dengan layout yang jelas dan icon untuk setiap poin:
-1. 🎯 Memahami prinsip kerja DAC dan arsitekturnya
-2. 📊 Memahami konsep PWM dan aplikasinya
-3. 🔧 Mengkonfigurasi DAC pada STM32 (12-bit) dan ESP32 (8-bit)
-4. ⚡ Mengimplementasikan PWM untuk LED dimming, motor, servo
-5. 📈 Membandingkan DAC vs PWM untuk output analog
-6. 🔬 Menerapkan teknik filtering PWM
-Gunakan desain dengan progress bar atau checklist visual"
+SLIDE 1: Halaman Judul
+- Judul: "Modul 05: DAC & PWM (Digital-to-Analog Converter & Pulse Width Modulation)"
+- Subtitle: "Praktikum Sistem Embedded"
+- Informasi: Nama institusi, semester, tahun ajaran
+- Logo institusi di pojok kanan atas
+- Desain clean dan profesional
 
----
+SLIDE 2: Capaian Pembelajaran
+- Judul: "Capaian Pembelajaran Modul"
+- Daftar 6 capaian pembelajaran:
+  • Memahami prinsip kerja DAC dan arsitekturnya
+  • Menjelaskan konsep PWM: duty cycle, frekuensi, dan resolusi
+  • Mengimplementasikan output DAC pada ESP32 (8-bit, GPIO25/GPIO26)
+  • Mengkonfigurasi PWM menggunakan LEDC (ESP32) dan Timer (STM32)
+  • Mengendalikan servo motor, LED RGB, dan buzzer dengan PWM
+  • Membandingkan DAC murni vs PWM+filter untuk output analog
 
-## SLIDE 3: Outline Materi
-**Prompt:**
-"Buatkan slide outline/daftar isi dengan timeline visual:
-1. Teori Dasar DAC (15 menit)
-   - Prinsip Konversi D/A
-   - Arsitektur DAC (R-2R, Weighted)
-2. DAC pada Mikrokontroler (10 menit)
-   - STM32 DAC 12-bit
-   - ESP32 DAC 8-bit
-3. Teori Dasar PWM (10 menit)
-   - Konsep Duty Cycle
-   - Frekuensi dan Resolusi
-4. PWM pada Mikrokontroler (10 menit)
-   - Timer STM32
-   - LEDC ESP32
-5. Aplikasi & Praktikum (15 menit)
-Desain dengan roadmap atau flowchart horizontal"
+SLIDE 3: Outline Materi
+- Judul: "Outline Materi"
+- Daftar topik dengan ikon:
+  1. Pendahuluan: Mengapa Perlu Output Analog?
+  2. Prinsip Kerja DAC
+  3. Jenis-Jenis DAC (Binary Weighted, R-2R Ladder)
+  4. Parameter & Karakteristik DAC
+  5. DAC pada ESP32 (8-bit, 2 channel)
+  6. DAC pada STM32 (12-bit, seri tertentu)
+  7. Pengenalan PWM sebagai Alternatif DAC
+  8. Implementasi & Aplikasi
 
----
+SLIDE 4: Mengapa Perlu Output Analog?
+- Judul: "Mengapa Mikrokontroler Memerlukan Output Analog?"
+- Diagram blok: Data Digital → DAC/PWM → Sinyal Analog → Aktuator
+- Contoh aplikasi:
+  • Audio: Menghasilkan suara/musik melalui speaker
+  • Kontrol motor: Mengatur kecepatan motor DC
+  • Dimming LED: Mengatur kecerahan lampu
+  • Kontrol posisi: Servo motor untuk robotika
+  • Generasi sinyal: Gelombang sinus untuk pengujian
+- Pesan kunci: "DAC & PWM adalah jembatan dari dunia digital ke analog"
 
-## SLIDE 4: Mengapa Output Analog?
-**Prompt:**
-"Buatkan slide pengantar dengan ilustrasi perbandingan:
-- Judul: 'Mengapa Perlu Output Analog?'
-- Tampilkan diagram mikrokontroler digital yang perlu mengontrol:
-  - 💡 Kecerahan LED (0-100%)
-  - ⚙️ Kecepatan Motor (0-max RPM)
-  - 🔊 Audio/Speaker (waveform)
-  - 🎚️ Posisi Servo (0°-180°)
-- Dua solusi: DAC (True Analog) vs PWM (Pseudo Analog)
-- Gunakan animasi perbandingan sinyal digital vs analog"
+SLIDE 5: Prinsip Dasar DAC
+- Judul: "Prinsip Dasar Digital-to-Analog Converter"
+- Definisi: Mengubah data biner menjadi tegangan/arus analog proporsional
+- Diagram blok sederhana: Input Biner (n-bit) → DAC → Output Analog (Vout)
+- Rumus dasar: Vout = (Digital_Value / 2^n) × Vref
+- Contoh: DAC 8-bit, Vref=3.3V, Input=128 → Vout = (128/256) × 3.3V = 1.65V
+- Diagram transfer function: tangga (staircase) dari 0 ke Vref
 
----
+SLIDE 6: Resolusi DAC
+- Judul: "Resolusi DAC: Berapa Bit yang Dibutuhkan?"
+- Tabel perbandingan resolusi DAC:
+  | Resolusi | Level | Step Size (3.3V Ref) | Aplikasi Tipikal |
+  |----------|-------|---------------------|------------------|
+  | 8-bit | 256 | 12.89 mV | Audio sederhana, ESP32 DAC |
+  | 10-bit | 1024 | 3.22 mV | Kontrol motor |
+  | 12-bit | 4096 | 0.806 mV | STM32 DAC, instrumentasi |
+  | 16-bit | 65536 | 50.3 µV | Audio hi-fi |
+  | 24-bit | 16.7M | 0.197 µV | Audio profesional (I2S DAC) |
+- Step size (LSB) = Vref / 2^n
+- Penekanan: Resolusi lebih tinggi → output lebih halus
 
-## SLIDE 5: Prinsip Kerja DAC
-**Prompt:**
-"Buatkan slide dengan diagram blok DAC:
-- Judul: 'Prinsip Kerja DAC'
-- Diagram konversi: Digital Input (Binary) → DAC → Analog Output (Voltage)
-- Formula dengan penjelasan visual:
+SLIDE 7: Jenis DAC - Binary Weighted Resistor
+- Judul: "Tipe 1: Binary Weighted Resistor DAC"
+- Diagram rangkaian: n resistor bernilai R, 2R, 4R, 8R... disambungkan ke op-amp summing
+- Cara kerja: Setiap bit mengendalikan switch, arus proporsional terhadap bobot bit
+- Kelebihan: Sederhana, cepat
+- Kekurangan: Membutuhkan resistor presisi dengan range nilai sangat lebar (R sampai 2^(n-1)×R)
+- Contoh: DAC 4-bit dengan R=10kΩ → membutuhkan 10k, 20k, 40k, 80k
+- Masalah: Untuk 12-bit, range resistor 1:4096 → tidak praktis
+
+SLIDE 8: Jenis DAC - R-2R Ladder
+- Judul: "Tipe 2: R-2R Ladder DAC"
+- Diagram rangkaian: Hanya menggunakan 2 nilai resistor (R dan 2R)
+- Cara kerja: Pembagian tegangan bertingkat menggunakan jaringan resistor
+- Kelebihan: Hanya 2 nilai resistor, mudah dibuat presisi, scalable
+- Kekurangan: Kecepatan terbatas oleh settling time RC
+- Penekanan: **R-2R adalah tipe DAC paling umum di mikrokontroler**
+- Contoh perhitungan tegangan output untuk input 4-bit
+
+SLIDE 9: Jenis DAC - Sigma-Delta DAC
+- Judul: "Tipe 3: Sigma-Delta (ΣΔ) DAC"
+- Diagram blok: Interpolation filter → ΣΔ Modulator → 1-bit DAC → Analog LPF
+- Cara kerja: Oversampling + noise shaping + low-pass filtering
+- Kelebihan: Resolusi sangat tinggi (16-24 bit), murah
+- Kekurangan: Membutuhkan filter analog, latency
+- Digunakan pada: Audio codec (I2S DAC chip), CD player
+- Prinsip: Mengubah sinyal multi-bit menjadi pulse density (PDM)
+
+SLIDE 10: Jenis DAC - PWM sebagai DAC
+- Judul: "Tipe 4: PWM + Low-Pass Filter sebagai DAC"
+- Diagram: PWM Output → RC Low-Pass Filter → Tegangan Analog (rata-rata)
+- Cara kerja: Tegangan rata-rata PWM = Duty Cycle × Vcc
+- Contoh: Duty 50%, Vcc=3.3V → Vavg = 1.65V
+- Kelebihan: Tidak perlu hardware DAC, tersedia di semua mikrokontroler
+- Kekurangan: Ripple pada output, bandwidth terbatas oleh filter
+- Desain filter: R=1kΩ, C=100nF → fc = 1/(2π×R×C) ≈ 1.6 kHz
+- **Penting untuk STM32F411 yang tidak memiliki DAC!**
+
+SLIDE 11: Perbandingan Jenis DAC
+- Judul: "Perbandingan Empat Tipe DAC"
+- Tabel perbandingan:
+  | Parameter | Binary Weighted | R-2R | Sigma-Delta | PWM+Filter |
+  |-----------|:-:|:-:|:-:|:-:|
+  | Resolusi | ★★ | ★★★ | ★★★★★ | ★★★ |
+  | Kecepatan | ★★★★ | ★★★★ | ★★ | ★★ |
+  | Kompleksitas | ★★★ | ★★★★ | ★★ | ★★★★★ |
+  | Biaya | ★★★ | ★★★★ | ★★★ | ★★★★★ |
+  | Linearitas | ★★ | ★★★★ | ★★★★★ | ★★★ |
+- Highlight: R-2R dan Sigma-Delta paling umum di IC DAC, PWM+Filter paling mudah
+
+SLIDE 12: Parameter DAC
+- Judul: "Parameter Karakteristik DAC"
+- Parameter statis:
+  • **DNL (Differential Non-Linearity)**: Deviasi step size dari ideal
+  • **INL (Integral Non-Linearity)**: Deviasi total dari garis transfer ideal
+  • **Offset Error**: Pergeseran titik nol
+  • **Gain Error**: Perbedaan kemiringan transfer function
+  • **Monotonicity**: Apakah output selalu naik saat input naik
+- Diagram transfer function ideal vs real (menunjukkan DNL, INL)
+- Penting: DAC yang baik harus monotonic (tidak ada "langkah mundur")
+
+SLIDE 13: Parameter Dinamis DAC
+- Judul: "Parameter Dinamis DAC"
+- Parameter dinamis:
+  • **Settling Time**: Waktu output mencapai nilai akhir (±½ LSB)
+  • **Slew Rate**: Kecepatan perubahan output (V/µs)
+  • **Glitch Energy**: Transient spike saat perubahan kode (area × waktu)
+  • **SNR**: Signal-to-Noise Ratio output
+  • **THD**: Total Harmonic Distortion
+  • **SFDR**: Spurious-Free Dynamic Range
+- Diagram settling time dan glitch pada transisi kode
+- Penekanan: Settling time penting untuk generasi gelombang berkecepatan tinggi
+
+SLIDE 14: DAC pada ESP32 - Arsitektur
+- Judul: "DAC pada ESP32: Arsitektur dan Spesifikasi"
+- Spesifikasi DAC ESP32:
+  • 2 channel DAC independen: DAC1 (GPIO25) dan DAC2 (GPIO26)
+  • Resolusi: **8-bit** (0-255) → step size ≈ 12.9 mV
+  • Output range: 0V - 3.3V (rail-to-rail)
+  • Impedansi output: Rendah (dapat drive beban ringan langsung)
+  • Fitur: Cosine Wave Generator (CW) built-in
+  • Fitur: DMA support untuk output waveform kontinu
+- Diagram blok internal DAC ESP32
+- ⚠ Hanya tersedia pada ESP32 (WROOM/WROVER), TIDAK pada S2, S3, C3
+
+SLIDE 15: DAC ESP32 - Cosine Wave Generator
+- Judul: "ESP32 DAC: Cosine Wave Generator (CW)"
+- Fitur hardware CW generator built-in:
+  • Menghasilkan gelombang kosinus tanpa intervensi CPU
+  • Frekuensi: Dapat diatur via register (130 Hz - 100+ kHz)
+  • Amplitude: 4 level (penuh, ½, ¼, ⅛ dari Vref)
+  • DC offset: Dapat dikonfigurasi
+- Rumus frekuensi: f = RTC_FAST_CLK / (65536 × freq_step)
+- Kegunaan: Tone generator, sinyal test, carrier signal
+- Diagram output CW di osiloskop
+
+SLIDE 16: DAC ESP32 - Kode Implementasi
+- Judul: "Implementasi DAC ESP32 (Arduino Framework)"
+- Kode contoh output DAC sederhana:
+  ```cpp
+  // Output nilai tetap
+  dacWrite(25, 128);  // GPIO25, nilai 128 (≈1.65V)
+  
+  // Generasi sine wave dengan lookup table
+  const uint8_t sineTable[64] = { /* 64 nilai sine 0-255 */ };
+  for (int i = 0; i < 64; i++) {
+    dacWrite(25, sineTable[i]);
+    delayMicroseconds(100);  // ~156 Hz
+  }
   ```
-  Vout = Vref × (Digital_Value / 2^n)
+- Penjelasan: dacWrite(pin, value) → 0-255 maps ke 0-3.3V
+- Tips: Gunakan timer interrupt untuk timing yang presisi
+- Catatan tentang API ESP-IDF: dac_output_voltage(), dac_cw_generator_config()
+
+SLIDE 17: DAC ESP32 - Lookup Table Sine Wave
+- Judul: "Membuat Lookup Table Gelombang Sinus"
+- Rumus: value[i] = 127 + 127 × sin(2π × i / N)
+- Contoh tabel 64 titik (N=64):
   ```
-- Contoh konkret: DAC 8-bit, Vref=3.3V
-  - Input 0 → 0V
-  - Input 127 → 1.64V
-  - Input 255 → 3.3V
-- Gunakan grafik tangga (staircase) untuk menunjukkan level diskrit"
+  128, 140, 152, 165, 176, 187, 197, 206,
+  213, 219, 224, 227, 229, 229, 228, 225,
+  ...
+  ```
+- Diagram: Titik-titik diskrit pada kurva sinus
+- Trade-off: N lebih besar → gelombang lebih halus, frekuensi lebih rendah
+- Frekuensi output: f = 1 / (N × T_sample)
+- Tools: Script Python untuk generate lookup table
 
----
+SLIDE 18: DAC pada STM32 - Ketersediaan
+- Judul: "DAC pada STM32: Ketersediaan per Seri"
+- Tabel ketersediaan DAC STM32:
+  | Seri STM32 | DAC? | Resolusi | Channel | Catatan |
+  |------------|:----:|:--------:|:-------:|---------|
+  | STM32F0 | Sebagian | 12-bit | 1-2 | Tergantung varian |
+  | STM32F1 (F103) | ❌ | - | - | Tidak ada DAC |
+  | STM32F3 | ✅ | 12-bit | 1-2 | Dual DAC |
+  | STM32F4 (F407) | ✅ | 12-bit | 2 | PA4 (DAC1), PA5 (DAC2) |
+  | **STM32F4 (F411)** | **❌** | **-** | **-** | **Tidak ada DAC!** |
+  | STM32F7 | ✅ | 12-bit | 2 | Dengan DMA |
+  | STM32H7 | ✅ | 12-bit | 2 | High performance |
+- ⚠ **STM32F411 BlackPill TIDAK memiliki DAC → gunakan PWM + RC filter**
+- Alternatif: External I2C/SPI DAC (MCP4725, MCP4822)
 
-## SLIDE 6: Arsitektur R-2R Ladder DAC
-**Prompt:**
-"Buatkan slide dengan diagram skematik R-2R Ladder:
-- Judul: 'R-2R Ladder DAC'
-- Gambar rangkaian R-2R 4-bit lengkap dengan:
-  - Resistor R dan 2R
-  - Input D0-D3
-  - Output Vout
-- Penjelasan keuntungan:
-  ✓ Hanya 2 nilai resistor
-  ✓ Akurasi tinggi
-  ✓ Mudah dikaskade
-- Animasi step-by-step aliran arus"
+SLIDE 19: DAC STM32 - Implementasi (F407 sebagai Referensi)
+- Judul: "Implementasi DAC STM32F407 (sebagai Referensi)"
+- Kode contoh HAL:
+  ```c
+  DAC_HandleTypeDef hdac;
+  DAC_ChannelConfTypeDef sConfig;
+  
+  // Inisialisasi
+  hdac.Instance = DAC;
+  HAL_DAC_Init(&hdac);
+  sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
+  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+  HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1);
+  
+  // Set nilai output (12-bit: 0-4095)
+  HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
+  HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048); // ~1.65V
+  ```
+- Catatan: Kode ini untuk referensi, F411 menggunakan PWM sebagai pengganti
+- Mode: Polling, Interrupt, DMA (DMA untuk waveform kontinu)
 
----
-
-## SLIDE 7: Spesifikasi DAC
-**Prompt:**
-"Buatkan slide tabel spesifikasi DAC dengan visualisasi:
-| Parameter | Simbol | Deskripsi | Ilustrasi |
-|-----------|--------|-----------|-----------|
-| Resolution | n-bit | Jumlah level output | Grafik step |
-| INL | ±LSB | Linearity error | Kurva deviasi |
-| DNL | ±LSB | Step size error | Diagram step |
-| Settling Time | µs | Waktu stabilisasi | Waveform |
-| Glitch Energy | nV·s | Transient energy | Spike |
-Gunakan ikon dan mini-grafik untuk setiap parameter"
-
----
-
-## SLIDE 8: DAC pada STM32F103
-**Prompt:**
-"Buatkan slide dengan diagram blok DAC STM32:
-- Judul: 'DAC STM32F103C8T6'
-- Spesifikasi:
-  - 2 Channel DAC
-  - Resolusi 12-bit (0-4095)
-  - Pin: PA4 (DAC1), PA5 (DAC2)
-  - Output Buffer terintegrasi
-  - DMA Support
-  - Timer Trigger
-- Diagram internal: Data Register → Converter → Buffer → Pin
-- Highlight fitur utama dengan badge/label"
-
----
-
-## SLIDE 9: Register DAC STM32
-**Prompt:**
-"Buatkan slide dengan tabel register DAC:
-- Judul: 'Register DAC STM32'
-- Tabel dengan highlight warna:
-  | Register | Alamat | Fungsi |
-  |----------|--------|--------|
-  | DAC_CR | 0x400x | Control (Enable, Trigger) |
-  | DAC_DHR12R1 | 0x400x | Data 12-bit right-aligned |
-  | DAC_DHR12L1 | 0x400x | Data 12-bit left-aligned |
-  | DAC_DOR1 | 0x400x | Data Output |
-- Diagram bit-field untuk DAC_CR
-- Warna berbeda untuk read/write register"
-
----
-
-## SLIDE 10: Kode DAC STM32 (HAL)
-**Prompt:**
-"Buatkan slide dengan code snippet dan penjelasan:
-- Judul: 'Konfigurasi DAC STM32 dengan HAL'
-- Kode dengan syntax highlighting:
-```c
-// 1. Enable Clock
-__HAL_RCC_DAC_CLK_ENABLE();
-
-// 2. Configure GPIO sebagai Analog
-GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-
-// 3. Configure DAC Channel
-sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
-sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
-
-// 4. Set Value (0-4095)
-HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, 
-                 DAC_ALIGN_12B_R, value);
+SLIDE 20: Ringkasan Bagian 1
+- Judul: "Ringkasan: Teori DAC"
+- Poin-poin kunci:
+  1. DAC mengkonversi data digital menjadi sinyal analog (Vout = D/2^n × Vref)
+  2. R-2R Ladder adalah tipe paling umum di mikrokontroler
+  3. ESP32 memiliki DAC 8-bit pada GPIO25 dan GPIO26 (hanya ESP32 WROOM)
+  4. STM32F411 TIDAK memiliki DAC → gunakan PWM + RC filter sebagai alternatif
+  5. Cosine Wave Generator ESP32 dapat menghasilkan gelombang tanpa CPU
+  6. Parameter penting: DNL, INL, settling time, monotonicity
+- Preview: "Selanjutnya: PWM - Pulse Width Modulation, LEDC, Timer, Servo, RGB LED"
+- QR code ke referensi online (opsional)
 ```
-- Annotasi pada setiap bagian penting
-- Flow diagram di samping kode"
-
----
-
-## SLIDE 11: DAC pada ESP32
-**Prompt:**
-"Buatkan slide perbandingan DAC ESP32:
-- Judul: 'DAC ESP32'
-- Spesifikasi:
-  - 2 Channel DAC 8-bit
-  - DAC1: GPIO25
-  - DAC2: GPIO26
-  - Cosine Wave Generator built-in
-  - DMA untuk audio
-- Diagram pin mapping ESP32
-- Perbandingan vs STM32:
-  | Feature | STM32 | ESP32 |
-  |---------|-------|-------|
-  | Resolution | 12-bit | 8-bit |
-  | Channels | 2 | 2 |
-  | Wave Gen | Triangle/Noise | Cosine |"
-
----
-
-## SLIDE 12: Kode DAC ESP32
-**Prompt:**
-"Buatkan slide dengan code snippet ESP32:
-- Judul: 'DAC ESP32 - Arduino Framework'
-- Kode dengan syntax highlighting:
-```cpp
-#include <Arduino.h>
-
-#define DAC_PIN 25  // GPIO25 = DAC1
-
-void setup() {
-    // DAC tidak perlu konfigurasi khusus
-}
-
-void loop() {
-    // Ramp up 0V -> 3.3V
-    for (int i = 0; i < 256; i++) {
-        dacWrite(DAC_PIN, i);  // 8-bit: 0-255
-        delay(10);
-    }
-}
-```
-- Bandingkan dengan ESP-IDF native API
-- Note: Keterbatasan 8-bit resolution"
-
----
-
-## SLIDE 13: Cosine Wave Generator ESP32
-**Prompt:**
-"Buatkan slide fitur unik ESP32:
-- Judul: 'Hardware Cosine Wave Generator'
-- Diagram blok cosine generator
-- Kode konfigurasi:
-```cpp
-dac_cw_config_t config = {
-    .en_ch = DAC_CHANNEL_1,
-    .scale = DAC_CW_SCALE_1,
-    .phase = DAC_CW_PHASE_0,
-    .freq = 1000,  // 1 kHz
-};
-dac_cw_generator_config(&config);
-dac_cw_generator_enable();
-```
-- Visualisasi parameter: scale, phase, frequency
-- Use case: Signal generator, audio synthesis"
-
----
-
-## SLIDE 14: Konsep PWM
-**Prompt:**
-"Buatkan slide penjelasan PWM dengan animasi:
-- Judul: 'Pulse Width Modulation (PWM)'
-- Diagram waveform untuk berbagai duty cycle:
-  - 25% duty: ▁█▁▁▁█▁▁
-  - 50% duty: ▁██▁▁██▁
-  - 75% duty: ▁███▁███
-- Formula:
-  - Duty Cycle (%) = (Ton / T) × 100%
-  - Vavg = Vmax × Duty Cycle
-- Visualisasi tegangan rata-rata dengan area shading
-- Animasi perubahan duty cycle"
-
----
-
-## SLIDE 15: Frekuensi dan Resolusi PWM
-**Prompt:**
-"Buatkan slide dengan tabel aplikasi:
-- Judul: 'Memilih Frekuensi PWM'
-- Tabel aplikasi:
-  | Aplikasi | Frekuensi | Alasan |
-  |----------|-----------|--------|
-  | LED | 1-10 kHz | Anti-flicker |
-  | Motor DC | 10-20 kHz | Above audible |
-  | Servo | 50 Hz | Standard |
-  | Audio | >44 kHz | CD quality |
-- Grafik trade-off: Resolusi vs Frekuensi
-- Formula: Max_Freq = Clock / 2^Resolution
-- Diagram visual resolusi 8-bit vs 16-bit"
-
----
-
-## SLIDE 16: PWM pada STM32
-**Prompt:**
-"Buatkan slide dengan diagram timer STM32:
-- Judul: 'PWM STM32 - Timer Architecture'
-- Diagram blok lengkap:
-  - Clock Source → Prescaler (PSC)
-  - Counter (CNT) → Compare (CCR)
-  - Output Compare → PWM Pin
-- Formula:
-  - PWM_Freq = Clock / ((PSC+1) × (ARR+1))
-- Contoh perhitungan:
-  - 72MHz / (72 × 1000) = 1 kHz
-- Highlight timer yang support PWM: TIM1-4, TIM5, TIM8"
-
----
-
-## SLIDE 17: Konfigurasi PWM STM32
-**Prompt:**
-"Buatkan slide dengan code dan diagram:
-- Judul: 'Konfigurasi PWM STM32 HAL'
-```c
-// Timer Configuration
-htim3.Init.Prescaler = 72 - 1;    // 1MHz
-htim3.Init.Period = 1000 - 1;     // 1kHz PWM
-HAL_TIM_PWM_Init(&htim3);
-
-// Channel Configuration
-sConfigOC.OCMode = TIM_OCMODE_PWM1;
-sConfigOC.Pulse = 500;            // 50% duty
-HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1);
-
-// Start PWM
-HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-
-// Update duty cycle
-__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, new_duty);
-```
-- Diagram timing dengan ARR dan CCR"
-
----
-
-## SLIDE 18: LEDC ESP32
-**Prompt:**
-"Buatkan slide LEDC peripheral ESP32:
-- Judul: 'ESP32 LEDC (LED Controller)'
-- Diagram arsitektur:
-  - High Speed (8 channel)
-  - Low Speed (8 channel)
-  - 4 Timer per mode
-- Fitur unggulan:
-  - ✓ 16 channel independen
-  - ✓ Resolusi 1-20 bit
-  - ✓ Hardware fade
-  - ✓ Frekuensi hingga 40MHz
-- Perbandingan dengan STM32 timer"
-
----
-
-## SLIDE 19: Kode PWM ESP32
-**Prompt:**
-"Buatkan slide dengan code ESP32:
-- Judul: 'PWM ESP32 - LEDC'
-```cpp
-#define PWM_PIN       25
-#define PWM_CHANNEL   0
-#define PWM_FREQ      5000   // 5 kHz
-#define PWM_RESOLUTION 8     // 8-bit
-
-void setup() {
-    // Setup
-    ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
-    ledcAttachPin(PWM_PIN, PWM_CHANNEL);
-}
-
-void loop() {
-    // Fade
-    for (int duty = 0; duty <= 255; duty++) {
-        ledcWrite(PWM_CHANNEL, duty);
-        delay(10);
-    }
-}
-```
-- Highlight kemudahan dibanding STM32
-- Note tentang ESP32 Arduino Core API"
-
----
-
-## SLIDE 20: Hardware Fade ESP32
-**Prompt:**
-"Buatkan slide fitur hardware fade:
-- Judul: 'ESP32 Hardware Fade'
-- Penjelasan: CPU-free fade operation
-- Kode:
-```cpp
-// Install fade function
-ledc_fade_func_install(0);
-
-// Fade to target
-ledc_set_fade_time_and_start(
-    LEDC_HIGH_SPEED_MODE,
-    LEDC_CHANNEL_0,
-    target_duty,
-    fade_time_ms,
-    LEDC_FADE_WAIT_DONE
-);
-```
-- Diagram timing fade linear
-- Use case: Smooth LED transitions, motor soft-start"
-
----
-
-## SLIDE 21: Aplikasi - Motor Control
-**Prompt:**
-"Buatkan slide aplikasi motor:
-- Judul: 'PWM Motor DC Control'
-- Diagram H-Bridge dengan PWM:
-  - PWM → Enable
-  - DIR_A, DIR_B → Direction
-- Kode pseudo:
-```
-if (speed >= 0) {
-    DIR_A = HIGH, DIR_B = LOW
-    PWM = speed
-} else {
-    DIR_A = LOW, DIR_B = HIGH
-    PWM = -speed
-}
-```
-- Waveform PWM 20kHz untuk motor
-- Tips: Soft-start untuk mengurangi inrush current"
-
----
-
-## SLIDE 22: Aplikasi - Servo Control
-**Prompt:**
-"Buatkan slide servo control:
-- Judul: 'PWM Servo Motor Control'
-- Diagram timing servo:
-  - 50Hz (20ms period)
-  - 0.5ms = 0°
-  - 1.5ms = 90°
-  - 2.5ms = 180°
-- Ilustrasi posisi servo vs pulse width
-- Kode konversi angle ke pulse:
-```c
-pulse = 500 + (angle * 2000 / 180);  // µs
-```
-- Warning tentang timing accuracy"
-
----
-
-## SLIDE 23: DAC vs PWM Comparison
-**Prompt:**
-"Buatkan slide perbandingan komprehensif:
-- Judul: 'DAC vs PWM: Kapan Menggunakan?'
-- Tabel perbandingan dengan ikon:
-  | Aspek | DAC | PWM |
-  |-------|-----|-----|
-  | Resolution | 8-12 bit | Unlimited |
-  | Ripple | ✓ Low | ✗ High |
-  | Pin | Dedicated | Any GPIO |
-  | Efficiency | Medium | High |
-  | Audio | ✓ Better | Needs filter |
-  | Motor | ✗ | ✓ Best |
-- Diagram use case untuk masing-masing"
-
----
-
-## SLIDE 24: PWM sebagai Pseudo-DAC
-**Prompt:**
-"Buatkan slide teknik filtering:
-- Judul: 'PWM + RC Filter = Pseudo-DAC'
-- Diagram rangkaian:
-  PWM → R (10kΩ) → [Output] → C (100nF) → GND
-- Formula cutoff:
-  fc = 1 / (2πRC) = 159 Hz
-- Waveform sebelum dan sesudah filter
-- Tips:
-  - PWM freq >> cutoff freq
-  - Multiple RC stages untuk quality lebih baik
-- Perbandingan quality vs True DAC"
-
----
-
-## SLIDE 25: Demo & Praktikum
-**Prompt:**
-"Buatkan slide overview praktikum:
-- Judul: 'Praktikum: DAC & PWM'
-- Daftar percobaan dengan progress tracker:
-  □ DAC Ramp Output (STM32 & ESP32)
-  □ DAC Sine Wave Generator
-  □ PWM LED Dimming
-  □ PWM Motor Control
-  □ Servo Control
-  □ PWM Pseudo-DAC
-  □ RGB LED Color Mixing
-- Deliverables:
-  - Laporan dengan screenshot waveform
-  - Video demonstrasi
-  - Analisis perbandingan"
-
----
-
-## SLIDE 26: Kesimpulan
-**Prompt:**
-"Buatkan slide kesimpulan dengan summary visual:
-- Judul: 'Kesimpulan'
-- Key takeaways dengan ikon:
-  1. 📊 DAC: Konversi digital → analog langsung
-  2. 📈 PWM: Duty cycle untuk kontrol daya
-  3. 🔧 STM32: DAC 12-bit, Timer untuk PWM
-  4. ⚡ ESP32: DAC 8-bit, LEDC dengan hardware fade
-  5. 🎯 Pilihan tergantung aplikasi
-- Diagram decision tree: Kapan DAC vs PWM
-- QR code ke referensi tambahan"
-
----
-
-## SLIDE 27: Q&A
-**Prompt:**
-"Buatkan slide Q&A yang interaktif:
-- Judul: 'Pertanyaan & Diskusi'
-- Beberapa pertanyaan pemicu:
-  - 'Mengapa servo perlu tepat 50Hz?'
-  - 'Bagaimana meningkatkan resolusi DAC 8-bit?'
-  - 'Kapan PWM filtering tidak cukup?'
-- Space untuk catatan
-- Ikon tangan terangkat dan speech bubble
-- Contact info untuk pertanyaan lanjutan"
-
----
 
 ## 🎨 Panduan Desain
 
-### Warna Tema
-- Primary: #2196F3 (Biru)
-- Secondary: #FF9800 (Oranye)
-- Accent: #4CAF50 (Hijau)
-- Background: #FAFAFA (Light gray)
-- Text: #212121 (Dark gray)
+| Elemen | Spesifikasi |
+|--------|-------------|
+| Font Judul | Calibri Bold, 28-32pt |
+| Font Konten | Calibri Regular, 18-22pt |
+| Font Kode | Consolas / Courier New, 14-16pt |
+| Warna Primer | Hijau (#2e7d32) |
+| Warna Sekunder | Abu-abu (#5f6368) |
+| Warna Aksen | Oranye (#f9a825) untuk highlight penting |
+| Warna Peringatan | Merah (#d32f2f) untuk catatan penting |
+| Background | Putih dengan subtle gradient hijau |
+| Diagram | Gunakan warna kontras, garis tebal 2pt |
+| Ikon | Material Design Icons atau Font Awesome |
 
-### Font
-- Heading: Roboto Bold, 32-44pt
-- Body: Open Sans Regular, 18-24pt
-- Code: Fira Code / JetBrains Mono, 14-16pt
+## 📐 Tips Pembuatan
 
-### Elemen Visual
-- Gunakan diagram waveform untuk setiap konsep
-- Animasi untuk proses konversi
-- Code dengan syntax highlighting
-- Perbandingan side-by-side STM32 vs ESP32
-
-### Tips Presentasi
-1. Demo langsung dengan oscilloscope jika tersedia
-2. Tunjukkan waveform real-time
-3. Biarkan mahasiswa mengubah parameter
-4. Bandingkan output DAC vs PWM filtered
+1. **Satu ide per slide** - Jangan memuat terlalu banyak informasi
+2. **Visual > Teks** - Gunakan diagram rangkaian dan grafik transfer function
+3. **Animasi sederhana** - Fade in untuk poin-poin, appear untuk diagram bertahap
+4. **Konsisten** - Gunakan layout dan format yang sama di seluruh slide
+5. **Catatan presenter** - Tambahkan catatan detail di bagian notes setiap slide

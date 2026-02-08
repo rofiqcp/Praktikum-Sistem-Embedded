@@ -1,132 +1,163 @@
-# Referensi Modul 06: I2C Bus dan Sensor Integration
+# 📚 Referensi Modul 06: I2C & Sensor
 
-## 📚 Dokumentasi Resmi
+## 📖 Referensi Utama
 
-### STM32 Documentation
-| Dokumen | Deskripsi | Link |
-|---------|-----------|------|
-| **RM0008** | STM32F1 Reference Manual - I2C Chapter | [ST.com](https://www.st.com/resource/en/reference_manual/rm0008-stm32f101xx-stm32f102xx-stm32f103xx-stm32f105xx-and-stm32f107xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf) |
-| **AN4235** | I2C Timing Configuration Tool | [ST.com](https://www.st.com/resource/en/application_note/an4235-i2c-timing-configuration-tool-for-stm32f3xxxx-and-stm32f0xxxx-microcontrollers-stmicroelectronics.pdf) |
-| **HAL I2C Driver** | STM32 HAL I2C Documentation | [ST GitHub](https://github.com/STMicroelectronics/stm32f1xx_hal_driver) |
-| **AN2824** | STM32 I2C Optimized Examples | [ST.com](https://www.st.com/resource/en/application_note/an2824-stm32f10xxx-i2c-optimized-examples-stmicroelectronics.pdf) |
+### 1. Dokumentasi Resmi ESP-IDF
+| No | Judul | URL | Topik |
+|----|-------|-----|-------|
+| 1 | ESP-IDF I2C Driver | https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/i2c.html | I2C master/slave driver |
+| 2 | ESP-IDF I2C Example | https://github.com/espressif/esp-idf/tree/master/examples/peripherals/i2c | Contoh implementasi |
+| 3 | ESP32 Technical Reference | https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf | Ch.11: I2C Controller |
+| 4 | ESP32-S2 I2C | https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/api-reference/peripherals/i2c.html | I2C pada ESP32-S2 |
+| 5 | ESP32-S3 I2C | https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/peripherals/i2c.html | I2C pada ESP32-S3 |
 
-### ESP32 Documentation
-| Dokumen | Deskripsi | Link |
-|---------|-----------|------|
-| **ESP32 TRM** | Technical Reference Manual - I2C | [Espressif](https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf) |
-| **ESP-IDF I2C** | ESP-IDF I2C Driver API | [Espressif Docs](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/i2c.html) |
-| **Arduino Wire** | ESP32 Wire Library | [Arduino Reference](https://www.arduino.cc/reference/en/language/functions/communication/wire/) |
+### 2. Dokumentasi STM32 HAL
+| No | Judul | URL | Topik |
+|----|-------|-----|-------|
+| 1 | STM32F1 HAL I2C | https://www.st.com/resource/en/reference_manual/rm0008-stm32f101xx-stm32f102xx-stm32f103xx-stm32f105xx-and-stm32f107xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf | Ch.26: I2C Interface |
+| 2 | STM32F4 HAL I2C | https://www.st.com/resource/en/reference_manual/rm0383-stm32f411xce-advanced-armbased-32bit-mcus-stmicroelectronics.pdf | Ch.18: I2C Interface |
+| 3 | HAL I2C API | https://www.st.com/resource/en/user_manual/um1725-description-of-stm32f4-hal-and-lowlayer-drivers-stmicroelectronics.pdf | HAL_I2C functions |
+| 4 | AN4235: I2C Timing Config | https://www.st.com/resource/en/application_note/an4235-i2c-timing-configuration-tool-for-stm32f3xxxx-and-stm32f0xxxx-microcontrollers-stmicroelectronics.pdf | I2C timing setup |
 
-### I2C Standard
-| Dokumen | Deskripsi | Link |
-|---------|-----------|------|
-| **I2C Specification** | NXP I2C-bus Specification v6 | [NXP](https://www.nxp.com/docs/en/user-guide/UM10204.pdf) |
-| **SMBus Spec** | System Management Bus Specification | [SMBus.org](http://smbus.org/specs/) |
-
----
-
-## 📖 Datasheet Komponen
-
-### BME280 - Environmental Sensor
-| Item | Link |
-|------|------|
-| Datasheet | [Bosch Sensortec](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf) |
-| Arduino Library | [Adafruit BME280](https://github.com/adafruit/Adafruit_BME280_Library) |
-| Official Driver | [Bosch GitHub](https://github.com/BoschSensortec/BME280_driver) |
-
-### SSD1306 - OLED Display
-| Item | Link |
-|------|------|
-| Datasheet | [Solomon Systech](https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf) |
-| Arduino Library | [Adafruit SSD1306](https://github.com/adafruit/Adafruit_SSD1306) |
-| U8g2 Alternative | [U8g2 Library](https://github.com/olikraus/u8g2) |
-
-### DS3231 - RTC
-| Item | Link |
-|------|------|
-| Datasheet | [Maxim/Analog](https://www.analog.com/media/en/technical-documentation/data-sheets/DS3231.pdf) |
-| Arduino Library | [RTClib](https://github.com/adafruit/RTClib) |
-
-### 24LC256 - EEPROM
-| Item | Link |
-|------|------|
-| Datasheet | [Microchip](https://ww1.microchip.com/downloads/en/DeviceDoc/24AA256-24LC256-24FC256-Data-Sheet-20001203W.pdf) |
+### 3. Buku Teks
+| No | Judul | Penulis | Bab/Halaman |
+|----|-------|---------|-------------|
+| 1 | Mastering STM32 (2nd Ed.) | Carmine Noviello | Ch.14: I2C |
+| 2 | Kolban's Book on ESP32 | Neil Kolban | p.269-274: I2C |
+| 3 | The Definitive Guide to ARM Cortex-M3/M4 | Joseph Yiu | Ch.15: Communication |
+| 4 | Embedded Systems with ARM Cortex-M | Yifeng Zhu | Ch.22: I2C Protocol |
 
 ---
 
-## 🎓 Tutorial
+## 📋 Datasheet Sensor & Modul
 
-### I2C Fundamentals
-1. **Sparkfun I2C Tutorial** - [learn.sparkfun.com/tutorials/i2c](https://learn.sparkfun.com/tutorials/i2c)
-2. **Understanding I2C** - [Analog.com](https://www.analog.com/en/technical-articles/i2c-primer-what-is-i2c-part-1.html)
+### Sensor Suhu & Tekanan
+| No | Komponen | Datasheet | Address | Keterangan |
+|----|----------|-----------|---------|------------|
+| 1 | BMP280 | https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmp280-ds001.pdf | 0x76/0x77 | Temp + Pressure, 16-20 bit |
+| 2 | BME280 | https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf | 0x76/0x77 | + Humidity (alternatif) |
+| 3 | SHT31 | https://sensirion.com/media/documents/213E6A3B/63A5A569/Datasheet_SHT3x_DIS.pdf | 0x44/0x45 | High-accuracy temp+humidity |
 
-### STM32 I2C
-1. **STM32 I2C Tutorial** - [DeepBlue Embedded](https://deepbluembedded.com/stm32-i2c-tutorial-hal-examples-slave-dma/)
-2. **STM32 HAL I2C** - [Controllers Tech](https://controllerstech.com/stm32-i2c-configuration-using-registers/)
+### Sensor Cahaya
+| No | Komponen | Datasheet | Address | Keterangan |
+|----|----------|-----------|---------|------------|
+| 1 | BH1750 (GY-302) | https://www.mouser.com/datasheet/2/348/bh1750fvi-e-186247.pdf | 0x23/0x5C | Digital ambient light, 1-65535 lux |
 
-### ESP32 I2C
-1. **ESP32 I2C Tutorial** - [RandomNerdTutorials](https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/)
-2. **ESP32 Multiple I2C** - [LastMinuteEngineers](https://lastminuteengineers.com/esp32-i2c-tutorial/)
+### Sensor Gerak (IMU)
+| No | Komponen | Datasheet | Address | Keterangan |
+|----|----------|-----------|---------|------------|
+| 1 | MPU6050 | https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Datasheet1.pdf | 0x68/0x69 | Accel + Gyro 6-axis |
+| 2 | MPU9250 | https://invensense.tdk.com/wp-content/uploads/2015/02/PS-MPU-9250A-01-v1.1.pdf | 0x68/0x69 | 9-axis IMU (+ magnetometer) |
 
-### Sensor Integration
-1. **BME280 with ESP32** - [RandomNerdTutorials](https://randomnerdtutorials.com/esp32-bme280-arduino-ide-pressure-temperature-humidity/)
-2. **SSD1306 OLED** - [LastMinuteEngineers](https://lastminuteengineers.com/oled-display-esp32-tutorial/)
-3. **DS3231 RTC** - [LastMinuteEngineers](https://lastminuteengineers.com/ds3231-rtc-arduino-tutorial/)
+### RTC (Real-Time Clock)
+| No | Komponen | Datasheet | Address | Keterangan |
+|----|----------|-----------|---------|------------|
+| 1 | DS3231 | https://datasheets.maximintegrated.com/en/ds/DS3231.pdf | 0x68 | High-precision RTC ±2ppm |
+| 2 | PCF8563 | https://www.nxp.com/docs/en/data-sheet/PCF8563.pdf | 0x51 | Low-power RTC (alternatif) |
 
----
+### EEPROM
+| No | Komponen | Datasheet | Address | Keterangan |
+|----|----------|-----------|---------|------------|
+| 1 | AT24C32 | https://ww1.microchip.com/downloads/en/DeviceDoc/doc0336.pdf | 0x50-0x57 | 32Kbit (4KB), 32-byte page |
+| 2 | AT24C256 | https://ww1.microchip.com/downloads/en/DeviceDoc/AT24C256C-I2C-Compatible-Two-Wire-Serial-EEPROM-20006066A.pdf | 0x50-0x57 | 256Kbit (32KB) |
 
-## 📝 Paper/Artikel
+### Display OLED
+| No | Komponen | Datasheet | Address | Keterangan |
+|----|----------|-----------|---------|------------|
+| 1 | SSD1306 | https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf | 0x3C/0x3D | 128×64 monochrome OLED |
+| 2 | SH1106 | https://www.velleman.eu/downloads/29/infosheets/sh1106_datasheet.pdf | 0x3C/0x3D | 128×64 (alternatif, page mode) |
 
-### Academic Resources
-1. "Analysis of I2C Protocol for Embedded Systems" - IEEE
-2. "Multi-Sensor Data Fusion using I2C" - Sensors Journal
-3. "Low-Power I2C Communication Optimization" - ACM
-
-### Books
-| Judul | Penulis | Topik |
-|-------|---------|-------|
-| **Mastering STM32** (2nd Ed) | Carmine Noviello | Chapter 13-14: I2C |
-| **Programming with STM32** | Donald Norris | I2C Communication |
-| **I2C Bus: Theory to Practice** | Dominique Paret | Complete I2C Reference |
-
----
-
-## 🎥 Video
-
-### I2C Basics
-1. **Phil's Lab - I2C Protocol Explained** - [YouTube](https://www.youtube.com/watch?v=_fgWQ3TIhyE)
-2. **EEVblog - I2C Tutorial** - [YouTube](https://www.youtube.com/watch?v=ERLj4D3gA_w)
-
-### STM32 I2C
-1. **Controllerstech - STM32 I2C Masterclass** - [YouTube Playlist](https://www.youtube.com/playlist?list=PLfIJKC1ud8ggRvaEsMjSEDazoBvt4IPqU)
-2. **DigiKey - STM32 HAL I2C** - [YouTube](https://www.youtube.com/watch?v=isOekyygpR8)
-
-### ESP32 I2C
-1. **DroneBot Workshop - ESP32 I2C** - [YouTube](https://www.youtube.com/watch?v=7kYvbMR0OAA)
-2. **Andreas Spiess - ESP32 Multiple I2C** - [YouTube](https://www.youtube.com/watch?v=2_pDdGdknPA)
+### I/O Expander
+| No | Komponen | Datasheet | Address | Keterangan |
+|----|----------|-----------|---------|------------|
+| 1 | PCF8574 | https://www.ti.com/lit/ds/symlink/pcf8574.pdf | 0x20-0x27 | 8-bit I/O expander |
+| 2 | MCP23017 | https://ww1.microchip.com/downloads/en/devicedoc/20001952c.pdf | 0x20-0x27 | 16-bit I/O expander |
 
 ---
 
-## 🛠️ Tools
+## 📐 Spesifikasi Protokol I2C
 
-| Tool | Deskripsi | Link |
-|------|-----------|------|
-| **PlatformIO** | IDE untuk STM32 & ESP32 | [platformio.org](https://platformio.org/) |
-| **STM32CubeIDE** | Official ST IDE | [ST.com](https://www.st.com/en/development-tools/stm32cubeide.html) |
-| **Wokwi** | ESP32 Simulator | [wokwi.com](https://wokwi.com/) |
-| **Logic Analyzer** | Saleae Logic | [saleae.com](https://www.saleae.com/) |
+### Dokumen Standar
+| No | Judul | URL | Keterangan |
+|----|-------|-----|------------|
+| 1 | I2C-bus Specification (NXP) | https://www.nxp.com/docs/en/user-guide/UM10204.pdf | Standar resmi I2C rev.7 |
+| 2 | SMBus Specification | http://smbus.org/specs/ | System Management Bus |
 
----
+### Parameter Electrical I2C
 
-## 📋 I2C Address Quick Reference
-
-| Device | 7-bit Address | Read | Write |
-|--------|---------------|------|-------|
-| BME280 | 0x76/0x77 | 0xED/0xEF | 0xEC/0xEE |
-| SSD1306 | 0x3C/0x3D | 0x79/0x7B | 0x78/0x7A |
-| DS3231 | 0x68 | 0xD1 | 0xD0 |
-| 24LC256 | 0x50-0x57 | 0xA1-0xAF | 0xA0-0xAE |
+| Parameter | Standard Mode | Fast Mode | Fast Mode Plus |
+|-----------|:------------:|:---------:|:--------------:|
+| Clock Speed | 100 kHz | 400 kHz | 1 MHz |
+| Rise Time (max) | 1000 ns | 300 ns | 120 ns |
+| Fall Time (max) | 300 ns | 300 ns | 120 ns |
+| Pull-up (typical) | 10 kΩ | 4.7 kΩ | 2.2 kΩ |
+| Bus Capacitance (max) | 400 pF | 400 pF | 550 pF |
 
 ---
 
-*Terakhir diperbarui: 2024*
+## 🔗 Tutorial & Artikel Pendukung
+
+### ESP32 + I2C
+| No | Judul | URL |
+|----|-------|-----|
+| 1 | ESP32 I2C Communication Tutorial | https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/ |
+| 2 | ESP32 BMP280 Tutorial | https://randomnerdtutorials.com/esp32-bmp280-arduino-ide-pressure-temperature/ |
+| 3 | ESP32 SSD1306 OLED Guide | https://randomnerdtutorials.com/esp32-ssd1306-oled-display-arduino-ide/ |
+| 4 | ESP32 MPU6050 Tutorial | https://randomnerdtutorials.com/esp32-mpu-6050-accelerometer-gyroscope-arduino/ |
+
+### STM32 + I2C
+| No | Judul | URL |
+|----|-------|-----|
+| 1 | STM32 I2C HAL Tutorial | https://deepbluembedded.com/stm32-i2c-tutorial-hal-examples-slave-dma/ |
+| 2 | STM32 BMP280 HAL | https://controllerstech.com/stm32-i2c-configuration-using-registers/ |
+| 3 | STM32 OLED SSD1306 | https://controllerstech.com/oled-display-using-i2c-stm32/ |
+| 4 | Mastering STM32 I2C | https://controllerstech.com/stm32-i2c-configuration-using-registers/ |
+
+### Python Serial & Analisis Data
+| No | Judul | URL |
+|----|-------|-----|
+| 1 | PySerial Documentation | https://pyserial.readthedocs.io/en/latest/ |
+| 2 | Matplotlib Real-time Plot | https://matplotlib.org/stable/api/animation_api.html |
+| 3 | Python CSV Module | https://docs.python.org/3/library/csv.html |
+
+---
+
+## 🛠️ Tools & Software
+
+### Development
+| Tool | Fungsi | URL |
+|------|--------|-----|
+| PlatformIO | Build system | https://platformio.org/ |
+| STM32CubeMX | STM32 config generator | https://www.st.com/stm32cubemx |
+| ESP-IDF Extension | VS Code extension | https://marketplace.visualstudio.com/items?itemName=espressif.esp-idf-extension |
+
+### Debug & Analysis
+| Tool | Fungsi | URL |
+|------|--------|-----|
+| Logic Analyzer (Saleae) | Decode I2C bus traffic | https://www.saleae.com/ |
+| PulseView (Sigrok) | Open-source logic analyzer | https://sigrok.org/wiki/PulseView |
+| I2C Scanner | Detect devices on bus | Built-in (Percobaan 01) |
+| i2c-tools (Linux) | CLI I2C debug | `apt install i2c-tools` |
+
+---
+
+## 📊 Tabel Address I2C Umum
+
+| Address (7-bit) | Device | Keterangan |
+|:----------------:|--------|------------|
+| 0x20-0x27 | PCF8574 / MCP23017 | I/O Expander |
+| 0x23, 0x5C | BH1750 | Light Sensor |
+| 0x3C, 0x3D | SSD1306 / SH1106 | OLED Display |
+| 0x44, 0x45 | SHT31 | Temp/Humidity |
+| 0x48-0x4F | ADS1115 | ADC 16-bit |
+| 0x50-0x57 | AT24Cxx | EEPROM |
+| 0x68 | DS3231 / MPU6050 | RTC / IMU |
+| 0x69 | MPU6050 (AD0=H) | IMU alternate |
+| 0x76, 0x77 | BMP280 / BME280 | Temp/Pressure |
+
+> ⚠️ **Konflik Address**: DS3231 (0x68) dan MPU6050 (0x68) tidak bisa digunakan bersamaan tanpa I2C multiplexer (TCA9548A).
+
+---
+
+*Modul 06 — Praktikum Sistem Embedded*
+*Daftar Referensi I2C & Sensor*

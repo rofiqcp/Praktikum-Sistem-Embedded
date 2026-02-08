@@ -1,259 +1,125 @@
-# Rubrik Penilaian Tugas Video
-## Modul 05: DAC & PWM Output
+# 🎥 Rubrik Penilaian Tugas Video - Modul 05: DAC & PWM (Digital-to-Analog Converter & Pulse Width Modulation)
 
-### 📋 Informasi Tugas
+## 📋 Informasi Umum
 
 | Item | Detail |
 |------|--------|
-| **Nama Tugas** | Video Dokumentasi Praktikum DAC & PWM |
-| **Durasi Video** | 5-8 menit |
-| **Format** | MP4, minimum 720p |
-| **Platform Upload** | YouTube (Unlisted) / Google Drive |
-| **Bobot dalam Nilai Akhir** | 20% |
+| **Modul** | 05 - DAC & PWM (Digital-to-Analog Converter & Pulse Width Modulation) |
+| **Jenis Tugas** | Video Demonstrasi & Penjelasan Praktikum DAC & PWM |
+| **Durasi** | 5-10 menit |
+| **Format** | MP4 / MKV (resolusi minimal 720p) |
+| **Pengumpulan** | Upload ke Google Drive / YouTube (unlisted) + link di laporan |
 
 ---
 
 ## 🎯 Tujuan Tugas Video
 
-1. Mendokumentasikan proses dan hasil praktikum
-2. Menjelaskan pemahaman konsep DAC dan PWM
-3. Mendemonstrasikan implementasi pada STM32 dan ESP32
-4. Menganalisis perbedaan dan kegunaan masing-masing metode
+Mahasiswa membuat video yang mendemonstrasikan pemahaman konsep DAC dan PWM serta kemampuan implementasi pada mikrokontroler (ESP32/STM32), meliputi penjelasan teori, demo hardware (speaker, LED RGB, servo, buzzer), dan analisis hasil.
 
 ---
 
-## 📝 Struktur Video yang Diharapkan
+## 📏 Rubrik Penilaian Detail
 
-### Bagian 1: Pembukaan (30-45 detik)
-- Perkenalan (nama, NIM, kelompok)
-- Judul praktikum
-- Overview singkat apa yang akan didemonstrasikan
+### 1. Konten Teknis (35%)
 
-### Bagian 2: Penjelasan Teori (1-2 menit)
-- Konsep DAC (Digital-to-Analog Converter)
-- Konsep PWM (Pulse Width Modulation)
-- Perbedaan fundamental keduanya
-
-### Bagian 3: Demo STM32 (1.5-2 menit)
-- Setup hardware
-- DAC output demonstration
-- PWM output demonstration
-- Penjelasan kode singkat
-
-### Bagian 4: Demo ESP32 (1.5-2 menit)
-- Setup hardware
-- DAC output demonstration
-- PWM dengan LEDC demonstration
-- Penjelasan kode singkat
-
-### Bagian 5: Analisis & Perbandingan (1-1.5 menit)
-- Perbandingan output oscilloscope (jika ada)
-- Kapan menggunakan DAC vs PWM
-- Aplikasi praktis
-
-### Bagian 6: Penutup (30-45 detik)
-- Kesimpulan pembelajaran
-- Challenges yang dihadapi
-- Credits
+| Aspek | Excellent (86-100) | Good (71-85) | Satisfactory (56-70) | Poor (0-55) |
+|-------|:-------------------:|:------------:|:--------------------:|:-----------:|
+| **Penjelasan Konsep DAC** | Menjelaskan prinsip DAC (R-2R, resolusi 8-bit), perbedaan DAC murni vs PWM+filter, lookup table sine wave dengan benar dan mendalam | Menjelaskan konsep dasar DAC dengan benar tetapi kurang mendalam | Penjelasan DAC kurang tepat atau sangat dangkal | Tidak menjelaskan konsep DAC atau penjelasan salah |
+| **Penjelasan Konsep PWM** | Menjelaskan duty cycle, frekuensi, resolusi, perhitungan parameter LEDC/Timer, relasi PWM-servo/LED/buzzer dengan detail | Menjelaskan sebagian besar konsep PWM dengan benar | Penjelasan PWM kurang tepat atau sangat dangkal | Tidak menjelaskan konsep PWM atau penjelasan salah |
+| **Penjelasan Kode** | Menjelaskan alur program, konfigurasi LEDC/Timer, lookup table, perhitungan frekuensi, logika menu serial | Menjelaskan sebagian besar kode dengan cukup jelas | Penjelasan kode sangat singkat | Tidak menjelaskan kode program |
+| **Konfigurasi Hardware** | Menjelaskan koneksi speaker+kapasitor, LED RGB+resistor, servo+power, buzzer, potensiometer dengan detail pin | Menjelaskan koneksi sebagian komponen | Menyebutkan komponen tetapi tidak detail | Tidak membahas koneksi hardware |
+| **Analisis Hasil** | Menganalisis kualitas output: bentuk gelombang, kehalusan warna LED, akurasi sudut servo, ketepatan nada melodi | Melakukan analisis sederhana terhadap hasil | Menyebutkan hasil tanpa analisis | Tidak ada analisis hasil |
 
 ---
 
-## 🎯 Rubrik Penilaian Detail
+### 2. Demonstrasi Praktik (30%)
 
-### A. Konten & Substansi (40%)
-
-#### A1. Penjelasan Teori (15%)
-
-| Kriteria | Excellent (4) | Good (3) | Fair (2) | Poor (1) | Score |
-|----------|---------------|----------|----------|----------|-------|
-| **Pemahaman DAC** | Menjelaskan prinsip kerja, resolusi, formula dengan benar | Penjelasan cukup, minor error | Penjelasan dasar saja | Tidak menjelaskan/salah | |
-| **Pemahaman PWM** | Menjelaskan duty cycle, frequency, aplikasi dengan benar | Penjelasan cukup | Penjelasan dasar | Tidak menjelaskan/salah | |
-| **Perbandingan** | Membandingkan DAC vs PWM dengan insight mendalam | Perbandingan cukup | Perbandingan surface | Tidak ada perbandingan | |
-
-**Subtotal A1:** ___/12 × 1.25 = ___/15
-
-#### A2. Demonstrasi Praktikum (15%)
-
-| Kriteria | Excellent (4) | Good (3) | Fair (2) | Poor (1) | Score |
-|----------|---------------|----------|----------|----------|-------|
-| **Demo STM32** | Semua program DAC & PWM didemonstrasikan dengan jelas | Mayoritas program didemonstrasikan | Beberapa program saja | Demo minimal/tidak ada | |
-| **Demo ESP32** | Semua program DAC & PWM didemonstrasikan dengan jelas | Mayoritas program didemonstrasikan | Beberapa program saja | Demo minimal/tidak ada | |
-| **Penjelasan Kode** | Menjelaskan bagian kunci kode dengan jelas | Penjelasan kode cukup | Hanya menunjukkan kode | Tidak ada penjelasan kode | |
-
-**Subtotal A2:** ___/12 × 1.25 = ___/15
-
-#### A3. Analisis & Kesimpulan (10%)
-
-| Kriteria | Excellent (4) | Good (3) | Fair (2) | Poor (1) | Score |
-|----------|---------------|----------|----------|----------|-------|
-| **Analisis Hasil** | Menganalisis dengan data/measurement | Analisis kualitatif baik | Analisis dangkal | Tidak ada analisis | |
-| **Kesimpulan** | Kesimpulan komprehensif, learning takeaways jelas | Kesimpulan cukup | Kesimpulan singkat | Tidak ada kesimpulan | |
-
-**Subtotal A3:** ___/8 × 1.25 = ___/10
+| Aspek | Excellent (86-100) | Good (71-85) | Satisfactory (56-70) | Poor (0-55) |
+|-------|:-------------------:|:------------:|:--------------------:|:-----------:|
+| **Demo Generator Gelombang** | Mendemonstrasikan output DAC ke speaker: sine wave dan triangle wave terdengar jelas, frekuensi diatur potensiometer real-time | Demo output DAC terdengar tetapi hanya 1 jenis gelombang | Output DAC terdengar tetapi tidak jelas atau tanpa kontrol frekuensi | Demo DAC gagal atau tidak dilakukan |
+| **Demo LED RGB** | Mendemonstrasikan semua efek (fade, rainbow, breathing) dengan transisi warna yang terlihat jelas, kecerahan diatur potensiometer | Demo 2 efek LED RGB | Demo 1 efek LED saja | Demo LED RGB gagal atau tidak dilakukan |
+| **Demo Servo Motor** | Mendemonstrasikan kontrol servo via potensiometer (0°-180°), mode sweep otomatis, gerakan halus tanpa jitter | Servo merespons potensiometer tetapi kurang halus | Servo bergerak tetapi tanpa demo kontrol potensiometer | Demo servo gagal atau tidak dilakukan |
+| **Demo Melody & Menu** | Mendemonstrasikan minimal 2 melodi via buzzer, menu serial lengkap, pemilihan mode berjalan lancar | Demo 1 melodi dan menu sebagian berfungsi | Buzzer berbunyi monoton, menu minimal | Demo melody/menu gagal atau tidak dilakukan |
 
 ---
 
-### B. Kualitas Teknis Video (30%)
+### 3. Kualitas Presentasi (20%)
 
-#### B1. Kualitas Visual (15%)
-
-| Kriteria | Excellent (4) | Good (3) | Fair (2) | Poor (1) | Score |
-|----------|---------------|----------|----------|----------|-------|
-| **Resolusi Video** | 1080p atau lebih tinggi | 720p | 480p | Di bawah 480p | |
-| **Pencahayaan** | Terang, jelas, semua detail terlihat | Cukup terang | Agak gelap | Gelap/tidak jelas | |
-| **Framing** | Hardware dan layar terlihat jelas, angle optimal | Framing baik | Kadang tidak fokus | Framing buruk | |
-| **Stabilitas** | Stabil, tidak goyang | Sedikit goyang | Cukup goyang | Sangat goyang | |
-
-**Subtotal B1:** ___/16 × 0.94 = ___/15
-
-#### B2. Kualitas Audio (10%)
-
-| Kriteria | Excellent (4) | Good (3) | Fair (2) | Poor (1) | Score |
-|----------|---------------|----------|----------|----------|-------|
-| **Kejelasan Suara** | Narasi jelas, mudah dipahami | Cukup jelas | Kadang tidak jelas | Sulit dipahami | |
-| **Background Noise** | Tidak ada noise mengganggu | Minimal noise | Noise cukup banyak | Noise sangat mengganggu | |
-
-**Subtotal B2:** ___/8 × 1.25 = ___/10
-
-#### B3. Editing (5%)
-
-| Kriteria | Excellent (4) | Good (3) | Fair (2) | Poor (1) | Score |
-|----------|---------------|----------|----------|----------|-------|
-| **Flow & Transisi** | Smooth, professional transitions | Editing baik | Editing minimal | Tidak ada editing | |
-| **Text/Overlay** | Ada label, subtitle, highlight yang membantu | Beberapa text overlay | Minimal | Tidak ada | |
-
-**Subtotal B3:** ___/8 × 0.625 = ___/5
+| Aspek | Excellent (86-100) | Good (71-85) | Satisfactory (56-70) | Poor (0-55) |
+|-------|:-------------------:|:------------:|:--------------------:|:-----------:|
+| **Kejelasan Komunikasi** | Penjelasan jelas, sistematis, percaya diri, menggunakan istilah teknis (duty cycle, LEDC, ARR, CCR) dengan tepat, tempo bicara baik | Penjelasan cukup jelas dan sistematis | Penjelasan kurang jelas atau terlalu cepat/lambat | Penjelasan membingungkan atau tidak terstruktur |
+| **Alur Presentasi** | Alur logis: Pendahuluan → Teori singkat DAC & PWM → Demo hardware → Demo setiap mode → Analisis → Kesimpulan | Alur cukup logis dengan sedikit lompatan | Alur kurang terstruktur | Tidak ada alur yang jelas |
+| **Penggunaan Visual** | Menggunakan zoom pada komponen, highlight kode, anotasi, diagram timing PWM, atau slide pendukung | Beberapa visual pendukung digunakan | Visual minim, hanya tangkapan layar | Tidak ada visual pendukung |
+| **Durasi & Pacing** | Durasi 5-10 menit, setiap bagian mendapat porsi waktu yang proporsional | Durasi sesuai tetapi distribusi kurang proporsional | Durasi terlalu singkat (<5 mnt) atau panjang (>12 mnt) | Durasi sangat tidak sesuai (<3 mnt atau >15 mnt) |
 
 ---
 
-### C. Penyampaian (20%)
+### 4. Kualitas Produksi Video (15%)
 
-| Kriteria | Excellent (4) | Good (3) | Fair (2) | Poor (1) | Score |
-|----------|---------------|----------|----------|----------|-------|
-| **Kejelasan Bicara** | Artikulasi jelas, pace tepat | Cukup jelas | Kadang tidak jelas | Sulit dipahami | |
-| **Confidence** | Percaya diri, natural | Cukup percaya diri | Agak nervous | Sangat nervous/reading script | |
-| **Engagement** | Menarik, antusias | Cukup engaging | Monoton | Membosankan | |
-| **Bahasa** | Bahasa Indonesia/Inggris baik dan benar | Minor grammatical errors | Cukup banyak error | Banyak error | |
-| **Durasi** | Sesuai (5-8 menit) | Sedikit over/under (±1 menit) | Cukup berbeda (±2 menit) | Sangat berbeda | |
-
-**Subtotal C:** ___/20
+| Aspek | Excellent (86-100) | Good (71-85) | Satisfactory (56-70) | Poor (0-55) |
+|-------|:-------------------:|:------------:|:--------------------:|:-----------:|
+| **Kualitas Gambar** | Resolusi ≥720p, pencahayaan baik, LED RGB dan rangkaian terlihat jelas, Serial Monitor terbaca, fokus tajam | Resolusi cukup, sebagian besar terlihat jelas | Gambar agak buram tetapi masih bisa dilihat | Gambar sangat buram, tidak terlihat jelas |
+| **Kualitas Audio** | Suara presenter jelas, output speaker/buzzer terdengar, noise latar minimal, volume konsisten | Suara cukup jelas, sedikit noise | Suara kurang jelas, noise cukup mengganggu | Suara tidak terdengar atau sangat bising |
+| **Editing** | Video diedit dengan baik: transisi smooth, teks overlay, zoom ke detail penting (LED menyala, servo berputar), intro/outro | Editing cukup baik dengan beberapa elemen | Editing minimal, video mentah | Tidak ada editing, banyak bagian tidak relevan |
 
 ---
 
-### D. Kelengkapan & Kepatuhan (10%)
+## 📊 Ringkasan Bobot Penilaian
 
-| Kriteria | Excellent (4) | Good (3) | Fair (2) | Poor (1) | Score |
-|----------|---------------|----------|----------|----------|-------|
-| **Struktur Video** | Mengikuti struktur yang diminta lengkap | Mayoritas struktur ada | Beberapa bagian hilang | Tidak terstruktur | |
-| **Deadline** | Tepat waktu | Terlambat 1 hari | Terlambat 2-3 hari | Terlambat >3 hari | |
+| No | Komponen | Bobot | Deskripsi |
+|----|----------|:-----:|-----------|
+| 1 | Konten Teknis | 35% | Pemahaman DAC, PWM, kode, konfigurasi, analisis |
+| 2 | Demonstrasi Praktik | 30% | Demo gelombang DAC, LED RGB, servo, melody, menu |
+| 3 | Kualitas Presentasi | 20% | Komunikasi, alur, visual, durasi |
+| 4 | Kualitas Produksi | 15% | Gambar, audio, editing |
+| | **Total** | **100%** | |
 
-**Subtotal D:** ___/8 × 1.25 = ___/10
+## 📐 Rumus Perhitungan Nilai
 
----
+$$\text{Nilai Video} = (0.35 \times N_1) + (0.30 \times N_2) + (0.20 \times N_3) + (0.15 \times N_4)$$
 
-## 📊 Rekapitulasi Nilai
+Dimana:
+- $N_1$ = Nilai Konten Teknis (0-100)
+- $N_2$ = Nilai Demonstrasi Praktik (0-100)
+- $N_3$ = Nilai Kualitas Presentasi (0-100)
+- $N_4$ = Nilai Kualitas Produksi (0-100)
 
-| Komponen | Bobot | Nilai | Weighted |
-|----------|-------|-------|----------|
-| A. Konten & Substansi | 40% | ___/40 | ___ |
-| B. Kualitas Teknis | 30% | ___/30 | ___ |
-| C. Penyampaian | 20% | ___/20 | ___ |
-| D. Kelengkapan | 10% | ___/10 | ___ |
-| **TOTAL** | **100%** | | **___/100** |
+## 📝 Konversi Nilai Huruf
 
----
-
-## 🏆 Bonus Points (Max +10)
-
-| Kriteria Bonus | Points |
-|----------------|--------|
-| Penggunaan oscilloscope untuk verifikasi | +3 |
-| Animasi/grafik penjelasan original | +2 |
-| Subtitle/caption lengkap | +2 |
-| Perbandingan dengan datasheet | +2 |
-| Creative intro/outro | +1 |
-| B-roll footage profesional | +2 |
-
-**Total Bonus:** ___/10
+| Range Nilai | Huruf | Keterangan |
+|:-----------:|:-----:|------------|
+| 86 - 100 | A | Sangat Baik |
+| 71 - 85 | B | Baik |
+| 56 - 70 | C | Cukup |
+| 41 - 55 | D | Kurang |
+| 0 - 40 | E | Sangat Kurang |
 
 ---
 
-## ⚠️ Penalty Points
+## 📝 Checklist Sebelum Submit
 
-| Pelanggaran | Penalty |
-|-------------|---------|
-| Video > 10 menit | -5 |
-| Video < 3 menit | -10 |
-| Tidak ada demo hardware | -20 |
-| Plagiarisme video | -50 atau 0 |
-| Link video tidak dapat diakses | -100 (tidak dinilai) |
-| Audio tidak ada | -30 |
+Pastikan video Anda memenuhi kriteria berikut:
 
----
+- [ ] Durasi video antara 5-10 menit
+- [ ] Resolusi minimal 720p, gambar dan suara jelas
+- [ ] Wajah presenter terlihat minimal di pembukaan dan penutup
+- [ ] Menjelaskan konsep dasar DAC (prinsip, resolusi, tipe R-2R)
+- [ ] Menjelaskan konsep PWM (duty cycle, frekuensi, resolusi)
+- [ ] Menunjukkan rangkaian hardware (speaker, LED RGB, servo, buzzer, potensiometer)
+- [ ] Mendemonstrasikan generator gelombang (output audio ke speaker)
+- [ ] Mendemonstrasikan efek LED RGB (fade/rainbow/breathing)
+- [ ] Mendemonstrasikan kontrol servo via potensiometer
+- [ ] Mendemonstrasikan melody player (buzzer)
+- [ ] Mendemonstrasikan menu serial interaktif
+- [ ] Menjelaskan bagian kode yang penting (LEDC config, lookup table, servo mapping)
+- [ ] Ada pembukaan (identitas) dan penutup (kesimpulan)
+- [ ] Video sudah di-upload dan link dapat diakses
 
-## 📋 Checklist Sebelum Submit
+## ⚠️ Ketentuan Khusus
 
-### Konten
-- [ ] Ada penjelasan teori DAC
-- [ ] Ada penjelasan teori PWM
-- [ ] Demo STM32 DAC terlihat jelas
-- [ ] Demo STM32 PWM terlihat jelas
-- [ ] Demo ESP32 DAC terlihat jelas
-- [ ] Demo ESP32 PWM terlihat jelas
-- [ ] Ada penjelasan kode
-- [ ] Ada analisis/perbandingan
-- [ ] Ada kesimpulan
-
-### Teknis
-- [ ] Resolusi minimal 720p
-- [ ] Audio jelas dan tidak ada noise berlebih
-- [ ] Durasi 5-8 menit
-- [ ] Format MP4
-- [ ] Link dapat diakses (test dengan browser incognito)
-
-### Identitas
-- [ ] Nama dan NIM disebutkan
-- [ ] Judul praktikum disebutkan
-- [ ] Thumbnail dengan informasi yang jelas (untuk YouTube)
-
----
-
-## 📝 Catatan Penilai
-
-### Kelebihan Video:
-```
-_________________________________________________________________
-_________________________________________________________________
-```
-
-### Area yang Perlu Diperbaiki:
-```
-_________________________________________________________________
-_________________________________________________________________
-```
-
-### Feedback Khusus:
-```
-_________________________________________________________________
-_________________________________________________________________
-```
-
----
-
-## 📎 Informasi Submission
-
-**Nama/NIM:** _______________________
-
-**Kelompok:** _______________________
-
-**Link Video:** _______________________
-
-**Tanggal Submit:** _______________________
-
-**Tanggal Penilaian:** _______________________
-
-**Penilai:** _______________________
-
-**Nilai Akhir:** _______/100
-
-**Tanda Tangan:** ___________________
+1. **Identitas**: Video harus mencantumkan nama lengkap, NIM, dan kelas di awal video.
+2. **Orisinalitas**: Video harus dibuat sendiri. Video yang terbukti plagiat mendapat nilai **0**.
+3. **Deadline**: Pengumpulan link video sesuai jadwal. Keterlambatan dikenakan pengurangan **10 poin/hari**.
+4. **Aksesibilitas**: Pastikan link video dapat diakses oleh dosen (permission sharing benar).
+5. **Bahasa**: Video menggunakan **Bahasa Indonesia** yang baik dan benar.
+6. **Larangan**: Tidak diperkenankan menggunakan AI-generated voiceover untuk seluruh video.

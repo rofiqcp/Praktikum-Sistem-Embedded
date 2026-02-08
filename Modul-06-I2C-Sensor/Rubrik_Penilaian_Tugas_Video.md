@@ -1,221 +1,226 @@
-# Rubrik Penilaian Tugas Video
-## Modul 06: I2C Bus dan Sensor Integration
+# 🎬 Rubrik Penilaian Tugas Video — Modul 06: I2C & Sensor
+
+## 📋 Deskripsi Tugas
+
+Mahasiswa membuat video tutorial/demo yang menjelaskan **implementasi komunikasi I2C** dengan sensor pada ESP32 (ESP-IDF) dan/atau STM32 (HAL). Video harus mendemonstrasikan pemahaman protokol I2C, kemampuan interfacing sensor, dan analisis data menggunakan Python.
 
 ---
 
-## 📋 Informasi Tugas
+## 📐 Spesifikasi Video
 
-| Item | Keterangan |
-|------|------------|
-| **Topik** | I2C Protocol dan Multi-Sensor Integration |
-| **Platform** | STM32F103C8T6 + ESP32 DevKit V1 |
-| **Durasi Video** | 8-12 menit |
-| **Format** | MP4 (H.264), 720p minimum |
-| **Bobot Total** | 100 poin |
-
----
-
-## 📹 Struktur Video yang Diharapkan
-
-### Timeline Rekomendasi
-
-| Segmen | Durasi | Konten |
-|--------|--------|--------|
-| Opening | 0:30 | Intro, judul, nama praktikan |
-| Teori I2C | 2:00 | Penjelasan protokol dan konsep |
-| Hardware | 1:30 | Overview rangkaian dan komponen |
-| STM32 Demo | 2:30 | Demonstrasi sensor reading |
-| ESP32 Demo | 2:30 | Demonstrasi display & communication |
-| Multi-Device | 1:30 | Demo integrasi semua device |
-| Closing | 1:30 | Kesimpulan dan insights |
-| **Total** | **~12:00** | |
+| Aspek | Ketentuan |
+|-------|-----------|
+| **Durasi** | 8-15 menit |
+| **Resolusi** | Minimum 720p (1280×720) |
+| **Audio** | Narasi jelas, tidak berisik |
+| **Format** | MP4 (H.264) |
+| **Platform** | Upload ke YouTube/Google Drive |
+| **Deadline** | Sesuai jadwal di LMS |
 
 ---
 
-## 📊 Komponen Penilaian
+## A. Konten Teknis (40%)
 
-### A. Konten Teori I2C (25 poin)
+### A1. Penjelasan Protokol I2C (12%)
 
-| No | Kriteria | Poin Max | Skor |
-|----|----------|----------|------|
-| 1 | Penjelasan dasar protokol I2C (Master-Slave, SDA-SCL) | 5 | |
-| 2 | Penjelasan address format (7-bit/10-bit) | 4 | |
-| 3 | Penjelasan timing diagram (Start, Stop, ACK/NACK) | 5 | |
-| 4 | Perbedaan I2C vs protokol lain (SPI, UART) | 4 | |
-| 5 | Penjelasan pull-up resistor dan electrical requirements | 4 | |
-| 6 | Konsep multi-device pada satu bus | 3 | |
-| | **Subtotal A** | **25** | |
+| Skor | Kriteria |
+|:----:|----------|
+| 10-12 | Menjelaskan dengan benar: SDA/SCL, START/STOP, addressing 7-bit, ACK/NACK, read/write sequence, pull-up resistor. Menggunakan diagram/animasi untuk ilustrasi |
+| 7-9 | Penjelasan benar tapi kurang lengkap (beberapa konsep terlewat) |
+| 4-6 | Penjelasan dasar, beberapa kesalahan minor |
+| 1-3 | Penjelasan sangat singkat atau ada kesalahan konsep |
+| 0 | Tidak ada penjelasan protokol |
 
-**Panduan Penilaian:**
-- 5 poin: Penjelasan sangat jelas, contoh tepat, visual aid
-- 3-4 poin: Penjelasan cukup jelas, minor inaccuracies
-- 1-2 poin: Penjelasan dasar saja, ada kesalahan
-- 0 poin: Tidak dijelaskan atau salah total
+### A2. Walkthrough Kode (16%)
 
----
+| Skor | Kriteria |
+|:----:|----------|
+| 14-16 | Menjelaskan kode step-by-step: konfigurasi I2C, inisialisasi sensor, baca register, konversi data, error handling. Menunjukkan perbedaan ESP-IDF vs HAL API |
+| 10-13 | Walkthrough kode baik tapi hanya satu platform atau kurang detail error handling |
+| 6-9 | Menunjukkan kode tapi penjelasan kurang mendalam |
+| 3-5 | Kode ditunjukkan sekilas tanpa penjelasan berarti |
+| 0-2 | Tidak ada walkthrough kode |
 
-### B. Demonstrasi Praktikum (35 poin)
+### A3. Analisis Data & Python Tool (12%)
 
-| No | Kriteria | Poin Max | Skor |
-|----|----------|----------|------|
-| 1 | I2C Scanner - mendeteksi address device | 4 | |
-| 2 | BME280 sensor reading (temperature, humidity, pressure) | 6 | |
-| 3 | SSD1306 OLED display output | 6 | |
-| 4 | DS3231 RTC reading (time, date) | 5 | |
-| 5 | 24LC256 EEPROM read/write | 5 | |
-| 6 | Multi-device integration demo | 5 | |
-| 7 | Serial monitor output terlihat jelas | 4 | |
-| | **Subtotal B** | **35** | |
-
-**Panduan Penilaian Demo:**
-- Full poin: Demo berjalan lancar, output sesuai expectation
-- 70% poin: Demo berjalan dengan minor issues
-- 50% poin: Demo berjalan partial
-- <50% poin: Demo gagal atau tidak ditunjukkan
+| Skor | Kriteria |
+|:----:|----------|
+| 10-12 | Demo Python tool: parse serial data, realtime plot (suhu/tekanan/cahaya), export CSV, tampilkan statistik. Interpretasi data hasil pengukuran |
+| 7-9 | Python tool berfungsi, ada plot tapi tidak semua fitur ditunjukkan |
+| 4-6 | Python tool basic (hanya serial read atau hanya plot statis) |
+| 1-3 | Hanya menunjukkan serial monitor tanpa Python tool |
+| 0 | Tidak ada analisis data |
 
 ---
 
-### C. Kualitas Teknis Video (20 poin)
+## B. Demonstrasi Hardware (25%)
 
-| No | Kriteria | Poin Max | Skor |
-|----|----------|----------|------|
-| 1 | Resolusi minimal 720p, fokus tajam | 5 | |
-| 2 | Audio jelas, tidak ada noise berlebihan | 5 | |
-| 3 | Pencahayaan cukup, komponen terlihat jelas | 4 | |
-| 4 | Screen capture/recording berkualitas baik | 3 | |
-| 5 | Editing smooth, transisi appropriate | 3 | |
-| | **Subtotal C** | **20** | |
+### B1. Setup & Wiring (8%)
 
-**Panduan Penilaian Teknis:**
-| Aspek | Excellent (100%) | Good (75%) | Fair (50%) | Poor (<50%) |
-|-------|-----------------|------------|------------|-------------|
-| Video | 1080p, crystal clear | 720p, clear | 480p, acceptable | Blur, pixelated |
-| Audio | Clear, professional | Clear, minor noise | Understandable | Hard to hear |
-| Lighting | Perfect | Good | Acceptable | Too dark/bright |
+| Skor | Kriteria |
+|:----:|----------|
+| 7-8 | Close-up wiring yang jelas, menunjukkan koneksi SDA/SCL/VCC/GND ke setiap sensor, pull-up resistor, penjelasan pin mapping |
+| 5-6 | Wiring terlihat tapi kurang detail (tidak close-up) |
+| 3-4 | Hardware terlihat tapi koneksi tidak dijelaskan |
+| 1-2 | Sekilas menunjukkan hardware |
+| 0 | Tidak menunjukkan hardware |
 
----
+### B2. Demo Live Sensor Reading (10%)
 
-### D. Penyampaian dan Komunikasi (15 poin)
+| Skor | Kriteria |
+|:----:|----------|
+| 9-10 | Demo live: I2C scan → init sensor → baca BMP280 (suhu+tekanan) → BH1750 (cahaya) → DS3231 (waktu) → tampilkan di OLED → data logging. Semua berfungsi real-time |
+| 7-8 | Demo live minimal 3 sensor bekerja |
+| 4-6 | Demo live tapi hanya 1-2 sensor |
+| 1-3 | Demo dengan rekaman output statis (bukan live) |
+| 0 | Tidak ada demo |
 
-| No | Kriteria | Poin Max | Skor |
-|----|----------|----------|------|
-| 1 | Narasi jelas dan mudah dipahami | 5 | |
-| 2 | Sistematika penyampaian terstruktur | 4 | |
-| 3 | Penggunaan istilah teknis tepat | 3 | |
-| 4 | Tempo bicara appropriate (tidak terlalu cepat/lambat) | 3 | |
-| | **Subtotal D** | **15** | |
+### B3. Error Recovery Demo (7%)
 
----
-
-### E. Kelengkapan dan Kreativitas (5 poin)
-
-| No | Kriteria | Poin Max | Skor |
-|----|----------|----------|------|
-| 1 | Durasi sesuai (8-12 menit) | 2 | |
-| 2 | Visual aids (diagram, animasi, overlay) | 2 | |
-| 3 | Kesimpulan dan insights bermakna | 1 | |
-| | **Subtotal E** | **5** | |
+| Skor | Kriteria |
+|:----:|----------|
+| 6-7 | Demo langsung: cabut sensor saat running → sistem deteksi error → log warning → sensor dipasang kembali → recovery otomatis → pembacaan normal lagi |
+| 4-5 | Demo error detection tapi tanpa live recovery |
+| 2-3 | Menjelaskan error handling tapi tidak demo live |
+| 1 | Hanya menyebutkan error handling |
+| 0 | Tidak ada demo error handling |
 
 ---
 
-## 🌟 Bonus Points (Maximum +10 poin)
+## C. Kualitas Presentasi (20%)
 
-| No | Kriteria Bonus | Poin | Skor |
-|----|----------------|------|------|
-| 1 | Analisis timing dengan logic analyzer | +4 | |
-| 2 | Perbandingan performa STM32 vs ESP32 | +3 | |
-| 3 | Troubleshooting demo (recovery dari error) | +3 | |
-| | **Total Bonus** | **(+10)** | |
+### C1. Struktur & Alur (8%)
 
----
+| Skor | Kriteria |
+|:----:|----------|
+| 7-8 | Video terstruktur: Intro → Teori I2C → Hardware setup → Kode walkthrough → Demo live → Python analysis → Kesimpulan. Transisi smooth |
+| 5-6 | Alur jelas tapi ada bagian yang loncat-loncat |
+| 3-4 | Struktur kurang terorganisir |
+| 1-2 | Tidak ada struktur yang jelas |
+| 0 | Sangat berantakan |
 
-## ⚠️ Penalty Points
+### C2. Visual & Editing (6%)
 
-| No | Pelanggaran | Pengurangan |
-|----|-------------|-------------|
-| 1 | Durasi kurang dari 5 menit | -15 |
-| 2 | Durasi lebih dari 15 menit | -5 |
-| 3 | Tidak ada demo hardware nyata | -20 |
-| 4 | Plagiarism/copy video lain | -100 (Fail) |
-| 5 | Audio/video quality sangat buruk | -10 |
+| Skor | Kriteria |
+|:----:|----------|
+| 5-6 | Kamera jelas, screen recording tajam, zoom pada bagian penting, split screen (kode + hardware), annotation/highlight pada kode |
+| 3-4 | Visual baik tapi kurang editing (tanpa zoom/annotation) |
+| 1-2 | Visual standar, kadang blur atau gelap |
+| 0 | Kualitas visual buruk |
 
----
+### C3. Narasi & Komunikasi (6%)
 
-## 📈 Rekapitulasi Nilai
-
-| Komponen | Bobot | Skor | Nilai |
-|----------|-------|------|-------|
-| A. Konten Teori I2C | 25 | | |
-| B. Demonstrasi Praktikum | 35 | | |
-| C. Kualitas Teknis Video | 20 | | |
-| D. Penyampaian | 15 | | |
-| E. Kelengkapan & Kreativitas | 5 | | |
-| **Total Base** | **100** | | |
-| Bonus Points | (+10) | | |
-| Penalty Points | (-) | | |
-| **TOTAL AKHIR** | | | |
+| Skor | Kriteria |
+|:----:|----------|
+| 5-6 | Narasi jelas, tempo tepat, menggunakan istilah teknis dengan benar, percaya diri, tidak banyak "eee...", volume konsisten |
+| 3-4 | Narasi cukup jelas tapi kadang ragu atau terlalu cepat/lambat |
+| 1-2 | Narasi kurang jelas, banyak jeda, suara terlalu pelan |
+| 0 | Tidak ada narasi / tidak terdengar |
 
 ---
 
-## 📊 Konversi Grade
+## D. Kedalaman Teknis (15%)
 
-| Skor | Grade | Predikat |
-|------|-------|----------|
-| 85-100+ | A | Excellent - Video berkualitas profesional |
-| 75-84 | B+ | Very Good |
-| 70-74 | B | Good - Semua aspek terpenuhi |
-| 65-69 | C+ | Above Average |
-| 55-64 | C | Average - Memenuhi minimum |
-| 45-54 | D | Below Average |
-| <45 | E | Fail |
+### D1. Pemahaman I2C Protocol (8%)
+
+| Skor | Kriteria |
+|:----:|----------|
+| 7-8 | Menunjukkan pemahaman mendalam: bisa jelaskan kapan clock stretching terjadi, kenapa perlu repeated START untuk read, perbedaan polling vs interrupt I2C, address conflict resolution |
+| 5-6 | Pemahaman baik tapi kurang mendalam pada beberapa konsep |
+| 3-4 | Pemahaman dasar I2C, mengerti cara pakai tapi kurang mengerti kenapa |
+| 1-2 | Pemahaman sangat surface-level |
+| 0 | Tidak menunjukkan pemahaman |
+
+### D2. Perbandingan Platform (7%)
+
+| Skor | Kriteria |
+|:----:|----------|
+| 6-7 | Perbandingan jelas ESP-IDF vs HAL: perbedaan API (command link vs Mem_Read), addressing (7-bit vs shifted), konfigurasi pin, kelebihan masing-masing |
+| 4-5 | Perbandingan ada tapi kurang detail |
+| 2-3 | Hanya menyebutkan perbedaan sekilas |
+| 0-1 | Tidak ada perbandingan |
 
 ---
 
-## 📝 Checklist Sebelum Submit
+## 📊 Rekapitulasi Bobot
 
-### Konten
-- [ ] Intro dengan identitas praktikan
-- [ ] Penjelasan teori I2C
-- [ ] Demo I2C Scanner
-- [ ] Demo minimal 3 device I2C berbeda
-- [ ] Demo pada STM32 DAN ESP32
-- [ ] Kesimpulan dan lessons learned
+| Komponen | Bobot | Skor Max |
+|----------|:-----:|:--------:|
+| A. Konten Teknis | 40% | 40 |
+| B. Demonstrasi Hardware | 25% | 25 |
+| C. Kualitas Presentasi | 20% | 20 |
+| D. Kedalaman Teknis | 15% | 15 |
+| **Total** | **100%** | **100** |
 
-### Teknis
-- [ ] Format video MP4/MOV
+---
+
+## 📏 Konversi Nilai
+
+| Range Skor | Nilai | Predikat |
+|:----------:|:-----:|----------|
+| 85-100 | A | Sangat Baik |
+| 75-84 | B+ | Baik Sekali |
+| 65-74 | B | Baik |
+| 55-64 | C+ | Cukup Baik |
+| 45-54 | C | Cukup |
+| 35-44 | D | Kurang |
+| 0-34 | E | Sangat Kurang |
+
+---
+
+## ✅ Checklist Sebelum Submit
+
+### Konten Wajib
+- [ ] Penjelasan protokol I2C (SDA, SCL, START, STOP, ACK)
+- [ ] Close-up hardware wiring dengan penjelasan pin
+- [ ] I2C bus scan menunjukkan device terdeteksi
+- [ ] Demo pembacaan minimal 2 sensor berbeda
+- [ ] Walkthrough kode (konfigurasi + baca sensor)
+- [ ] Serial output menunjukkan data sensor
+- [ ] Python tool demo (minimal plot atau CSV export)
+
+### Konten Bonus
+- [ ] Demo OLED display menampilkan data (+3%)
+- [ ] Demo error recovery live (+3%)
+- [ ] Perbandingan ESP32 vs STM32 side-by-side (+2%)
+- [ ] Logic analyzer trace I2C communication (+2%)
+- [ ] Maximum bonus: +8%
+
+### Teknis Video
+- [ ] Durasi 8-15 menit
 - [ ] Resolusi minimal 720p
-- [ ] Audio jelas
-- [ ] File size reasonable (<500MB)
-- [ ] Durasi 8-12 menit
-
-### Etika
-- [ ] Video adalah karya original
-- [ ] Semua sumber disebutkan
-- [ ] Tidak mengandung konten inappropriate
+- [ ] Audio jelas, narasi terdengar
+- [ ] Screen recording bisa dibaca (font cukup besar)
+- [ ] Tidak ada bagian video hitam/silence panjang
 
 ---
 
-## 💬 Catatan Penilai
+## ⚠️ Ketentuan
 
-**Kekuatan Video:**
-```
-[Aspek yang baik dari video]
-```
+1. **Video 100% original** — bukan copy dari tutorial YouTube
+2. **Wajah terlihat** minimal saat intro dan penutup
+3. **Kode sendiri** — harus bisa menjelaskan setiap baris
+4. **Hardware sendiri** — foto/video hardware asli (bukan simulasi)
+5. **Keterlambatan**: -10% per hari (max -30%)
+6. **Durasi < 5 menit**: Maksimal nilai C
+7. **Durasi > 20 menit**: Tidak ada penalti tapi usahakan efisien
 
-**Area Perbaikan:**
-```
-[Saran untuk video yang lebih baik]
-```
+---
 
-**Feedback:**
+## 📋 Template Struktur Video yang Direkomendasikan
+
 ```
-[Feedback konstruktif untuk praktikan]
+[0:00 - 0:30]  Opening: Intro diri, judul project
+[0:30 - 2:00]  Teori: Penjelasan singkat I2C protocol
+[2:00 - 3:30]  Hardware: Tunjukkan wiring + komponen
+[3:30 - 6:00]  Kode: Walkthrough main.c (init, read, display)
+[6:00 - 8:00]  Demo: Live sensor reading + OLED display
+[8:00 - 9:30]  Error: Demo error recovery (cabut sensor)
+[9:30 - 11:00] Python: Demo analysis tool + plot
+[11:00- 12:00] Closing: Kesimpulan + lessons learned
 ```
 
 ---
 
-| | |
-|----------|------------|
-| **Penilai** | _________________ |
-| **Tanggal** | _________________ |
-| **Tanda Tangan** | _________________ |
+*Modul 06 — Praktikum Sistem Embedded*
+*Rubrik Penilaian Tugas Video I2C & Sensor*

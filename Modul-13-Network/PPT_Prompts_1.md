@@ -1,56 +1,66 @@
-# Prompt untuk Slide Presentasi Teori (Minggu 1)
-## Topik: Embedded Networking Basics & TCP/IP
+# Prompts untuk Pembuatan PPT — Modul 13 (Bagian 1: Teori)
 
-Buatkan outline slide presentasi yang mendalam tentang dasar jaringan untuk sistem embedded.
+## Slide 1: Judul
+**MODUL 13: Network & IoT — Konektivitas Jaringan**
+Praktikum Sistem Embedded | [Nama Institusi] | [Semester/Tahun]
 
-### Slide 1: Judul
-- **Judul**: Introduction to Embedded Networking
-- **Subjudul**: Menghubungkan Mikrokontroler ke Internet (TCP/IP & LwIP)
-- **Visual**: Ilustrasi mikrokontroler terhubung ke router WiFi dan Cloud.
+## Slide 2: Tujuan Pembelajaran
+- Memahami arsitektur IoT dan protokol jaringan
+- Mengimplementasikan WiFi, TCP/UDP, HTTP, MQTT, BLE
+- Membandingkan kemampuan network ESP32 vs STM32
+- Membangun sistem IoT end-to-end
 
-### Slide 2: Mengapa Embedded System Perlu "Online"?
-- **Poin Utama**:
-  - IoT (Internet of Things).
-  - Monitoring Jarak Jauh (Telemetry).
-  - Kontrol Jarak Jauh (Remote Control).
-  - OTA (Over-The-Air) Updates.
-- **Visual**: Diagram blok sistem IoT sederhana (Sensor -> MCU -> Cloud -> User).
+## Slide 3: Arsitektur IoT
+- Diagram 4 layer: Device → Network → Cloud → Application
+- Contoh: Sensor DHT22 → ESP32 → MQTT → Dashboard
 
-### Slide 3: OSI Model vs TCP/IP Model
-- **Poin Utama**:
-  - Penjelasan singkat 7 Layer OSI.
-  - Fokus pada 4 Layer TCP/IP: Link, Internet, Transport, Application.
-  - Perbandingan keduanya.
-- **Visual**: Diagram piramida perbandingan OSI vs TCP/IP.
+## Slide 4: Model TCP/IP
+- 4 layer: Application, Transport, Internet, Network Access
+- Mapping dengan protokol: HTTP/MQTT, TCP/UDP, IP, WiFi/Ethernet
 
-### Slide 4: Transport Layer: TCP vs UDP
-- **Poin Utama**:
-  - **TCP (Transmission Control Protocol)**: Connection-oriented, Reliable, Lambat (ada handshake & ack). Cocok untuk HTTP, MQTT, Email.
-  - **UDP (User Datagram Protocol)**: Connectionless, Unreliable, Cepat. Cocok untuk Streaming Video/Audio, VoIP.
-- **Visual**: Tabel perbandingan fitur TCP dan UDP.
+## Slide 5-6: WiFi Fundamentals
+- IEEE 802.11 b/g/n, frekuensi 2.4GHz
+- Mode: Station, AP, STA+AP
+- RSSI dan kualitas sinyal
+- Code snippet: esp_wifi_scan_start(), esp_wifi_connect()
 
-### Slide 5: IP Addressing & DHCP
-- **Poin Utama**:
-  - IPv4 Address (e.g., 192.168.1.100).
-  - Static IP vs Dynamic IP (DHCP).
-  - MAC Address (Hardware Address).
-- **Penjelasan**: Bagaimana MCU mendapatkan IP saat pertama kali connect? (DHCP Discover/Offer/Request/Ack).
+## Slide 7-8: TCP vs UDP
+- TCP: connection-oriented, reliable, 3-way handshake
+- UDP: connectionless, fast, low overhead
+- Tabel perbandingan
+- Code snippet: socket(), bind(), listen(), accept()
 
-### Slide 6: LwIP (Lightweight IP)
-- **Poin Utama**:
-  - Tantangan networking di MCU: RAM & Flash terbatas.
-  - Solusi: LwIP Stack.
-  - Fitur LwIP: Support TCP/UDP/ICMP/DHCP dengan footprint kecil.
-- **Visual**: Arsitektur software MCU (User App -> LwIP -> Driver -> Hardware).
+## Slide 9-10: HTTP & REST API
+- Request-Response model
+- Methods: GET, POST, PUT, DELETE
+- Status codes: 200, 404, 500
+- Code snippet: httpd_start(), esp_http_client
 
-### Slide 7: Hardware Connectivity
-- **Poin Utama**:
-  - **WiFi (ESP32)**: Radio terintegrasi, mudah digunakan, konsumsi daya cukup tinggi.
-  - **Ethernet (STM32 + W5500)**: Stabil, cepat, wired, butuh hardware tambahan.
-- **Visual**: Foto modul ESP32 dan modul Ethernet W5500.
+## Slide 11-13: MQTT Protocol
+- Publish/Subscribe architecture
+- Broker, topic hierarchy, wildcards (+, #)
+- QoS 0, 1, 2
+- Last Will Testament (LWT)
+- Code snippet: esp_mqtt_client_init()
 
-### Slide 8: Kesimpulan Minggu Ini
-- **Poin Utama**: 
-  - Networking membuka potensi IoT.
-  - Memahami stack TCP/IP penting sebelum masuk ke protokol aplikasi.
-  - Minggu depan: HTTP & MQTT.
+## Slide 14-16: Bluetooth Low Energy (BLE)
+- BLE vs Bluetooth Classic
+- GAP: Advertising, Scanning, Connecting
+- GATT: Services, Characteristics, Descriptors
+- Code snippet: esp_ble_gap_start_advertising()
+
+## Slide 17: WebSocket
+- Full-duplex vs HTTP request-response
+- Upgrade handshake
+- Use case: real-time monitoring
+
+## Slide 18-19: ESP32 vs STM32 Network
+- Tabel perbandingan lengkap
+- ESP32: native WiFi/BLE
+- STM32: via ESP-01, W5500, HM-10
+
+## Slide 20: Keamanan IoT
+- WPA2, TLS/SSL, certificate
+- Best practices
+
+## Slide 21: Ringkasan & Pertanyaan

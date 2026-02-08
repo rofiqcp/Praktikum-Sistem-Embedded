@@ -1,1376 +1,733 @@
-# JOBSHEET BAB 05: DAC dan PWM Output
+# Jobsheet Modul 05 - DAC & PWM
 
-## 📋 Informasi Praktikum
-
-| Item | Keterangan |
-|------|------------|
-| **Topik** | DAC (Digital-to-Analog Converter) dan PWM (Pulse Width Modulation) |
-| **Platform** | STM32F103C8T6 (Blue Pill), ESP32 DevKit V1 |
-| **Jumlah Program STM32** | 5 Program |
-| **Jumlah Program ESP32** | 7 Program |
-| **Durasi** | 3 x 50 menit |
-| **Tools** | PlatformIO, STM32CubeIDE, Serial Monitor, Oscilloscope (optional) |
+## Praktikum Sistem Embedded
 
 ---
 
-## 🎯 Tujuan Praktikum
+## 1. Tujuan Praktikum
 
-Setelah menyelesaikan praktikum ini, mahasiswa mampu:
+Setelah menyelesaikan praktikum ini, mahasiswa diharapkan mampu:
 
-1. Memahami prinsip kerja DAC dan PWM pada mikrokontroler
-2. Mengkonfigurasi dan memprogram DAC pada STM32 (12-bit) dan ESP32 (8-bit)
-3. Mengimplementasikan PWM untuk berbagai aplikasi (LED dimming, motor, servo)
-4. Membandingkan karakteristik DAC vs PWM sebagai output analog
-5. Menggunakan DMA untuk waveform generation
-6. Menerapkan hardware fade pada ESP32 LEDC
-7. Melakukan debugging dan analisis sinyal output
+1. **Memahami dan menggunakan DAC** — Mengkonfigurasi output DAC untuk menghasilkan tegangan analog yang presisi pada ESP32 (GPIO25/GPIO26) dan STM32 yang mendukung DAC
+2. **Menghasilkan sinyal PWM** — Memprogram modul LEDC (ESP32) dan Timer (STM32) untuk menghasilkan sinyal PWM dengan frekuensi dan duty cycle yang dapat diatur
+3. **Mengkonfigurasi LEDC dan Timer** — Memahami arsitektur LEDC controller pada ESP32 (channel, timer, resolusi) dan Timer PWM pada STM32 (prescaler, ARR, CCR)
+4. **Mengontrol servo motor dan DC motor** — Mengaplikasikan sinyal PWM untuk mengontrol posisi servo SG90 (0°-180°) dan kecepatan motor DC melalui driver L298N
+5. **Membandingkan DAC vs PWM** — Menganalisis perbedaan karakteristik output DAC (true analog) dengan PWM yang difilter menggunakan RC low-pass filter
 
 ---
 
-## 🔧 Alat dan Komponen
+## 2. Peralatan yang Dibutuhkan
 
 ### Hardware
 | No | Komponen | Jumlah | Keterangan |
 |----|----------|--------|------------|
-| 1 | STM32F103C8T6 (Blue Pill) | 1 | Mikrokontroler utama |
-| 2 | ESP32 DevKit V1 | 1 | Mikrokontroler utama |
-| 3 | ST-Link V2 | 1 | Programmer STM32 |
-| 4 | USB Cable Micro/Type-C | 2 | Koneksi dan programming |
-| 5 | LED 5mm (Merah, Hijau, Biru) | 3 | Indikator output |
-| 6 | Resistor 330Ω | 3 | Current limiting LED |
-| 7 | Resistor 10kΩ | 2 | RC filter |
-| 8 | Kapasitor 100nF | 2 | RC filter |
-| 9 | Motor DC 3-6V | 1 | Aktuator PWM |
-| 10 | Module L298N / L293D | 1 | Motor driver |
-| 11 | Servo Motor SG90 | 1 | Servo control |
-| 12 | Potentiometer 10kΩ | 1 | Input analog |
-| 13 | Speaker/Buzzer 8Ω | 1 | Audio output (optional) |
-| 14 | Breadboard | 1 | Prototyping |
-| 15 | Kabel Jumper | 20+ | Koneksi |
+| 1 | ESP32 DevKit V1 (WROOM-32) | 1 | DAC tersedia di GPIO25 & GPIO26 |
+| 2 | STM32 Blue Pill (F103C8T6) / Black Pill (F411CE) | 1 | F103 tidak memiliki DAC, F411 memiliki DAC di PA4/PA5 |
+| 3 | LED (Merah, Hijau, Biru) | 3 | Untuk eksperimen PWM LED |
+| 4 | LED RGB Common Cathode | 1 | Untuk PWM RGB |
+| 5 | Resistor 220Ω | 5 | Current limiting LED |
+| 6 | Resistor 10kΩ | 2 | RC filter |
+| 7 | Kapasitor 100nF (0.1µF) | 2 | RC filter |
+| 8 | Kapasitor 1µF | 1 | RC filter |
+| 9 | Servo Motor SG90 | 1 | Untuk kontrol sudut |
+| 10 | Motor DC 5V | 1 | Untuk kontrol kecepatan |
+| 11 | Driver Motor L298N | 1 | H-Bridge driver |
+| 12 | Buzzer/Speaker 8Ω | 1 | Untuk output audio |
+| 13 | Breadboard | 1 | Full-size |
+| 14 | Kabel jumper | ~30 | Male-male dan male-female |
+| 15 | Multimeter digital | 1 | Untuk mengukur tegangan |
+| 16 | Osiloskop (opsional) | 1 | Untuk mengamati bentuk gelombang |
+| 17 | Kabel USB Micro/Type-C | 2 | Programming & power |
 
 ### Software
-- PlatformIO IDE / VS Code
-- STM32CubeIDE (optional)
-- Serial Monitor / PuTTY
-- Oscilloscope software (optional)
+- **PlatformIO** di VS Code
+- **Serial Monitor / Plotter** (bawaan PlatformIO)
+- **Python 3.x** dengan `pyserial` dan `matplotlib` (untuk debug/visualisasi)
+- **Wokwi Simulator** (opsional, untuk simulasi tanpa hardware)
 
 ---
 
-## 📐 Skema Rangkaian
+## 3. Teori Singkat
 
-### Rangkaian DAC Output (STM32)
-```
-STM32F103C8T6
-      │
-      ├── PA4 (DAC_OUT1) ──┬── Oscilloscope
-      │                    │
-      │                    ├── 10kΩ ──┬── Analog Out (filtered)
-      │                    │          │
-      │                    │         100nF
-      │                    │          │
-      │                    │         GND
-      │
-      ├── PA5 (DAC_OUT2) ────── LED + 330Ω ── GND
-      │
-      └── GND ─────────────────── GND
-```
+### 3.1 Digital-to-Analog Converter (DAC)
 
-### Rangkaian DAC Output (ESP32)
-```
-ESP32 DevKit
-      │
-      ├── GPIO25 (DAC1) ──┬── Oscilloscope
-      │                   │
-      │                   ├── 10kΩ ──┬── Analog Out (filtered)
-      │                   │          │
-      │                   │         100nF
-      │                   │          │
-      │                   │         GND
-      │
-      ├── GPIO26 (DAC2) ────── LED + 330Ω ── GND
-      │
-      └── GND ──────────────────── GND
-```
+DAC mengubah nilai digital menjadi tegangan analog yang kontinu. ESP32 memiliki **2 channel DAC 8-bit** pada:
+- **DAC1** → GPIO25 (Channel 1)
+- **DAC2** → GPIO26 (Channel 2)
 
-### Rangkaian PWM LED Dimming
+Resolusi 8-bit menghasilkan 256 level tegangan (0-255), dengan rentang output 0V - 3.3V:
+
+$$V_{out} = \frac{DAC\_value}{255} \times 3.3V$$
+
+**Catatan Penting:**
+- ESP32-S2 dan ESP32-S3 **tidak memiliki DAC**
+- STM32F103 (Blue Pill) **tidak memiliki DAC** — hanya STM32F4xx ke atas
+- STM32F411 memiliki DAC 12-bit pada PA4 (DAC_OUT1) dan PA5 (DAC_OUT2)
+
+### 3.2 Pulse Width Modulation (PWM)
+
+PWM adalah teknik menghasilkan sinyal analog menggunakan sinyal digital dengan mengatur **duty cycle** — persentase waktu sinyal HIGH dalam satu periode:
+
+$$Duty\ Cycle\ (\%) = \frac{T_{ON}}{T_{ON} + T_{OFF}} \times 100\%$$
+
+$$V_{avg} = Duty\ Cycle \times V_{max}$$
+
+### 3.3 LEDC Controller (ESP32)
+
+ESP32 memiliki **LEDC (LED Control)** peripheral dengan:
+- **16 channel** PWM independen (8 high-speed, 8 low-speed)
+- **4 timer** (masing-masing untuk high-speed dan low-speed)
+- Resolusi hingga **16-bit** (65536 level)
+- Frekuensi yang dapat dikonfigurasi
+
 ```
-STM32/ESP32
-      │
-      ├── PA6/GPIO25 (PWM) ────── LED + 330Ω ── GND
-      │
-      ├── PA7/GPIO26 (PWM) ────── LED + 330Ω ── GND
-      │
-      ├── PB0/GPIO27 (PWM) ────── LED + 330Ω ── GND
-      │
-      └── GND ─────────────────────────────── GND
+Frekuensi PWM = Clock_Source / (2^resolusi × prescaler)
 ```
 
-### Rangkaian Motor Control
-```
-STM32/ESP32                    L298N Module
-      │                              │
-      ├── PA6/GPIO25 (PWM) ────────► ENA
-      │                              │
-      ├── PA0/GPIO26 (DIR_A) ──────► IN1
-      │                              │
-      ├── PA1/GPIO27 (DIR_B) ──────► IN2
-      │                              │
-      ├── 5V ────────────────────── 5V Logic
-      │                              │
-      ├── GND ────────────────────── GND
-      │                              │
-      │                              ├── OUT1 ──┬── Motor DC
-      │                              └── OUT2 ──┘      │
-      │                                               12V
-      │                                              Power
-```
+### 3.4 Timer PWM (STM32)
 
-### Rangkaian Servo Control
-```
-STM32/ESP32                    Servo SG90
-      │                              │
-      ├── PA6/GPIO25 (PWM) ────────► Signal (Orange)
-      │                              │
-      ├── 5V ─────────────────────── VCC (Red)
-      │                              │
-      └── GND ────────────────────── GND (Brown)
-```
+STM32 menggunakan **hardware timer** untuk PWM:
+- Timer memiliki **prescaler (PSC)**, **auto-reload register (ARR)**, dan **capture/compare register (CCR)**
+- Frekuensi PWM: $f_{PWM} = \frac{f_{CLK}}{(PSC+1) \times (ARR+1)}$
+- Duty cycle: $Duty = \frac{CCR}{ARR+1} \times 100\%$
+
+### 3.5 Servo Motor
+
+Servo SG90 dikontrol dengan sinyal PWM:
+- **Frekuensi**: 50Hz (periode 20ms)
+- **Pulse width**: 0.5ms (0°) — 1.5ms (90°) — 2.5ms (180°)
+
+### 3.6 RC Low-Pass Filter
+
+Untuk mengubah sinyal PWM menjadi tegangan DC analog:
+
+$$f_c = \frac{1}{2\pi RC}$$
+
+Dimana $f_c$ adalah frekuensi cutoff. Pilih $f_c$ jauh di bawah frekuensi PWM.
 
 ---
 
-## 📝 Percobaan
+## 4. Langkah Praktikum
 
-### Bagian A: DAC Output
+> **Aturan Umum:**
+> - Baca setiap langkah dengan teliti sebelum memulai
+> - Pastikan koneksi kabel benar sebelum menyalakan power
+> - Catat semua hasil pengamatan di buku/dokumen laporan
+> - Upload kode menggunakan PlatformIO (`pio run -t upload`)
+> - Buka Serial Monitor pada baudrate 115200 kecuali disebutkan lain
 
 ---
 
-#### Program 1: DAC Basic Output (STM32)
-**File:** `praktikum/STM32/STM32_01_DAC_Output/src/main.c`
+### Program 01: DAC_Voltage_Output
 
-**Tujuan:** Menghasilkan tegangan analog menggunakan DAC 12-bit
+**Tujuan:** Menghasilkan tegangan analog yang presisi menggunakan DAC dan memverifikasi dengan multimeter.
 
-**Langkah:**
-1. Buat project baru dengan PlatformIO untuk STM32F103C8
-2. Ketik kode program berikut:
+**Rangkaian:**
 
-```c
-/**
- * Program 1: DAC Basic Output - STM32
- * Menghasilkan tegangan analog ramp 0-3.3V
- * Pin: PA4 (DAC_OUT1)
- */
+| Komponen | ESP32 | STM32F411 |
+|----------|-------|-----------|
+| DAC Output | GPIO25 (DAC1) | PA4 (DAC_OUT1) |
+| Multimeter (+) | GPIO25 | PA4 |
+| Multimeter (-) | GND | GND |
 
-#include "stm32f1xx_hal.h"
+> **Catatan:** STM32F103 tidak memiliki DAC. Gunakan STM32F411 atau skip ke program PWM.
 
-DAC_HandleTypeDef hdac;
+**Langkah-langkah:**
 
-void SystemClock_Config(void);
-void DAC_Init(void);
-void Error_Handler(void);
+1. Hubungkan kabel probe multimeter ke pin DAC dan GND
+2. Set multimeter ke mode pengukuran tegangan DC (range 0-5V)
+3. Buka folder `ESP32/ESP32_01_DAC_Voltage_Output` di PlatformIO
+4. Baca kode program — program akan mengeluarkan tegangan bertingkat: 0V, 0.825V, 1.65V, 2.475V, 3.3V
+5. Compile dan upload: `pio run -t upload`
+6. Buka Serial Monitor (115200 baud)
+7. Amati output di Serial Monitor yang menampilkan nilai DAC dan tegangan teoritis
+8. Ukur tegangan aktual pada multimeter untuk setiap level
+9. Catat dan bandingkan tegangan teoritis vs aktual
 
-int main(void) {
-    HAL_Init();
-    SystemClock_Config();
-    DAC_Init();
-    
-    uint16_t dac_value = 0;
-    
-    while (1) {
-        // Ramp up 0V to 3.3V
-        for (dac_value = 0; dac_value < 4096; dac_value += 16) {
-            HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac_value);
-            HAL_Delay(10);
-        }
-        
-        // Ramp down 3.3V to 0V
-        for (dac_value = 4095; dac_value > 0; dac_value -= 16) {
-            HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac_value);
-            HAL_Delay(10);
-        }
-    }
-}
+**Pengamatan:**
 
-void DAC_Init(void) {
-    __HAL_RCC_DAC_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    
-    // Configure PA4 as analog
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = GPIO_PIN_4;
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    // Configure DAC
-    hdac.Instance = DAC;
-    HAL_DAC_Init(&hdac);
-    
-    DAC_ChannelConfTypeDef sConfig = {0};
-    sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
-    sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
-    HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1);
-    
-    // Start DAC
-    HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
-}
+| DAC Value | Tegangan Teoritis | Tegangan Terukur | Error (%) |
+|-----------|-------------------|------------------|-----------|
+| 0 | 0.000V | ______V | ______% |
+| 64 | 0.825V | ______V | ______% |
+| 128 | 1.650V | ______V | ______% |
+| 192 | 2.475V | ______V | ______% |
+| 255 | 3.300V | ______V | ______% |
 
-void SystemClock_Config(void) {
-    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-    
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-    RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-    HAL_RCC_OscConfig(&RCC_OscInitStruct);
-    
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                                |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-    HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
-}
+**Pertanyaan:**
+1. Berapa resolusi tegangan minimum DAC 8-bit ESP32? Hitung dengan rumus.
+2. Mengapa tegangan terukur mungkin berbeda dari nilai teoritis? Sebutkan minimal 2 faktor.
+3. Jika menggunakan DAC 12-bit (STM32F411), berapa resolusi tegangan minimumnya?
 
-void Error_Handler(void) {
-    while(1);
-}
+---
+
+### Program 02: DAC_Sine_Wave
+
+**Tujuan:** Menghasilkan gelombang sinus menggunakan DAC dan mengamati bentuk gelombang.
+
+**Rangkaian:**
+
+| Komponen | ESP32 | STM32F411 |
+|----------|-------|-----------|
+| DAC Output | GPIO25 | PA4 |
+| Osiloskop CH1 (+) | GPIO25 | PA4 |
+| Osiloskop GND | GND | GND |
+
+**Langkah-langkah:**
+
+1. Hubungkan probe osiloskop ke pin DAC output
+2. Buka folder `ESP32/ESP32_02_DAC_Sine_Wave`
+3. Pelajari kode — program menggunakan tabel lookup sinus dengan 256 sampel
+4. Program menghitung nilai sinus: `dac_value = 128 + 127 * sin(2π × i / N)`
+5. Compile dan upload ke board
+6. Buka Serial Monitor — amati frekuensi gelombang yang dilaporkan
+7. Pada osiloskop, atur timebase agar terlihat 2-3 periode gelombang
+8. Amati bentuk gelombang — perhatikan apakah ada "tangga" (staircase effect) karena resolusi 8-bit
+9. Coba ubah jumlah sampel per periode (64, 128, 256) dan amati efeknya
+
+**Pengamatan:**
+- Frekuensi gelombang sinus yang dihasilkan: ______ Hz
+- Amplitudo peak-to-peak: ______ V
+- Apakah terlihat staircase effect? ______
+- Pengaruh jumlah sampel terhadap kualitas gelombang: ______
+
+**Pertanyaan:**
+1. Berapa frekuensi maksimum gelombang sinus yang dapat dihasilkan oleh DAC 8-bit ESP32?
+2. Mengapa terjadi staircase effect? Bagaimana cara menguranginya?
+3. Apa hubungan antara jumlah sampel per periode dengan frekuensi output dan kualitas gelombang?
+
+---
+
+### Program 03: DAC_Triangle_Wave
+
+**Tujuan:** Menghasilkan gelombang segitiga (triangle wave) menggunakan DAC.
+
+**Rangkaian:** Sama dengan Program 02.
+
+**Langkah-langkah:**
+
+1. Buka folder `ESP32/ESP32_03_DAC_Triangle_Wave`
+2. Pelajari kode — program membuat gelombang segitiga dengan menaikkan nilai DAC dari 0 ke 255 lalu menurunkannya
+3. Compile dan upload
+4. Amati pada osiloskop bentuk gelombang segitiga
+5. Bandingkan dengan gelombang sinus dari Program 02
+6. Coba variasikan kecepatan naik/turun untuk membuat gelombang sawtooth
+7. Amati perbedaan gelombang segitiga simetris vs sawtooth
+
+**Pengamatan:**
+- Frekuensi gelombang segitiga: ______ Hz
+- Tegangan minimum: ______ V, Tegangan maksimum: ______ V
+- Linearitas kenaikan/penurunan: baik / kurang baik
+- Perbedaan visual dengan gelombang sinus: ______
+
+**Pertanyaan:**
+1. Bagaimana cara mengubah frekuensi gelombang segitiga tanpa mengubah resolusi?
+2. Apa perbedaan antara gelombang segitiga dan sawtooth dalam domain frekuensi?
+3. Aplikasi praktis apa yang menggunakan gelombang segitiga?
+
+---
+
+### Program 04: DAC_Audio_Tone
+
+**Tujuan:** Menghasilkan nada audio 440Hz (A4) dan 880Hz (A5) melalui DAC ke speaker/buzzer.
+
+**Rangkaian:**
+
+| Komponen | ESP32 | Keterangan |
+|----------|-------|------------|
+| DAC Output | GPIO25 | Sinyal audio |
+| Kapasitor 10µF | Seri antara GPIO25 dan speaker | DC blocking capacitor |
+| Speaker 8Ω | Setelah kapasitor ke GND | Output suara |
+
+> **Catatan:** Untuk STM32F103 yang tidak memiliki DAC, gunakan PWM pada pin PA8 (TIM1_CH1) dengan RC filter.
+
+**Langkah-langkah:**
+
+1. Rangkai speaker dengan kapasitor DC-blocking ke pin DAC
+2. Buka folder `ESP32/ESP32_04_DAC_Audio_Tone`
+3. Pelajari kode — program menghasilkan gelombang sinus pada frekuensi audio
+4. Compile dan upload
+5. Dengarkan nada 440Hz (nada A4 standar tuning)
+6. Program akan bergantian antara 440Hz dan 880Hz
+7. Perhatikan perbedaan pitch antara kedua frekuensi (1 oktaf)
+8. Coba ubah frekuensi ke nada lain (C=262Hz, D=294Hz, E=330Hz, dll)
+
+**Pengamatan:**
+- Apakah nada 440Hz terdengar jelas? ______
+- Perbedaan suara 440Hz vs 880Hz: ______
+- Kualitas suara (bersih/noise): ______
+- Volume output: ______
+
+**Pertanyaan:**
+1. Mengapa diperlukan kapasitor DC-blocking antara DAC dan speaker?
+2. Berapa jumlah sampel minimum per periode agar nada 440Hz terdengar baik?
+3. Mengapa 880Hz terdengar lebih tinggi 1 oktaf dari 440Hz? Jelaskan hubungan matematis frekuensi dan oktaf.
+
+---
+
+### Program 05: PWM_LED_Breathing
+
+**Tujuan:** Membuat efek LED "breathing" (fade in/out) menggunakan PWM.
+
+**Rangkaian:**
+
+| Komponen | ESP32 | STM32 |
+|----------|-------|-------|
+| LED + Resistor 220Ω | GPIO2 | PA0 (TIM2_CH1) |
+| LED Anode → Resistor → Pin | Pin → R → LED → GND | Pin → R → LED → GND |
+
+**Langkah-langkah:**
+
+1. Hubungkan LED dengan resistor 220Ω ke pin PWM
+2. Buka folder `ESP32/ESP32_05_PWM_LED_Breathing`
+3. Pelajari kode — ESP32 menggunakan LEDC API:
+   - `ledcAttach(pin, freq, resolution)` — konfigurasi channel
+   - `ledcWrite(pin, dutyCycle)` — set duty cycle
+4. Compile dan upload
+5. Amati LED yang bernapas (terang→redup→terang berulang)
+6. Perhatikan transisi yang halus karena resolusi PWM tinggi
+7. Coba ubah kecepatan breathing dan resolusi (8-bit vs 12-bit)
+8. Bandingkan kehalusan efek pada resolusi berbeda
+
+**Pengamatan:**
+- Resolusi PWM: ______ bit (______ level)
+- Frekuensi PWM: ______ Hz
+- Periode satu siklus breathing: ______ detik
+- Perbedaan kehalusan 8-bit vs 12-bit: ______
+
+**Pertanyaan:**
+1. Mengapa mata manusia melihat perubahan kecerahan yang tidak linear? Apa hubungannya dengan gamma correction?
+2. Berapa frekuensi PWM minimum agar LED tidak terlihat berkedip (flicker)?
+3. Jelaskan perbedaan penggunaan `ledcAttach()` di ESP-IDF v5.x vs `ledcSetup()` di versi sebelumnya.
+
+---
+
+### Program 06: PWM_LED_Brightness
+
+**Tujuan:** Mengontrol kecerahan LED melalui perintah Serial Monitor.
+
+**Rangkaian:** Sama dengan Program 05.
+
+**Langkah-langkah:**
+
+1. Gunakan rangkaian yang sama dengan Program 05
+2. Buka folder `ESP32/ESP32_06_PWM_LED_Brightness`
+3. Pelajari kode — program membaca input dari Serial Monitor
+4. Compile dan upload
+5. Buka Serial Monitor (115200 baud)
+6. Ketik nilai 0-255 dan tekan Enter untuk mengatur kecerahan
+7. Amati perubahan kecerahan LED sesuai nilai yang dimasukkan
+8. Coba nilai: 0 (mati), 64 (25%), 128 (50%), 192 (75%), 255 (100%)
+9. Perhatikan apakah perubahan kecerahan linear secara visual
+
+**Pengamatan:**
+
+| Nilai Input | Duty Cycle (%) | Kecerahan Visual |
+|-------------|----------------|------------------|
+| 0 | 0% | ______ |
+| 64 | 25% | ______ |
+| 128 | 50% | ______ |
+| 192 | 75% | ______ |
+| 255 | 100% | ______ |
+
+**Pertanyaan:**
+1. Mengapa duty cycle 50% tidak terlihat seperti setengah kecerahan maksimum?
+2. Bagaimana cara membuat kurva kecerahan yang terlihat linear bagi mata manusia?
+3. Apa yang terjadi jika frekuensi PWM terlalu rendah (misalnya 10Hz)?
+
+---
+
+### Program 07: PWM_Servo_Control
+
+**Tujuan:** Mengontrol posisi servo motor SG90 dari 0° hingga 180° menggunakan PWM.
+
+**Rangkaian:**
+
+| Komponen | ESP32 | STM32 |
+|----------|-------|-------|
+| Servo Signal (Orange) | GPIO13 | PA1 (TIM2_CH2) |
+| Servo VCC (Merah) | 5V (Vin) | 5V |
+| Servo GND (Coklat) | GND | GND |
+
+> **Peringatan:** Servo dapat menarik arus hingga 500mA. Gunakan power supply eksternal 5V jika servo bergetar atau tidak stabil.
+
+**Langkah-langkah:**
+
+1. Hubungkan servo motor sesuai tabel di atas
+2. Pastikan sumber daya 5V cukup untuk servo
+3. Buka folder `ESP32/ESP32_07_PWM_Servo_Control`
+4. Pelajari kode — servo menggunakan PWM 50Hz:
+   - Pulse 0.5ms → 0° (duty = 0.5/20 × 100% = 2.5%)
+   - Pulse 1.5ms → 90° (duty = 1.5/20 × 100% = 7.5%)
+   - Pulse 2.5ms → 180° (duty = 2.5/20 × 100% = 12.5%)
+5. Compile dan upload
+6. Amati servo yang bergerak sweep dari 0° ke 180° dan kembali
+7. Buka Serial Monitor — ketik sudut (0-180) untuk mengontrol posisi
+8. Verifikasi akurasi posisi dengan busur derajat jika tersedia
+9. Coba gerakkan servo ke posisi-posisi tertentu dan catat akurasinya
+
+**Pengamatan:**
+
+| Sudut Target | Pulse Width (ms) | Sudut Aktual | Error |
+|--------------|------------------|--------------|-------|
+| 0° | 0.5ms | ______° | ______° |
+| 45° | 1.0ms | ______° | ______° |
+| 90° | 1.5ms | ______° | ______° |
+| 135° | 2.0ms | ______° | ______° |
+| 180° | 2.5ms | ______° | ______° |
+
+**Pertanyaan:**
+1. Mengapa servo motor memerlukan frekuensi PWM tepat 50Hz?
+2. Hitung resolusi sudut minimum jika menggunakan PWM 16-bit pada frekuensi 50Hz.
+3. Apa yang terjadi jika pulse width di luar range 0.5ms-2.5ms?
+
+---
+
+### Program 08: PWM_Frequency_Sweep
+
+**Tujuan:** Melakukan sweep frekuensi PWM dari 100Hz hingga 20kHz dan mengamati efeknya.
+
+**Rangkaian:**
+
+| Komponen | ESP32 | STM32 |
+|----------|-------|-------|
+| Buzzer/Speaker | GPIO25 | PA8 (TIM1_CH1) |
+| Osiloskop (opsional) | GPIO25 | PA8 |
+
+**Langkah-langkah:**
+
+1. Hubungkan buzzer/speaker ke pin PWM
+2. Buka folder `ESP32/ESP32_08_PWM_Frequency_Sweep`
+3. Pelajari kode — program mengubah frekuensi PWM secara bertahap
+4. Compile dan upload
+5. Dengarkan perubahan nada dari rendah ke tinggi
+6. Perhatikan pada frekuensi berapa suara mulai tidak terdengar (~15-20kHz)
+7. Jika tersedia osiloskop, amati perubahan periode sinyal
+8. Serial Monitor menampilkan frekuensi aktual
+9. Catat frekuensi batas pendengaran Anda
+
+**Pengamatan:**
+- Frekuensi terendah yang terdengar: ______ Hz
+- Frekuensi tertinggi yang terdengar: ______ Hz
+- Frekuensi yang paling nyaring: ______ Hz
+- Perubahan karakter suara pada frekuensi berbeda: ______
+
+**Pertanyaan:**
+1. Mengapa manusia tidak bisa mendengar frekuensi di atas ~20kHz?
+2. Apa hubungan antara resolusi PWM dan frekuensi maksimum yang dapat dihasilkan?
+3. Pada ESP32, jika clock source 80MHz dan resolusi 10-bit, berapa frekuensi PWM maksimum?
+
+---
+
+### Program 09: PWM_Motor_Speed
+
+**Tujuan:** Mengontrol kecepatan motor DC menggunakan PWM melalui driver L298N.
+
+**Rangkaian:**
+
+| Komponen | ESP32 | STM32 | Keterangan |
+|----------|-------|-------|------------|
+| L298N ENA | GPIO14 | PA0 (TIM2_CH1) | PWM speed control |
+| L298N IN1 | GPIO27 | PB0 | Direction 1 |
+| L298N IN2 | GPIO26 | PB1 | Direction 2 |
+| L298N OUT1 | Motor (+) | Motor (+) | Ke motor |
+| L298N OUT2 | Motor (-) | Motor (-) | Ke motor |
+| L298N 12V | Power Supply (+) | Power Supply (+) | 5-12V sesuai motor |
+| L298N GND | GND (shared) | GND (shared) | Common ground |
+
+> **Penting:** Hubungkan GND ESP32/STM32 dengan GND L298N (common ground).
+
+**Langkah-langkah:**
+
+1. Rangkai L298N dengan motor DC sesuai tabel
+2. Hubungkan power supply eksternal ke L298N (5-12V sesuai rating motor)
+3. **Pastikan jumper 5V regulator pada L298N terpasang** jika VCC motor ≤ 12V
+4. Buka folder `ESP32/ESP32_09_PWM_Motor_Speed`
+5. Pelajari kode — program mengontrol ENA dengan PWM, IN1/IN2 untuk arah
+6. Compile dan upload
+7. Motor akan berputar dengan kecepatan bertingkat (25%, 50%, 75%, 100%)
+8. Buka Serial Monitor — ketik kecepatan (0-255) dan arah (F/R)
+9. Amati perubahan kecepatan motor
+10. Test motor di kedua arah rotasi
+
+**Pengamatan:**
+
+| Duty Cycle | Tegangan Efektif | Kecepatan Motor | Arah |
+|------------|-----------------|-----------------|------|
+| 0% | 0V | Berhenti | - |
+| 25% | ______V | ______ RPM | CW |
+| 50% | ______V | ______ RPM | CW |
+| 75% | ______V | ______ RPM | CW |
+| 100% | ______V | ______ RPM | CW |
+
+**Pertanyaan:**
+1. Mengapa dibutuhkan driver motor (L298N) dan tidak bisa langsung dari GPIO?
+2. Apa fungsi dioda flyback pada driver motor? Apa yang terjadi tanpa dioda?
+3. Mengapa kecepatan motor tidak berbanding lurus (linear) dengan duty cycle?
+
+---
+
+### Program 10: PWM_RGB_LED
+
+**Tujuan:** Mengontrol LED RGB untuk menghasilkan efek rainbow color cycle menggunakan 3 channel PWM.
+
+**Rangkaian:**
+
+| Komponen | ESP32 | STM32 | Keterangan |
+|----------|-------|-------|------------|
+| LED R + R220Ω | GPIO16 | PA0 | PWM Channel 0 |
+| LED G + R220Ω | GPIO17 | PA1 | PWM Channel 1 |
+| LED B + R220Ω | GPIO18 | PA2 | PWM Channel 2 |
+| Common Cathode | GND | GND | Untuk CC type |
+
+**Langkah-langkah:**
+
+1. Hubungkan LED RGB common cathode dengan resistor 220Ω di setiap pin warna
+2. Buka folder `ESP32/ESP32_10_PWM_RGB_LED`
+3. Pelajari kode — program menggunakan konversi HSV→RGB untuk rainbow effect
+4. Tiga channel LEDC mengontrol R, G, B secara independen
+5. Compile dan upload
+6. Amati LED yang berubah warna mengikuti spektrum pelangi
+7. Buka Serial Monitor — coba masukkan nilai RGB manual (format: R,G,B)
+8. Eksperimen pencampuran warna:
+   - Merah: 255,0,0
+   - Kuning: 255,255,0
+   - Cyan: 0,255,255
+   - Putih: 255,255,255
+   - Ungu: 128,0,255
+
+**Pengamatan:**
+- Warna yang dihasilkan saat R=255,G=0,B=0: ______
+- Warna yang dihasilkan saat R=0,G=255,B=255: ______
+- Warna yang dihasilkan saat R=255,G=255,B=255: ______
+- Apakah transisi warna rainbow halus? ______
+
+**Pertanyaan:**
+1. Jelaskan prinsip pencampuran warna aditif (additive color mixing) pada LED RGB.
+2. Apa perbedaan LED RGB common cathode vs common anode dalam hal kontrol PWM?
+3. Mengapa model warna HSV lebih mudah digunakan untuk efek rainbow dibanding RGB langsung?
+
+---
+
+### Program 11: PWM_Buzzer_Melody
+
+**Tujuan:** Memainkan melodi sederhana menggunakan PWM buzzer dengan nada-nada musikal.
+
+**Rangkaian:**
+
+| Komponen | ESP32 | STM32 |
+|----------|-------|-------|
+| Buzzer pasif | GPIO25 | PA8 (TIM1_CH1) |
+| GND Buzzer | GND | GND |
+
+> **Catatan:** Gunakan **buzzer pasif** (passive buzzer), bukan buzzer aktif. Buzzer aktif memiliki osilator internal dan hanya bisa ON/OFF.
+
+**Langkah-langkah:**
+
+1. Hubungkan buzzer pasif ke pin PWM
+2. Buka folder `ESP32/ESP32_11_PWM_Buzzer_Melody`
+3. Pelajari kode — program mendefinisikan frekuensi nada musikal:
+   - C4=262, D4=294, E4=330, F4=349, G4=392, A4=440, B4=494, C5=523
+4. Melodi didefinisikan sebagai array of notes dengan durasi
+5. ESP32 menggunakan `ledcWriteTone(pin, frequency)` untuk menghasilkan nada
+6. Compile dan upload
+7. Dengarkan melodi yang dimainkan (default: "Twinkle Twinkle Little Star" atau lagu sederhana)
+8. Coba modifikasi melodi dengan nada dan durasi yang berbeda
+9. Eksperimen dengan tempo (kecepatan) melodi
+
+**Pengamatan:**
+- Melodi yang dimainkan: ______
+- Nada yang paling jelas terdengar: ______
+- Nada yang kurang jelas: ______
+- Kualitas suara buzzer dibanding speaker: ______
+
+**Pertanyaan:**
+1. Apa perbedaan buzzer aktif dan pasif? Mengapa kita gunakan buzzer pasif?
+2. Bagaimana hubungan matematis frekuensi antar nada dalam satu oktaf (equal temperament)?
+3. Mengapa beberapa nada terdengar lebih keras dari yang lain pada buzzer yang sama?
+
+---
+
+### Program 12: DAC_vs_PWM_Compare
+
+**Tujuan:** Membandingkan output DAC murni dengan PWM yang difilter menggunakan RC low-pass filter.
+
+**Rangkaian:**
+
+| Komponen | Koneksi | Keterangan |
+|----------|---------|------------|
+| ESP32 GPIO25 (DAC) | Osiloskop CH1 | Output DAC langsung |
+| ESP32 GPIO26 (PWM) | R=10kΩ → titik tengah | Input RC filter |
+| Kapasitor 1µF | Titik tengah → GND | Bagian RC filter |
+| Titik tengah | Osiloskop CH2 | Output PWM terfilter |
+
+RC Filter: $f_c = \frac{1}{2\pi \times 10k\Omega \times 1\mu F} = 15.9 Hz$
+
+**Langkah-langkah:**
+
+1. Rangkai RC low-pass filter (R=10kΩ, C=1µF) pada output PWM
+2. Hubungkan DAC output (GPIO25) ke osiloskop CH1
+3. Hubungkan output RC filter ke osiloskop CH2
+4. Buka folder `ESP32/ESP32_12_DAC_vs_PWM_Compare`
+5. Pelajari kode — program menghasilkan sinyal yang sama di DAC dan PWM
+6. Compile dan upload
+7. Set kedua channel pada skala yang sama
+8. Bandingkan kedua sinyal pada osiloskop
+9. Perhatikan ripple pada output PWM yang terfilter
+10. Coba berbagai frekuensi PWM dan amati efeknya pada ripple
+
+**Pengamatan:**
+
+| Parameter | DAC Output | PWM + RC Filter |
+|-----------|-----------|-----------------|
+| Tegangan DC (V) | ______ | ______ |
+| Ripple (mV p-p) | ______ | ______ |
+| Response time (ms) | ______ | ______ |
+| Akurasi level (%) | ______ | ______ |
+
+**Pertanyaan:**
+1. Apa kelebihan dan kekurangan DAC dibanding PWM+filter untuk menghasilkan tegangan analog?
+2. Bagaimana cara mengurangi ripple pada output PWM yang difilter?
+3. Dalam aplikasi apa DAC lebih tepat digunakan dan kapan PWM lebih cocok?
+
+---
+
+## 5. Tugas Tambahan
+
+### Tugas 1: Waveform Generator
+Buat program yang dapat menghasilkan 4 jenis gelombang (sinus, segitiga, kotak, sawtooth) melalui DAC dengan frekuensi yang dapat diatur via Serial Monitor. Tampilkan informasi gelombang aktif pada Serial Monitor.
+
+### Tugas 2: LED Dimmer dengan Potentiometer
+Hubungkan potentiometer ke pin ADC. Baca nilai ADC dan gunakan untuk mengontrol duty cycle PWM LED. Implementasikan gamma correction agar perubahan kecerahan terlihat linear.
+
+### Tugas 3: Music Player
+Buat program yang menyimpan minimal 3 melodi berbeda dan dapat dipilih melalui Serial Monitor. Implementasikan kontrol tempo dan volume (duty cycle).
+
+### Tugas 4: Servo Position Recorder
+Buat program yang dapat merekam beberapa posisi servo (via Serial Monitor), lalu memutar ulang (playback) urutan posisi tersebut secara otomatis dengan kecepatan yang dapat diatur.
+
+---
+
+## 6. Format Laporan
+
+Laporan praktikum harus mencakup:
+
+1. **Cover** — Judul, nama, NIM, tanggal
+2. **Tujuan** — Tujuan praktikum
+3. **Dasar Teori** — Ringkasan teori DAC dan PWM (dengan rumus)
+4. **Alat dan Bahan** — Daftar komponen yang digunakan
+5. **Langkah Kerja** — Prosedur yang dilakukan
+6. **Data Pengamatan** — Tabel hasil pengukuran untuk setiap program
+7. **Analisis** — Penjelasan hasil, perbandingan teori vs praktik
+8. **Jawaban Pertanyaan** — Jawaban dari setiap pertanyaan per program
+9. **Kesimpulan** — Rangkuman hasil pembelajaran
+10. **Lampiran** — Screenshot Serial Monitor, foto rangkaian, kode program
+
+---
+
+## 7. Tips Debugging dengan Python
+
+Gunakan script Python berikut untuk memvisualisasikan data dari Serial Monitor:
+
+### Membaca dan Plot Data Serial
+
+```python
+import serial
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from collections import deque
+
+# Konfigurasi
+PORT = '/dev/ttyUSB0'  # Sesuaikan dengan port board Anda
+BAUD = 115200
+MAX_POINTS = 500
+
+ser = serial.Serial(PORT, BAUD, timeout=1)
+data = deque(maxlen=MAX_POINTS)
+
+fig, ax = plt.subplots()
+line, = ax.plot([], [])
+ax.set_ylim(0, 3.3)
+ax.set_xlim(0, MAX_POINTS)
+ax.set_xlabel('Sample')
+ax.set_ylabel('Voltage (V)')
+ax.set_title('DAC/PWM Output Monitor')
+
+def update(frame):
+    try:
+        raw = ser.readline().decode().strip()
+        if raw:
+            value = float(raw)
+            data.append(value)
+            line.set_data(range(len(data)), list(data))
+    except (ValueError, UnicodeDecodeError):
+        pass
+    return line,
+
+ani = animation.FuncAnimation(fig, update, interval=10, blit=True)
+plt.tight_layout()
+plt.show()
+ser.close()
 ```
 
-**Analisis:**
-- DAC 12-bit menghasilkan 4096 level tegangan (0-4095)
-- Tegangan output: Vout = (3.3V × DAC_Value) / 4095
-- Output buffer mencegah loading effect
+### Membandingkan DAC vs PWM
 
----
+```python
+import serial
+import matplotlib.pyplot as plt
 
-#### Program 2: DAC Sine Wave Generator (STM32)
-**File:** `praktikum/STM32/STM32_02_DAC_Sine/src/main.c`
+ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
+dac_data = []
+pwm_data = []
 
-**Tujuan:** Menghasilkan gelombang sinus menggunakan DAC dengan lookup table
+print("Collecting data... (10 seconds)")
+import time
+start = time.time()
 
-```c
-/**
- * Program 2: DAC Sine Wave Generator - STM32
- * Menghasilkan gelombang sinus dengan lookup table
- * Pin: PA4 (DAC_OUT1)
- */
+while time.time() - start < 10:
+    line = ser.readline().decode().strip()
+    if ',' in line:
+        try:
+            dac, pwm = line.split(',')
+            dac_data.append(float(dac))
+            pwm_data.append(float(pwm))
+        except ValueError:
+            pass
 
-#include "stm32f1xx_hal.h"
-#include <math.h>
+ser.close()
 
-#define SINE_SAMPLES 100
-#define PI 3.14159265359
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6))
+ax1.plot(dac_data, label='DAC Output')
+ax1.set_title('DAC vs PWM Comparison')
+ax1.set_ylabel('DAC Voltage (V)')
+ax1.legend()
 
-DAC_HandleTypeDef hdac;
-TIM_HandleTypeDef htim6;
-uint16_t sine_table[SINE_SAMPLES];
+ax2.plot(pwm_data, color='orange', label='PWM+Filter Output')
+ax2.set_xlabel('Sample')
+ax2.set_ylabel('PWM Voltage (V)')
+ax2.legend()
 
-void SystemClock_Config(void);
-void DAC_Init(void);
-void TIM6_Init(void);
-void Generate_SineTable(void);
-
-int main(void) {
-    HAL_Init();
-    SystemClock_Config();
-    
-    Generate_SineTable();
-    DAC_Init();
-    TIM6_Init();
-    
-    // Start DAC with DMA
-    HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)sine_table, 
-                      SINE_SAMPLES, DAC_ALIGN_12B_R);
-    
-    // Start Timer
-    HAL_TIM_Base_Start(&htim6);
-    
-    while (1) {
-        // Sine wave generated automatically by DMA
-        HAL_Delay(1000);
-    }
-}
-
-void Generate_SineTable(void) {
-    for (int i = 0; i < SINE_SAMPLES; i++) {
-        // Generate sine: amplitude 2048, offset 2048 (center at 1.65V)
-        float angle = (2.0 * PI * i) / SINE_SAMPLES;
-        sine_table[i] = (uint16_t)(2048 + 2000 * sin(angle));
-    }
-}
-
-void DAC_Init(void) {
-    __HAL_RCC_DAC_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_DMA2_CLK_ENABLE();
-    
-    // Configure PA4
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = GPIO_PIN_4;
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    // Configure DAC
-    hdac.Instance = DAC;
-    HAL_DAC_Init(&hdac);
-    
-    DAC_ChannelConfTypeDef sConfig = {0};
-    sConfig.DAC_Trigger = DAC_TRIGGER_T6_TRGO;
-    sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
-    HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1);
-}
-
-void TIM6_Init(void) {
-    __HAL_RCC_TIM6_CLK_ENABLE();
-    
-    // Timer untuk sample rate 10kHz (100 samples × 100Hz sine)
-    htim6.Instance = TIM6;
-    htim6.Init.Prescaler = 72 - 1;        // 72MHz / 72 = 1MHz
-    htim6.Init.Period = 100 - 1;          // 1MHz / 100 = 10kHz
-    htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-    HAL_TIM_Base_Init(&htim6);
-    
-    // Configure TRGO
-    TIM_MasterConfigTypeDef sMasterConfig = {0};
-    sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
-    HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig);
-}
-```
-
----
-
-#### Program 3: DAC Basic Output (ESP32)
-**File:** `praktikum/ESP32/ESP32_01_DAC_Output/src/main.cpp`
-
-**Tujuan:** Menghasilkan tegangan analog menggunakan DAC 8-bit ESP32
-
-```cpp
-/**
- * Program 3: DAC Basic Output - ESP32
- * Menghasilkan tegangan analog ramp 0-3.3V
- * Pin: GPIO25 (DAC1)
- */
-
-#include <Arduino.h>
-
-#define DAC_PIN 25  // DAC1 = GPIO25, DAC2 = GPIO26
-
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    Serial.println("=================================");
-    Serial.println("Program: DAC Basic Output - ESP32");
-    Serial.println("=================================");
-    Serial.println("DAC on GPIO25 (0-255 = 0-3.3V)");
-    Serial.println();
-}
-
-void loop() {
-    Serial.println("Ramp UP: 0V -> 3.3V");
-    
-    // Ramp up
-    for (int i = 0; i < 256; i++) {
-        dacWrite(DAC_PIN, i);
-        
-        if (i % 32 == 0) {
-            float voltage = (i / 255.0) * 3.3;
-            Serial.printf("DAC Value: %3d, Voltage: %.2f V\n", i, voltage);
-        }
-        delay(10);
-    }
-    
-    Serial.println("\nRamp DOWN: 3.3V -> 0V");
-    
-    // Ramp down
-    for (int i = 255; i >= 0; i--) {
-        dacWrite(DAC_PIN, i);
-        
-        if (i % 32 == 0) {
-            float voltage = (i / 255.0) * 3.3;
-            Serial.printf("DAC Value: %3d, Voltage: %.2f V\n", i, voltage);
-        }
-        delay(10);
-    }
-    
-    Serial.println("\n--- Cycle Complete ---\n");
-    delay(1000);
-}
-```
-
----
-
-#### Program 4: DAC Sine Wave dengan Cosine Generator (ESP32)
-**File:** `praktikum/ESP32/ESP32_02_DAC_Sine_Wave/src/main.cpp`
-
-**Tujuan:** Menggunakan hardware cosine wave generator ESP32
-
-```cpp
-/**
- * Program 4: DAC Sine Wave dengan Cosine Generator - ESP32
- * Menggunakan hardware cosine wave generator
- * Pin: GPIO25 (DAC1)
- */
-
-#include <Arduino.h>
-#include <driver/dac.h>
-
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    Serial.println("=====================================");
-    Serial.println("Program: DAC Cosine Wave Generator");
-    Serial.println("=====================================");
-    
-    // Configure cosine wave generator
-    dac_cw_config_t cw_config = {
-        .en_ch = DAC_CHANNEL_1,          // Use DAC1 (GPIO25)
-        .scale = DAC_CW_SCALE_1,         // Full amplitude
-        .phase = DAC_CW_PHASE_0,         // 0 degree phase
-        .freq = 1000,                     // 1 kHz frequency
-        .offset = 0                       // No DC offset
-    };
-    
-    // Apply configuration
-    ESP_ERROR_CHECK(dac_cw_generator_config(&cw_config));
-    
-    // Enable cosine wave generator
-    ESP_ERROR_CHECK(dac_cw_generator_enable());
-    
-    // Enable DAC output
-    ESP_ERROR_CHECK(dac_output_enable(DAC_CHANNEL_1));
-    
-    Serial.println("Cosine wave generator started!");
-    Serial.println("Frequency: 1000 Hz");
-    Serial.println("Output: GPIO25");
-    Serial.println("Use oscilloscope to view waveform");
-}
-
-void loop() {
-    // Demonstrate frequency change
-    static uint32_t frequencies[] = {100, 500, 1000, 2000, 5000};
-    static int freq_index = 0;
-    
-    delay(3000);
-    
-    freq_index = (freq_index + 1) % 5;
-    
-    dac_cw_config_t cw_config = {
-        .en_ch = DAC_CHANNEL_1,
-        .scale = DAC_CW_SCALE_1,
-        .phase = DAC_CW_PHASE_0,
-        .freq = frequencies[freq_index],
-        .offset = 0
-    };
-    
-    dac_cw_generator_config(&cw_config);
-    
-    Serial.printf("Frequency changed to: %d Hz\n", frequencies[freq_index]);
-}
-```
-
----
-
-### Bagian B: PWM Output
-
----
-
-#### Program 5: PWM LED Dimming (STM32)
-**File:** `praktikum/STM32/STM32_03_PWM_LED/src/main.c`
-
-**Tujuan:** Mengontrol kecerahan LED menggunakan PWM
-
-```c
-/**
- * Program 5: PWM LED Dimming - STM32
- * Mengontrol kecerahan LED dengan PWM
- * Pin: PA6 (TIM3_CH1)
- */
-
-#include "stm32f1xx_hal.h"
-
-TIM_HandleTypeDef htim3;
-
-void SystemClock_Config(void);
-void PWM_Init(void);
-
-int main(void) {
-    HAL_Init();
-    SystemClock_Config();
-    PWM_Init();
-    
-    uint16_t duty = 0;
-    int8_t direction = 1;
-    
-    while (1) {
-        // Update duty cycle
-        __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, duty);
-        
-        // Fade effect
-        duty += direction * 10;
-        
-        if (duty >= 1000) {
-            direction = -1;
-            duty = 1000;
-        } else if (duty <= 0) {
-            direction = 1;
-            duty = 0;
-        }
-        
-        HAL_Delay(20);
-    }
-}
-
-void PWM_Init(void) {
-    __HAL_RCC_TIM3_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    
-    // Configure PA6 as alternate function
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = GPIO_PIN_6;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    // Timer configuration for 1kHz PWM
-    // PWM Freq = 72MHz / (72 * 1000) = 1kHz
-    htim3.Instance = TIM3;
-    htim3.Init.Prescaler = 72 - 1;
-    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim3.Init.Period = 1000 - 1;
-    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    HAL_TIM_PWM_Init(&htim3);
-    
-    // PWM Channel configuration
-    TIM_OC_InitTypeDef sConfigOC = {0};
-    sConfigOC.OCMode = TIM_OCMODE_PWM1;
-    sConfigOC.Pulse = 0;
-    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-    HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1);
-    
-    // Start PWM
-    HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-}
-```
-
----
-
-#### Program 6: PWM Motor Control (STM32)
-**File:** `praktikum/STM32/STM32_04_PWM_Motor/src/main.c`
-
-**Tujuan:** Mengontrol kecepatan dan arah motor DC
-
-```c
-/**
- * Program 6: PWM Motor Control - STM32
- * Mengontrol kecepatan dan arah motor DC dengan H-Bridge
- * Pin: PA6 (PWM), PA0 (DIR_A), PA1 (DIR_B)
- */
-
-#include "stm32f1xx_hal.h"
-
-TIM_HandleTypeDef htim3;
-
-#define DIR_A_PIN GPIO_PIN_0
-#define DIR_B_PIN GPIO_PIN_1
-#define DIR_PORT  GPIOA
-
-void SystemClock_Config(void);
-void PWM_Init(void);
-void GPIO_Init(void);
-void Motor_SetSpeed(int16_t speed);
-
-int main(void) {
-    HAL_Init();
-    SystemClock_Config();
-    GPIO_Init();
-    PWM_Init();
-    
-    while (1) {
-        // Forward acceleration
-        for (int speed = 0; speed <= 100; speed += 5) {
-            Motor_SetSpeed(speed);
-            HAL_Delay(100);
-        }
-        
-        HAL_Delay(2000);  // Run at full speed
-        
-        // Deceleration
-        for (int speed = 100; speed >= 0; speed -= 5) {
-            Motor_SetSpeed(speed);
-            HAL_Delay(100);
-        }
-        
-        HAL_Delay(1000);
-        
-        // Reverse acceleration
-        for (int speed = 0; speed >= -100; speed -= 5) {
-            Motor_SetSpeed(speed);
-            HAL_Delay(100);
-        }
-        
-        HAL_Delay(2000);
-        
-        // Deceleration
-        for (int speed = -100; speed <= 0; speed += 5) {
-            Motor_SetSpeed(speed);
-            HAL_Delay(100);
-        }
-        
-        HAL_Delay(1000);
-    }
-}
-
-void Motor_SetSpeed(int16_t speed) {
-    // speed: -100 to +100 (percentage)
-    
-    if (speed >= 0) {
-        // Forward
-        HAL_GPIO_WritePin(DIR_PORT, DIR_A_PIN, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(DIR_PORT, DIR_B_PIN, GPIO_PIN_RESET);
-        __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, speed * 10);
-    } else {
-        // Reverse
-        HAL_GPIO_WritePin(DIR_PORT, DIR_A_PIN, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(DIR_PORT, DIR_B_PIN, GPIO_PIN_SET);
-        __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, (-speed) * 10);
-    }
-}
-
-void GPIO_Init(void) {
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = DIR_A_PIN | DIR_B_PIN;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(DIR_PORT, &GPIO_InitStruct);
-}
-
-void PWM_Init(void) {
-    __HAL_RCC_TIM3_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = GPIO_PIN_6;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    // 20kHz PWM for motor (above audible range)
-    htim3.Instance = TIM3;
-    htim3.Init.Prescaler = 36 - 1;       // 72MHz / 36 = 2MHz
-    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim3.Init.Period = 1000 - 1;        // 2MHz / 1000 = 20kHz
-    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    HAL_TIM_PWM_Init(&htim3);
-    
-    TIM_OC_InitTypeDef sConfigOC = {0};
-    sConfigOC.OCMode = TIM_OCMODE_PWM1;
-    sConfigOC.Pulse = 0;
-    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-    HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1);
-    
-    HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-}
-```
-
----
-
-#### Program 7: Servo Control (STM32)
-**File:** `praktikum/STM32/STM32_05_Servo/src/main.c`
-
-**Tujuan:** Mengontrol posisi servo motor
-
-```c
-/**
- * Program 7: Servo Control - STM32
- * Mengontrol posisi servo motor SG90
- * Pin: PA6 (TIM3_CH1)
- * Servo: 50Hz, 0.5ms-2.5ms pulse
- */
-
-#include "stm32f1xx_hal.h"
-
-TIM_HandleTypeDef htim3;
-
-void SystemClock_Config(void);
-void Servo_Init(void);
-void Servo_SetAngle(uint8_t angle);
-
-int main(void) {
-    HAL_Init();
-    SystemClock_Config();
-    Servo_Init();
-    
-    while (1) {
-        // Sweep 0 to 180 degrees
-        for (int angle = 0; angle <= 180; angle += 5) {
-            Servo_SetAngle(angle);
-            HAL_Delay(50);
-        }
-        
-        HAL_Delay(1000);
-        
-        // Sweep 180 to 0 degrees
-        for (int angle = 180; angle >= 0; angle -= 5) {
-            Servo_SetAngle(angle);
-            HAL_Delay(50);
-        }
-        
-        HAL_Delay(1000);
-        
-        // Test specific positions
-        Servo_SetAngle(0);    HAL_Delay(1000);
-        Servo_SetAngle(45);   HAL_Delay(1000);
-        Servo_SetAngle(90);   HAL_Delay(1000);
-        Servo_SetAngle(135);  HAL_Delay(1000);
-        Servo_SetAngle(180);  HAL_Delay(1000);
-    }
-}
-
-void Servo_SetAngle(uint8_t angle) {
-    // Servo pulse: 0.5ms (0°) to 2.5ms (180°)
-    // Period: 20ms (50Hz)
-    // Timer period: 20000 (1µs resolution)
-    // Pulse range: 500 to 2500
-    
-    if (angle > 180) angle = 180;
-    
-    uint16_t pulse = 500 + ((uint32_t)angle * 2000) / 180;
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pulse);
-}
-
-void Servo_Init(void) {
-    __HAL_RCC_TIM3_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = GPIO_PIN_6;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    // 50Hz PWM for servo
-    // 72MHz / 72 = 1MHz, 1MHz / 20000 = 50Hz
-    htim3.Instance = TIM3;
-    htim3.Init.Prescaler = 72 - 1;       // 1µs resolution
-    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim3.Init.Period = 20000 - 1;       // 20ms period
-    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    HAL_TIM_PWM_Init(&htim3);
-    
-    TIM_OC_InitTypeDef sConfigOC = {0};
-    sConfigOC.OCMode = TIM_OCMODE_PWM1;
-    sConfigOC.Pulse = 1500;              // 90° (center)
-    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-    HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1);
-    
-    HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-}
+plt.tight_layout()
+plt.savefig('dac_vs_pwm.png', dpi=150)
+plt.show()
 ```
 
 ---
 
-#### Program 8: PWM LED Dimming (ESP32)
-**File:** `praktikum/ESP32/ESP32_03_PWM_LED_Control/src/main.cpp`
+## 8. Referensi
 
-**Tujuan:** LED dimming dengan LEDC peripheral ESP32
-
-```cpp
-/**
- * Program 8: PWM LED Dimming - ESP32
- * Menggunakan LEDC peripheral untuk LED dimming
- * Pin: GPIO25
- */
-
-#include <Arduino.h>
-
-#define LED_PIN       25
-#define PWM_CHANNEL   0
-#define PWM_FREQ      5000
-#define PWM_RESOLUTION 8    // 8-bit (0-255)
-
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    Serial.println("================================");
-    Serial.println("Program: PWM LED Dimming - ESP32");
-    Serial.println("================================");
-    
-    // Configure LEDC PWM
-    ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
-    ledcAttachPin(LED_PIN, PWM_CHANNEL);
-    
-    Serial.printf("PWM Frequency: %d Hz\n", PWM_FREQ);
-    Serial.printf("PWM Resolution: %d bit (0-%d)\n", PWM_RESOLUTION, (1 << PWM_RESOLUTION) - 1);
-    Serial.println();
-}
-
-void loop() {
-    Serial.println("Fade IN...");
-    
-    // Fade in
-    for (int duty = 0; duty <= 255; duty++) {
-        ledcWrite(PWM_CHANNEL, duty);
-        
-        if (duty % 32 == 0) {
-            int percentage = (duty * 100) / 255;
-            Serial.printf("Duty: %3d/255 (%3d%%)\n", duty, percentage);
-        }
-        delay(10);
-    }
-    
-    delay(500);
-    Serial.println("\nFade OUT...");
-    
-    // Fade out
-    for (int duty = 255; duty >= 0; duty--) {
-        ledcWrite(PWM_CHANNEL, duty);
-        
-        if (duty % 32 == 0) {
-            int percentage = (duty * 100) / 255;
-            Serial.printf("Duty: %3d/255 (%3d%%)\n", duty, percentage);
-        }
-        delay(10);
-    }
-    
-    delay(500);
-    Serial.println("\n--- Cycle Complete ---\n");
-}
-```
+1. ESP32 Technical Reference Manual — DAC & LEDC Controller chapters
+2. STM32F4 Reference Manual (RM0090) — DAC & Timer chapters
+3. ESP-IDF LEDC API Documentation: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/ledc.html
+4. Servo Motor Control Theory — PWM 50Hz standard
+5. RC Low-Pass Filter Design Calculator
 
 ---
 
-#### Program 9: Hardware Fade (ESP32)
-**File:** `praktikum/ESP32/ESP32_04_PWM_Motor_Control/src/main.cpp`
-
-**Tujuan:** Menggunakan hardware fade LEDC untuk efek smooth
-
-```cpp
-/**
- * Program 9: PWM Motor Control dengan Hardware Fade - ESP32
- * Menggunakan LEDC hardware fade untuk motor control smooth
- * Pin: GPIO25 (PWM), GPIO26 (DIR_A), GPIO27 (DIR_B)
- */
-
-#include <Arduino.h>
-#include <driver/ledc.h>
-
-#define PWM_PIN     25
-#define DIR_A_PIN   26
-#define DIR_B_PIN   27
-
-#define PWM_CHANNEL LEDC_CHANNEL_0
-#define PWM_TIMER   LEDC_TIMER_0
-#define PWM_MODE    LEDC_HIGH_SPEED_MODE
-#define PWM_FREQ    20000   // 20kHz
-#define PWM_RESOLUTION LEDC_TIMER_10_BIT
-
-void Motor_Init(void);
-void Motor_SetSpeed(int speed, int fade_time_ms);
-void Motor_Stop(void);
-
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    Serial.println("====================================");
-    Serial.println("Program: PWM Motor Control - ESP32");
-    Serial.println("====================================");
-    
-    Motor_Init();
-    
-    Serial.println("Motor initialized!");
-    Serial.println();
-}
-
-void loop() {
-    Serial.println("Forward: Accelerate 0 -> 100%");
-    digitalWrite(DIR_A_PIN, HIGH);
-    digitalWrite(DIR_B_PIN, LOW);
-    Motor_SetSpeed(100, 2000);  // Fade to 100% in 2 seconds
-    delay(3000);
-    
-    Serial.println("Forward: Decelerate 100 -> 0%");
-    Motor_SetSpeed(0, 2000);    // Fade to 0% in 2 seconds
-    delay(1000);
-    
-    Serial.println("Reverse: Accelerate 0 -> 100%");
-    digitalWrite(DIR_A_PIN, LOW);
-    digitalWrite(DIR_B_PIN, HIGH);
-    Motor_SetSpeed(100, 2000);
-    delay(3000);
-    
-    Serial.println("Reverse: Decelerate 100 -> 0%");
-    Motor_SetSpeed(0, 2000);
-    delay(1000);
-    
-    Serial.println("\n--- Cycle Complete ---\n");
-}
-
-void Motor_Init(void) {
-    // Configure direction pins
-    pinMode(DIR_A_PIN, OUTPUT);
-    pinMode(DIR_B_PIN, OUTPUT);
-    digitalWrite(DIR_A_PIN, LOW);
-    digitalWrite(DIR_B_PIN, LOW);
-    
-    // Configure LEDC timer
-    ledc_timer_config_t timer_config = {
-        .speed_mode = PWM_MODE,
-        .duty_resolution = PWM_RESOLUTION,
-        .timer_num = PWM_TIMER,
-        .freq_hz = PWM_FREQ,
-        .clk_cfg = LEDC_AUTO_CLK
-    };
-    ledc_timer_config(&timer_config);
-    
-    // Configure LEDC channel
-    ledc_channel_config_t channel_config = {
-        .gpio_num = PWM_PIN,
-        .speed_mode = PWM_MODE,
-        .channel = PWM_CHANNEL,
-        .intr_type = LEDC_INTR_DISABLE,
-        .timer_sel = PWM_TIMER,
-        .duty = 0,
-        .hpoint = 0
-    };
-    ledc_channel_config(&channel_config);
-    
-    // Install fade function
-    ledc_fade_func_install(0);
-}
-
-void Motor_SetSpeed(int speed, int fade_time_ms) {
-    // speed: 0-100 (percentage)
-    if (speed < 0) speed = 0;
-    if (speed > 100) speed = 100;
-    
-    uint32_t duty = (speed * 1023) / 100;  // 10-bit resolution
-    
-    ledc_set_fade_time_and_start(
-        PWM_MODE,
-        PWM_CHANNEL,
-        duty,
-        fade_time_ms,
-        LEDC_FADE_WAIT_DONE
-    );
-    
-    Serial.printf("Speed set to %d%% (duty: %d)\n", speed, duty);
-}
-
-void Motor_Stop(void) {
-    digitalWrite(DIR_A_PIN, LOW);
-    digitalWrite(DIR_B_PIN, LOW);
-    ledc_set_duty(PWM_MODE, PWM_CHANNEL, 0);
-    ledc_update_duty(PWM_MODE, PWM_CHANNEL);
-}
-```
-
----
-
-#### Program 10: Servo Control (ESP32)
-**File:** `praktikum/ESP32/ESP32_05_Servo_Control/src/main.cpp`
-
-**Tujuan:** Mengontrol servo dengan library ESP32Servo
-
-```cpp
-/**
- * Program 10: Servo Control - ESP32
- * Mengontrol posisi servo motor SG90
- * Pin: GPIO25
- */
-
-#include <Arduino.h>
-#include <ESP32Servo.h>
-
-#define SERVO_PIN 25
-
-Servo myServo;
-
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    Serial.println("============================");
-    Serial.println("Program: Servo Control - ESP32");
-    Serial.println("============================");
-    
-    // Allow allocation of all timers
-    ESP32PWM::allocateTimer(0);
-    ESP32PWM::allocateTimer(1);
-    ESP32PWM::allocateTimer(2);
-    ESP32PWM::allocateTimer(3);
-    
-    // Attach servo (standard 500-2500µs range)
-    myServo.setPeriodHertz(50);           // Standard 50Hz servo
-    myServo.attach(SERVO_PIN, 500, 2500); // Min/max pulse width
-    
-    Serial.println("Servo attached to GPIO25");
-    Serial.println();
-}
-
-void loop() {
-    Serial.println("Sweep: 0° -> 180°");
-    
-    // Sweep from 0 to 180
-    for (int angle = 0; angle <= 180; angle += 5) {
-        myServo.write(angle);
-        Serial.printf("Angle: %3d°\n", angle);
-        delay(50);
-    }
-    
-    delay(1000);
-    
-    Serial.println("\nSweep: 180° -> 0°");
-    
-    // Sweep from 180 to 0
-    for (int angle = 180; angle >= 0; angle -= 5) {
-        myServo.write(angle);
-        Serial.printf("Angle: %3d°\n", angle);
-        delay(50);
-    }
-    
-    delay(1000);
-    
-    // Test specific positions
-    Serial.println("\nTest specific positions:");
-    
-    int positions[] = {0, 45, 90, 135, 180};
-    for (int i = 0; i < 5; i++) {
-        Serial.printf("Moving to %d°\n", positions[i]);
-        myServo.write(positions[i]);
-        delay(1000);
-    }
-    
-    Serial.println("\n--- Cycle Complete ---\n");
-    delay(2000);
-}
-```
-
----
-
-#### Program 11: PWM Pseudo-DAC dengan Filter (ESP32)
-**File:** `praktikum/ESP32/ESP32_06_PWM_Pseudo_DAC/src/main.cpp`
-
-**Tujuan:** Menggunakan PWM + RC filter sebagai pseudo-DAC
-
-```cpp
-/**
- * Program 11: PWM Pseudo-DAC - ESP32
- * Menggunakan PWM high-frequency + RC filter untuk pseudo-DAC
- * Pin: GPIO25 (PWM Output -> RC Filter -> Analog Out)
- * Filter: R=10kΩ, C=100nF (fc ≈ 159Hz)
- */
-
-#include <Arduino.h>
-
-#define PWM_PIN       25
-#define PWM_CHANNEL   0
-#define PWM_FREQ      100000   // 100kHz for smooth filtering
-#define PWM_RESOLUTION 10      // 10-bit (0-1023)
-
-#define ADC_PIN       34       // To measure filtered output
-
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    Serial.println("===================================");
-    Serial.println("Program: PWM Pseudo-DAC - ESP32");
-    Serial.println("===================================");
-    Serial.println("Connect RC filter: GPIO25 -> 10k -> [ADC34] -> 100nF -> GND");
-    Serial.println();
-    
-    // Configure high-frequency PWM
-    ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
-    ledcAttachPin(PWM_PIN, PWM_CHANNEL);
-    
-    // Configure ADC for measuring output
-    analogReadResolution(12);
-    analogSetAttenuation(ADC_11db);
-    
-    Serial.printf("PWM Frequency: %d Hz\n", PWM_FREQ);
-    Serial.printf("PWM Resolution: %d bit\n", PWM_RESOLUTION);
-    Serial.println();
-}
-
-void loop() {
-    Serial.println("Generating voltage steps...\n");
-    Serial.println("Target V | PWM Duty | Measured V");
-    Serial.println("---------|----------|----------");
-    
-    // Generate voltage steps
-    for (float target = 0.0; target <= 3.3; target += 0.33) {
-        // Calculate duty cycle for target voltage
-        int duty = (int)((target / 3.3) * 1023);
-        
-        // Set PWM
-        ledcWrite(PWM_CHANNEL, duty);
-        
-        // Wait for RC filter to settle
-        delay(100);
-        
-        // Read filtered voltage
-        int adc_raw = analogRead(ADC_PIN);
-        float measured = (adc_raw / 4095.0) * 3.3;
-        
-        Serial.printf(" %.2f V   |  %4d    |  %.2f V\n", target, duty, measured);
-    }
-    
-    Serial.println("\nGenerating sine wave approximation...");
-    
-    // Generate sine wave using PWM
-    for (int t = 0; t < 360; t += 5) {
-        float angle = t * 3.14159 / 180.0;
-        float value = (sin(angle) + 1.0) / 2.0;  // 0 to 1
-        int duty = (int)(value * 1023);
-        
-        ledcWrite(PWM_CHANNEL, duty);
-        delay(10);
-    }
-    
-    Serial.println("\n--- Cycle Complete ---\n");
-    delay(2000);
-}
-```
-
----
-
-#### Program 12: RGB LED Color Mixing (ESP32)
-**File:** `praktikum/ESP32/ESP32_07_RGB_LED_PWM/src/main.cpp`
-
-**Tujuan:** Mengontrol LED RGB dengan 3 channel PWM
-
-```cpp
-/**
- * Program 12: RGB LED Color Mixing - ESP32
- * Mengontrol LED RGB dengan 3 channel PWM
- * Pin: GPIO25 (Red), GPIO26 (Green), GPIO27 (Blue)
- */
-
-#include <Arduino.h>
-
-#define RED_PIN     25
-#define GREEN_PIN   26
-#define BLUE_PIN    27
-
-#define RED_CHANNEL   0
-#define GREEN_CHANNEL 1
-#define BLUE_CHANNEL  2
-
-#define PWM_FREQ      5000
-#define PWM_RESOLUTION 8
-
-// Predefined colors (R, G, B)
-struct Color {
-    const char* name;
-    uint8_t r, g, b;
-};
-
-Color colors[] = {
-    {"Red",     255, 0,   0  },
-    {"Green",   0,   255, 0  },
-    {"Blue",    0,   0,   255},
-    {"Yellow",  255, 255, 0  },
-    {"Cyan",    0,   255, 255},
-    {"Magenta", 255, 0,   255},
-    {"White",   255, 255, 255},
-    {"Orange",  255, 128, 0  },
-    {"Purple",  128, 0,   255},
-    {"Pink",    255, 192, 203}
-};
-
-void setRGB(uint8_t r, uint8_t g, uint8_t b);
-void fadeToColor(uint8_t r, uint8_t g, uint8_t b, int duration_ms);
-
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    Serial.println("================================");
-    Serial.println("Program: RGB LED PWM - ESP32");
-    Serial.println("================================");
-    
-    // Configure PWM channels
-    ledcSetup(RED_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
-    ledcSetup(GREEN_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
-    ledcSetup(BLUE_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
-    
-    // Attach pins
-    ledcAttachPin(RED_PIN, RED_CHANNEL);
-    ledcAttachPin(GREEN_PIN, GREEN_CHANNEL);
-    ledcAttachPin(BLUE_PIN, BLUE_CHANNEL);
-    
-    Serial.println("RGB LED initialized!");
-    Serial.println();
-}
-
-void loop() {
-    // Display predefined colors
-    Serial.println("Showing predefined colors...\n");
-    
-    int numColors = sizeof(colors) / sizeof(colors[0]);
-    
-    for (int i = 0; i < numColors; i++) {
-        Serial.printf("Color: %-8s (R:%3d, G:%3d, B:%3d)\n",
-                      colors[i].name,
-                      colors[i].r, colors[i].g, colors[i].b);
-        
-        fadeToColor(colors[i].r, colors[i].g, colors[i].b, 500);
-        delay(1500);
-    }
-    
-    // Rainbow effect
-    Serial.println("\nRainbow effect...");
-    
-    for (int hue = 0; hue < 360; hue += 2) {
-        // HSV to RGB conversion (simplified)
-        float h = hue / 60.0;
-        int i = (int)h;
-        float f = h - i;
-        
-        uint8_t r, g, b;
-        
-        switch (i % 6) {
-            case 0: r = 255; g = 255 * f;     b = 0;           break;
-            case 1: r = 255 * (1-f); g = 255; b = 0;           break;
-            case 2: r = 0;   g = 255; b = 255 * f;             break;
-            case 3: r = 0;   g = 255 * (1-f); b = 255;         break;
-            case 4: r = 255 * f;     g = 0;   b = 255;         break;
-            case 5: r = 255; g = 0;   b = 255 * (1-f);         break;
-        }
-        
-        setRGB(r, g, b);
-        delay(20);
-    }
-    
-    Serial.println("\n--- Cycle Complete ---\n");
-    delay(2000);
-}
-
-void setRGB(uint8_t r, uint8_t g, uint8_t b) {
-    ledcWrite(RED_CHANNEL, r);
-    ledcWrite(GREEN_CHANNEL, g);
-    ledcWrite(BLUE_CHANNEL, b);
-}
-
-void fadeToColor(uint8_t r, uint8_t g, uint8_t b, int duration_ms) {
-    static uint8_t current_r = 0, current_g = 0, current_b = 0;
-    
-    int steps = duration_ms / 10;
-    
-    for (int i = 0; i <= steps; i++) {
-        float t = (float)i / steps;
-        
-        uint8_t new_r = current_r + (r - current_r) * t;
-        uint8_t new_g = current_g + (g - current_g) * t;
-        uint8_t new_b = current_b + (b - current_b) * t;
-        
-        setRGB(new_r, new_g, new_b);
-        delay(10);
-    }
-    
-    current_r = r;
-    current_g = g;
-    current_b = b;
-}
-```
-
----
-
-## 📊 Tabel Perbandingan DAC vs PWM
-
-| Karakteristik | DAC | PWM + Filter |
-|--------------|-----|--------------|
-| **Resolusi STM32** | 12-bit (4096 level) | Timer dependent |
-| **Resolusi ESP32** | 8-bit (256 level) | 1-20 bit |
-| **Output Ripple** | Sangat rendah | Tergantung filter |
-| **Settling Time** | ~3µs | Tergantung RC |
-| **Pin Requirement** | Dedicated (PA4/PA5, GPIO25/26) | Any GPIO |
-| **CPU Load** | DMA available | Timer based |
-| **Best For** | Audio, precision | LED, motor, power |
-
----
-
-## 📝 Tugas Praktikum
-
-### Tugas 1: Analisis DAC
-1. Ukur tegangan output DAC pada setiap level (0, 64, 128, 192, 255 untuk ESP32)
-2. Hitung error antara nilai teoritis dan terukur
-3. Plot grafik linearity DAC
-4. **Deliverable:** Tabel pengukuran dan analisis error
-
-### Tugas 2: Karakterisasi PWM
-1. Ukur frekuensi dan duty cycle PWM dengan oscilloscope/logic analyzer
-2. Bandingkan PWM 1kHz, 5kHz, dan 20kHz untuk LED dimming
-3. Amati dan dokumentasikan flicker pada setiap frekuensi
-4. **Deliverable:** Screenshot waveform dan analisis
-
-### Tugas 3: Implementasi Servo
-1. Modifikasi program servo untuk mengikuti input potentiometer
-2. Implementasikan smooth movement dengan interpolasi
-3. Buat fungsi untuk mencatat posisi dan replay movement
-4. **Deliverable:** Video demonstrasi dan kode program
-
-### Tugas 4: Audio Generation (Tantangan)
-1. Gunakan DAC untuk menghasilkan tone audio sederhana
-2. Implementasikan fungsi untuk memainkan nada C, D, E, F, G, A, B
-3. Buat melody sederhana
-4. **Deliverable:** Video demonstrasi audio
-
----
-
-## ❓ Pertanyaan Analisis
-
-1. Mengapa ESP32 DAC hanya 8-bit sedangkan STM32 12-bit? Apa implikasinya?
-
-2. Jelaskan mengapa frekuensi PWM 20kHz lebih baik untuk motor DC dibanding 1kHz!
-
-3. Hitung nilai R dan C untuk filter low-pass dengan cutoff 100Hz. Mengapa cutoff ini cocok untuk audio?
-
-4. Apa yang terjadi jika servo menerima sinyal PWM dengan periode bukan 20ms?
-
-5. Bagaimana cara meningkatkan resolusi efektif DAC 8-bit ESP32?
-
----
-
-## 🔍 Troubleshooting
-
-| Problem | Kemungkinan Penyebab | Solusi |
-|---------|---------------------|--------|
-| DAC output 0V | Pin tidak dikonfigurasi analog | Cek konfigurasi GPIO |
-| PWM tidak keluar | Timer tidak start | Panggil HAL_TIM_PWM_Start() |
-| Servo jitter | Interrupt mengganggu | Gunakan hardware timer |
-| Motor noise | PWM freq < 20kHz | Tingkatkan frekuensi |
-| LED flicker | PWM freq terlalu rendah | Minimal 100Hz untuk mata |
-| DAC stepping terlihat | Resolusi kurang | Gunakan dithering/interpolasi |
-
----
-
-## 📊 Rubrik Penilaian Praktikum
-
-| Komponen | Bobot | Kriteria |
-|----------|-------|----------|
-| Implementasi Program | 40% | Semua 12 program berjalan dengan benar |
-| Laporan & Dokumentasi | 25% | Kelengkapan, analisis, screenshot |
-| Pemahaman Konsep | 20% | Jawaban pertanyaan analisis |
-| Tugas Tambahan | 15% | Kreativitas, modifikasi program |
-
----
-
-## 📚 Referensi Tambahan
-
-1. [STM32 DAC Application Note AN3126](https://www.st.com/resource/en/application_note/an3126.pdf)
-2. [ESP32 LEDC PWM Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/ledc.html)
-3. [ESP32 DAC Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/dac.html)
-4. "Mastering STM32" - Chapter 11: DAC
-5. PWM Application in Motor Control - Texas Instruments
-
+> **Catatan Penting:**
+> - ESP32 DAC hanya tersedia pada **GPIO25** (DAC1) dan **GPIO26** (DAC2) untuk varian **ESP32 WROOM/WROVER** saja
+> - **ESP32-S2** dan **ESP32-S3** **tidak memiliki DAC**
+> - **STM32F103** (Blue Pill) **tidak memiliki peripheral DAC** — untuk program DAC, gunakan STM32F411 atau skip ke program PWM
+> - Selalu gunakan **common ground** antara board, sensor, dan perangkat eksternal
+> - Frekuensi PWM untuk servo **harus 50Hz** — frekuensi lain dapat merusak servo
+> - Motor DC memerlukan **power supply terpisah** — jangan ambil daya dari pin USB board

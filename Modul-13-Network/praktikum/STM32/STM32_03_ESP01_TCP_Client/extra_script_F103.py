@@ -1,9 +1,9 @@
 """
-Custom PlatformIO build script for STM32CubeF1 Framework
+Custom PlatformIO build script for STM32CubeF1 + FreeRTOS
+Adds FreeRTOS include paths and compiles FreeRTOS kernel sources.
 """
 Import("env")
 import os
-import glob
 
 platform = env.PioPlatform()
 FRAMEWORK_DIR = platform.get_package_dir("framework-stm32cubef1")
@@ -22,7 +22,9 @@ add_include_path(FRAMEWORK_DIR, [
     "Drivers/CMSIS/Include",
 ])
 
-freertos_base = os.path.join(FRAMEWORK_DIR, "Middlewares", "Third_Party", "FreeRTOS", "Source")
+freertos_base = os.path.join(
+    FRAMEWORK_DIR, "Middlewares", "Third_Party", "FreeRTOS", "Source"
+)
 add_include_path(freertos_base, [
     "include",
     "portable/GCC/ARM_CM3",
@@ -30,7 +32,6 @@ add_include_path(freertos_base, [
 
 env.Append(CPPPATH=framework_includes)
 
-freertos_src_base = os.path.join(FRAMEWORK_DIR, "Middlewares", "Third_Party", "FreeRTOS", "Source")
 freertos_sources = [
     "tasks.c", "queue.c", "list.c", "timers.c",
     "portable/GCC/ARM_CM3/port.c",
@@ -39,7 +40,7 @@ freertos_sources = [
 
 freertos_objs = []
 for src in freertos_sources:
-    src_path = os.path.join(freertos_src_base, src)
+    src_path = os.path.join(freertos_base, src)
     if os.path.exists(src_path):
         obj_name = src.replace("/", "_").replace(".c", ".o")
         obj_path = os.path.join("$BUILD_DIR", "FreeRTOS_obj", obj_name)

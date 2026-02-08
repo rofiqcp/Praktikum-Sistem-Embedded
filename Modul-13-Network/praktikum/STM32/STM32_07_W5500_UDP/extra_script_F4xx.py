@@ -1,5 +1,6 @@
 """
-Custom PlatformIO build script for STM32CubeF4 Framework (FreeRTOS)
+Custom PlatformIO build script for STM32CubeF4 + FreeRTOS
+Adds FreeRTOS include paths, compiles FreeRTOS kernel, and sets FPU flags.
 """
 Import("env")
 import os
@@ -7,28 +8,18 @@ import os
 board = env.BoardConfig()
 mcu = board.get("build.mcu", "stm32f411ceu6")
 
-if "stm32f401" in mcu:
-    FRAMEWORK_DIR = env.PioPlatform().get_package_dir("framework-stm32cubef4")
-elif "stm32f411" in mcu:
-    FRAMEWORK_DIR = env.PioPlatform().get_package_dir("framework-stm32cubef4")
+FRAMEWORK_DIR = env.PioPlatform().get_package_dir("framework-stm32cubef4")
+
+if not FRAMEWORK_DIR:
+    print("Warning: framework-stm32cubef4 not found, skipping FreeRTOS setup")
 else:
-    Import("env")
-    print("Warning: Unknown F4 MCU, skipping FreeRTOS setup")
-    FRAMEWORK_DIR = None
-
-if FRAMEWORK_DIR:
-
-    # ---------- FPU flags for Cortex-M4F ----------
+    # FPU flags for Cortex-M4F
     fpu_flags = ["-mfpu=fpv4-sp-d16", "-mfloat-abi=hard"]
-    env.Append(
-        ASFLAGS=fpu_flags,
-        CCFLAGS=fpu_flags,
-        LINKFLAGS=fpu_flags,
-    )
-    # Remove soft float if set by default board config
+    env.Append(ASFLAGS=fpu_flags, CCFLAGS=fpu_flags, LINKFLAGS=fpu_flags)
     for flag_list_name in ("ASFLAGS", "CCFLAGS", "LINKFLAGS"):
         flag_list = env.get(flag_list_name, [])
         env.Replace(**{flag_list_name: [f for f in flag_list if f != "-mfloat-abi=soft"]})
+
     framework_includes = []
 
     def add_include_path(base_path, relative_paths):
@@ -43,7 +34,9 @@ if FRAMEWORK_DIR:
         "Drivers/CMSIS/Include",
     ])
 
-    freertos_base = os.path.join(FRAMEWORK_DIR, "Middlewares", "Third_Party", "FreeRTOS", "Source")
+    freertos_base = os.path.join(
+        FRAMEWORK_DIR, "Middlewares", "Third_Party", "FreeRTOS", "Source"
+    )
     add_include_path(freertos_base, [
         "include",
         "portable/GCC/ARM_CM4F",

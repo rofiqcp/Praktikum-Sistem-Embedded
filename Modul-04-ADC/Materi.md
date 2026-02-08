@@ -1,6 +1,17 @@
-# Modul 04: Menguak Dunia Analog — ADC (Analog-to-Digital Converter)
+# Modul 04: ADC — Analog-to-Digital Converter
 
-## Praktikum Sistem Embedded
+## Daftar Isi
+
+## Capaian Pembelajaran
+
+Setelah menyelesaikan modul ini, mahasiswa diharapkan mampu:
+
+1. Memahami prinsip kerja ADC (Sampling, Quantization, Encoding)
+2. Mengkonfigurasi ADC pada ESP32 (ESP-IDF) dan STM32 (HAL)
+3. Memahami konsep resolusi, attenuation, dan kalibrasi ADC
+4. Mengimplementasikan teknik filtering (Moving Average, EMA, Median)
+5. Mengaplikasikan ADC untuk membaca sensor analog (LDR, potensiometer, NTC)
+6. Membandingkan fitur ADC ESP32 dan STM32
 
 ---
 

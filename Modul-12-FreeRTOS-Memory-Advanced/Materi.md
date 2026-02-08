@@ -1,4 +1,4 @@
-# Materi Modul 12: FreeRTOS Memory Management & Advanced Features
+# Modul 12: FreeRTOS — Memory Management dan Advanced Features
 
 ## 📚 Daftar Isi
 
@@ -1089,7 +1089,7 @@ Setiap program dilengkapi script Python (`debug_*.py`) untuk:
 
 ---
 
-## 📖 Referensi
+## Referensi
 
 1. FreeRTOS Documentation — Memory Management: https://www.freertos.org/a00111.html
 2. Kolban's Book on ESP32, Pages 315-325: Memory Management

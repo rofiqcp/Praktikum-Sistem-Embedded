@@ -1,6 +1,9 @@
-# BAB 01: GPIO dan Digital I/O
+# Modul 01: GPIO dan Digital I/O
 
-## 🎯 Capaian Pembelajaran
+
+## Daftar Isi
+
+## Capaian Pembelajaran
 
 Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
@@ -1190,7 +1193,7 @@ void test_input_pins(void)
 
 ---
 
-## 📖 Referensi
+## Referensi
 
 ### Dokumentasi Resmi
 1. **STM32F103C8T6 Reference Manual** (RM0008) — STMicroelectronics

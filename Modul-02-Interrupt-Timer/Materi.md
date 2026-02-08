@@ -1,6 +1,9 @@
-# BAB 02: Interrupt dan Timer
+# Modul 02: Interrupt dan Timer
 
-## 🎯 Capaian Pembelajaran
+
+## Daftar Isi
+
+## Capaian Pembelajaran
 
 Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
@@ -15,11 +18,10 @@ Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
 ---
 
-## 📚 Materi Pembelajaran
 
-### 1. Pendahuluan Interrupt
+## 1. Pendahuluan Interrupt
 
-#### 1.1 Definisi dan Konsep Dasar
+### 1.1 Definisi dan Konsep Dasar
 
 **Interrupt** adalah mekanisme hardware yang memungkinkan processor menghentikan sementara eksekusi program utama untuk menangani event penting yang memerlukan perhatian segera. Setelah interrupt ditangani, processor melanjutkan eksekusi program utama dari titik terakhir.
 
@@ -29,7 +31,7 @@ Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 - **Determinisme**: Waktu respons yang dapat diprediksi
 - **Real-time**: Mendukung aplikasi yang time-critical
 
-#### 1.2 Perbandingan: Polling vs Interrupt
+### 1.2 Perbandingan: Polling vs Interrupt
 
 | Aspek | Polling | Interrupt |
 |-------|---------|-----------|
@@ -67,9 +69,9 @@ Interrupt (STM32 HAL):
 
 ---
 
-### 2. Arsitektur Interrupt STM32F103C8T6
+## 2. Arsitektur Interrupt STM32F103C8T6
 
-#### 2.1 Nested Vectored Interrupt Controller (NVIC)
+### 2.1 Nested Vectored Interrupt Controller (NVIC)
 
 STM32F103 menggunakan **NVIC** yang merupakan bagian integral dari core ARM Cortex-M3. NVIC mengelola semua interrupt dengan fitur:
 
@@ -94,7 +96,7 @@ STM32F103 menggunakan **NVIC** yang merupakan bagian integral dari core ARM Cort
 └─────────────────────────────────────────────────────────────┘
 ```
 
-#### 2.2 External Interrupt (EXTI) pada STM32
+### 2.2 External Interrupt (EXTI) pada STM32
 
 STM32F103 memiliki 16 jalur EXTI (EXTI0-EXTI15) yang dapat dikonfigurasi untuk mendeteksi:
 - **Rising Edge**: Transisi LOW → HIGH
@@ -114,7 +116,7 @@ PA15, PB15, PC15 → EXTI15
 
 **Catatan Penting**: Hanya SATU pin dengan nomor yang sama dapat aktif di EXTI. Contoh: PA0 dan PB0 tidak bisa keduanya menggunakan EXTI0 bersamaan.
 
-#### 2.3 Konfigurasi EXTI STM32 dengan HAL
+### 2.3 Konfigurasi EXTI STM32 dengan HAL
 
 ```c
 // Konfigurasi GPIO sebagai EXTI input menggunakan STM32Cube HAL
@@ -135,7 +137,7 @@ static void MX_GPIO_Init(void)
 }
 ```
 
-#### 2.4 Interrupt Handler STM32 (HAL)
+### 2.4 Interrupt Handler STM32 (HAL)
 
 ```c
 // IRQ vector — forward ke HAL handler
@@ -153,7 +155,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 }
 ```
 
-#### 2.5 Register Level Reference
+### 2.5 Register Level Reference
 
 ```c
 // Register-level EXTI setup (untuk pemahaman mendalam)
@@ -169,9 +171,9 @@ NVIC_EnableIRQ(EXTI0_IRQn);
 
 ---
 
-### 3. Arsitektur Interrupt ESP32
+## 3. Arsitektur Interrupt ESP32
 
-#### 3.1 Dual-Core Interrupt System
+### 3.1 Dual-Core Interrupt System
 
 ESP32 memiliki arsitektur dual-core (PRO_CPU dan APP_CPU) dengan sistem interrupt yang lebih fleksibel:
 
@@ -197,7 +199,7 @@ ESP32 memiliki arsitektur dual-core (PRO_CPU dan APP_CPU) dengan sistem interrup
 └─────────────────────────────────────────────────────────────┘
 ```
 
-#### 3.2 GPIO Interrupt ESP32 (ESP-IDF)
+### 3.2 GPIO Interrupt ESP32 (ESP-IDF)
 
 ESP32 mendukung interrupt pada semua GPIO pin. Konfigurasi via `gpio_config()`:
 
@@ -212,7 +214,7 @@ typedef enum {
 } gpio_int_type_t;
 ```
 
-#### 3.3 Implementasi GPIO Interrupt ESP32 (ESP-IDF)
+### 3.3 Implementasi GPIO Interrupt ESP32 (ESP-IDF)
 
 ```c
 #include "driver/gpio.h"
@@ -274,7 +276,7 @@ void app_main(void)
 }
 ```
 
-#### 3.4 IRAM_ATTR Explained
+### 3.4 IRAM_ATTR Explained
 
 ```c
 // IRAM_ATTR sangat PENTING untuk ESP32 ISR!
@@ -290,9 +292,9 @@ static void IRAM_ATTR my_isr(void *arg) { /* ... */ }
 
 ---
 
-### 4. Timer pada STM32F103C8T6
+## 4. Timer pada STM32F103C8T6
 
-#### 4.1 Jenis Timer STM32F103
+### 4.1 Jenis Timer STM32F103
 
 | Timer | Tipe | Resolusi | Channel | Fitur Khusus |
 |-------|------|----------|---------|--------------|
@@ -302,7 +304,7 @@ static void IRAM_ATTR my_isr(void *arg) { /* ... */ }
 | TIM4 | General | 16-bit | 4 | Input Capture, PWM, Encoder |
 | SysTick | System | 24-bit | - | Delay, RTOS tick |
 
-#### 4.2 Arsitektur Timer STM32
+### 4.2 Arsitektur Timer STM32
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -330,7 +332,7 @@ static void IRAM_ATTR my_isr(void *arg) { /* ... */ }
 └─────────────────────────────────────────────────────────────┘
 ```
 
-#### 4.3 Perhitungan Timer STM32
+### 4.3 Perhitungan Timer STM32
 
 **Rumus Dasar:**
 ```
@@ -348,7 +350,7 @@ Pilihan: PSC = 7199, ARR = 9999
 → Period = 10000 / 10kHz = 1 detik ✓
 ```
 
-#### 4.4 Konfigurasi Timer STM32 (HAL)
+### 4.4 Konfigurasi Timer STM32 (HAL)
 
 ```c
 TIM_HandleTypeDef htim2;
@@ -380,9 +382,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 ---
 
-### 5. Timer pada ESP32 (ESP-IDF)
+## 5. Timer pada ESP32 (ESP-IDF)
 
-#### 5.1 Hardware Timer ESP32
+### 5.1 Hardware Timer ESP32
 
 ESP32 memiliki 4 hardware timer 64-bit yang sangat presisi:
 
@@ -393,7 +395,7 @@ ESP32 memiliki 4 hardware timer 64-bit yang sangat presisi:
 | Group 1 | Timer 0 | 64-bit | Up/Down |
 | Group 1 | Timer 1 | 64-bit | Up/Down |
 
-#### 5.2 Konfigurasi Timer ESP32 (ESP-IDF GPTimer)
+### 5.2 Konfigurasi Timer ESP32 (ESP-IDF GPTimer)
 
 ```c
 #include "driver/gptimer.h"
@@ -434,9 +436,9 @@ void app_main(void)
 
 ---
 
-### 6. Watchdog Timer
+## 6. Watchdog Timer
 
-#### 6.1 Konsep Watchdog Timer
+### 6.1 Konsep Watchdog Timer
 
 Watchdog Timer (WDT) adalah mekanisme keamanan untuk mendeteksi dan memulihkan sistem dari kegagalan software. Prinsipnya:
 
@@ -453,7 +455,7 @@ Hang:     ──┬──────┬──────X
                            (software hang)
 ```
 
-#### 6.2 STM32: IWDG dan WWDG
+### 6.2 STM32: IWDG dan WWDG
 
 | Fitur | IWDG (Independent) | WWDG (Window) |
 |-------|-------------------|---------------|
@@ -494,7 +496,7 @@ static void MX_WWDG_Init(void)
 }
 ```
 
-#### 6.3 ESP32: esp_task_wdt (ESP-IDF)
+### 6.3 ESP32: esp_task_wdt (ESP-IDF)
 
 ```c
 #include "esp_task_wdt.h"
@@ -521,9 +523,9 @@ void app_main(void)
 
 ---
 
-### 7. Timer Cascade (Multi-Timer Chaining)
+## 7. Timer Cascade (Multi-Timer Chaining)
 
-#### 7.1 Konsep Timer Cascade
+### 7.1 Konsep Timer Cascade
 
 Timer Cascade menghubungkan output satu timer sebagai clock input timer lain, memperluas range timing melebihi kapasitas timer tunggal:
 
@@ -538,7 +540,7 @@ Cascaded (2 × 16-bit → efektif 32-bit):
 Max: 65536 × 65536 = 4,294,967,296 counts
 ```
 
-#### 7.2 STM32: Hardware Master-Slave (HAL)
+### 7.2 STM32: Hardware Master-Slave (HAL)
 
 ```c
 TIM_HandleTypeDef htim2, htim3;
@@ -574,7 +576,7 @@ static void MX_TIM3_Slave_Init(void)
 }
 ```
 
-#### 7.3 ESP32: Software Chaining (ESP-IDF)
+### 7.3 ESP32: Software Chaining (ESP-IDF)
 
 ```c
 static volatile uint32_t fast_count = 0;
@@ -594,7 +596,129 @@ static bool IRAM_ATTR fast_cb(gptimer_handle_t timer,
 
 ---
 
-### 8. Perbandingan STM32 vs ESP32
+## 8. Clock Tree Management
+
+Pemahaman Clock Tree sangat penting karena semua peripheral (Timer, UART, SPI, I2C, ADC) bergantung pada clock yang benar. Kesalahan konfigurasi clock menyebabkan timer tidak akurat, baud rate salah, atau ADC tidak berfungsi.
+
+### 8.1 Clock Tree STM32F103
+
+STM32F103 memiliki sistem clock yang fleksibel dengan beberapa sumber:
+
+```
+Sumber Clock STM32F103:
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│  HSI (8 MHz)  ──┐                                          │
+│  HSE (8 MHz)  ──┼── PLL ──→ SYSCLK (max 72 MHz)           │
+│                  │              │                            │
+│                  │    ┌─────────┼──────────┐                │
+│                  │    ▼         ▼          ▼                │
+│                  │  AHB      APB1        APB2               │
+│                  │ (72MHz)  (36MHz max)  (72MHz max)        │
+│                  │    │        │           │                 │
+│  LSE (32.768kHz)─┘   │    ┌───┴───┐   ┌──┴───┐            │
+│  LSI (40 kHz)  ──────┘    │TIM2-7 │   │TIM1  │            │
+│                            │UART2-5│   │SPI1  │            │
+│                            │I2C1-2 │   │USART1│            │
+│                            │SPI2-3 │   │ADC1-2│            │
+│                            └───────┘   └──────┘            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Konfigurasi Clock STM32 (HAL):**
+
+```c
+void SystemClock_Config(void)
+{
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+    /* Konfigurasi HSE + PLL → 72 MHz */
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState       = RCC_HSE_ON;
+    RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+    RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLMUL     = RCC_PLL_MUL9;  // 8 MHz × 9 = 72 MHz
+    HAL_RCC_OscConfig(&RCC_OscInitStruct);
+
+    /* Konfigurasi Bus Clocks */
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                                | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;   // AHB  = 72 MHz
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;     // APB1 = 36 MHz
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;     // APB2 = 72 MHz
+    HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
+}
+```
+
+> **Penting:** Timer clock APB1 di-multiply 2× jika APB1 prescaler > 1. Jadi TIM2-TIM7 berjalan di **72 MHz** (bukan 36 MHz). Ini sering menjadi sumber kesalahan perhitungan timer!
+
+### 8.2 Clock Tree ESP32
+
+ESP32 menggunakan sistem clock yang berbeda:
+
+```
+Sumber Clock ESP32:
+┌──────────────────────────────────────────────────────┐
+│                                                      │
+│  XTAL (40 MHz)  ──→ PLL (320/480 MHz)               │
+│  RC Osc (8 MHz) ──→ APB Clock (80 MHz default)      │
+│  XTAL32K (32.768 kHz) ──→ RTC Clock                 │
+│  RC150K (150 kHz)      ──→ RTC Slow Clock            │
+│                                                      │
+│  CPU Clock: 80 / 160 / 240 MHz (configurable)       │
+│  APB Clock: 80 MHz (default)                         │
+│  REF_TICK:  1 MHz                                    │
+│                                                      │
+│  Semua peripheral timer menggunakan APB Clock        │
+│  WiFi/BT membutuhkan minimal 80 MHz APB             │
+└──────────────────────────────────────────────────────┘
+```
+
+**Konfigurasi CPU Frequency ESP32 (ESP-IDF):**
+
+```c
+#include "esp_pm.h"
+
+void configure_clock(void)
+{
+    /* Set CPU ke 240 MHz (maksimal) */
+    esp_pm_config_t pm_config = {
+        .max_freq_mhz = 240,
+        .min_freq_mhz = 80,
+        .light_sleep_enable = false
+    };
+    esp_pm_configure(&pm_config);
+
+    /* Baca frekuensi aktual */
+    uint32_t freq = esp_clk_cpu_freq();
+    printf("CPU Frequency: %lu Hz\n", freq);
+    
+    /* APB frequency (untuk perhitungan timer) */
+    uint32_t apb = esp_clk_apb_freq();
+    printf("APB Frequency: %lu Hz\n", apb);
+}
+```
+
+### 8.3 Hubungan Clock dengan Timer
+
+Pemahaman clock tree sangat krusial untuk perhitungan timer yang akurat:
+
+| Parameter | STM32F103 | ESP32 |
+|-----------|-----------|-------|
+| **Timer Source Clock** | APB1×2 = 72 MHz (TIM2-7) | APB = 80 MHz |
+| **Prescaler Range** | 0 – 65535 | 2 – 65536 |
+| **Auto-Reload Range** | 0 – 65535 (16-bit) | 0 – 2⁶⁴ (64-bit) |
+| **Formula** | $f_{timer} = \frac{f_{clk}}{(PSC+1)(ARR+1)}$ | $f_{timer} = \frac{f_{APB}}{divider}$ |
+| **1 Hz Example** | PSC=7199, ARR=9999 | divider=80000000 |
+
+> **Tip:** Selalu verifikasi clock aktual dengan oscilloscope atau `SystemCoreClock` variable sebelum menghitung prescaler timer.
+
+---
+
+## 9. Perbandingan STM32 vs ESP32
 
 | Aspek | STM32F103 (HAL) | ESP32 (ESP-IDF) |
 |-------|-----------------|-----------------|
@@ -610,7 +734,7 @@ static bool IRAM_ATTR fast_cb(gptimer_handle_t timer,
 
 ---
 
-### 9. Daftar Program Praktikum
+## 9. Daftar Program Praktikum
 
 | No | Nama | Topik | Tingkat |
 |----|------|-------|---------|
@@ -629,9 +753,9 @@ static bool IRAM_ATTR fast_cb(gptimer_handle_t timer,
 
 ---
 
-### 10. Best Practices
+## 10. Best Practices
 
-#### 10.1 Aturan ISR
+### 10.1 Aturan ISR
 
 1. **Singkat dan Cepat** — maksimal beberapa mikrodetik
 2. **Tidak Ada Blocking** — jangan `vTaskDelay()`, `printf()` di ISR
@@ -660,7 +784,7 @@ void app_main(void) {
 
 ---
 
-### 11. Troubleshooting
+## 11. Troubleshooting
 
 | Masalah | Penyebab | Solusi |
 |---------|----------|--------|
@@ -674,7 +798,7 @@ void app_main(void) {
 
 ---
 
-## 📖 Referensi
+## Referensi
 
 1. *Mastering STM32* - Carmine Noviello — Ch7 (Interrupts), Ch11 (Timers)
 2. *Kolban's Book on ESP32* - Neil Kolban — p267-268 (ISR), p300-302 (Timers)

@@ -1,6 +1,9 @@
-# Modul 06: Komunikasi Cerdas Antar-Chip — I2C Bus & Sensor Integration
+# Modul 06: I2C Bus dan Sensor Integration
 
-## 🎯 Capaian Pembelajaran
+
+## Daftar Isi
+
+## Capaian Pembelajaran
 
 Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
@@ -14,11 +17,10 @@ Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
 ---
 
-## 📚 Materi Pembelajaran
 
-### 1. Pendahuluan I2C
+## 1. Pendahuluan I2C
 
-#### 1.1 Sejarah dan Latar Belakang
+### 1.1 Sejarah dan Latar Belakang
 
 I2C (Inter-Integrated Circuit) dikembangkan oleh Philips Semiconductor (sekarang NXP) pada tahun 1982. Protokol ini dirancang untuk komunikasi antar chip dalam satu PCB dengan kebutuhan pin minimal.
 
@@ -29,7 +31,7 @@ I2C (Inter-Integrated Circuit) dikembangkan oleh Philips Semiconductor (sekarang
 - Kecepatan hingga 3.4 Mbps (High Speed Mode)
 - Open-drain output dengan pull-up resistor
 
-#### 1.2 Perbandingan dengan Protokol Lain
+### 1.2 Perbandingan dengan Protokol Lain
 
 | Fitur | I2C | SPI | UART |
 |-------|-----|-----|------|
@@ -40,9 +42,9 @@ I2C (Inter-Integrated Circuit) dikembangkan oleh Philips Semiconductor (sekarang
 | **Max Speed** | 3.4 Mbps | 10+ Mbps | ~1 Mbps |
 | **Complexity** | Medium | Low | Low |
 
-### 2. Teori Dasar I2C
+## 2. Teori Dasar I2C
 
-#### 2.1 Arsitektur I2C Bus
+### 2.1 Arsitektur I2C Bus
 
 ```
                     Vcc (3.3V or 5V)
@@ -65,7 +67,7 @@ I2C (Inter-Integrated Circuit) dikembangkan oleh Philips Semiconductor (sekarang
         SCL ─────────────────────────────
 ```
 
-#### 2.2 Sinyal I2C
+### 2.2 Sinyal I2C
 
 **SDA (Serial Data):**
 - Bidirectional data line
@@ -79,7 +81,7 @@ I2C (Inter-Integrated Circuit) dikembangkan oleh Philips Semiconductor (sekarang
 - Menentukan timing transfer data
 - Clock stretching supported
 
-#### 2.3 Timing Diagram
+### 2.3 Timing Diagram
 
 ```
 START Condition:
@@ -109,7 +111,7 @@ SDA ────────┘       └───
 SCL             ┌───────┘
 ```
 
-#### 2.4 Frame Format
+### 2.4 Frame Format
 
 **7-bit Address Mode:**
 ```
@@ -127,7 +129,7 @@ SCL             ┌───────┘
 - ACK (Acknowledge): SDA LOW saat SCL pulse ke-9
 - NACK (Not Acknowledge): SDA HIGH saat SCL pulse ke-9
 
-#### 2.5 I2C Speed Modes
+### 2.5 I2C Speed Modes
 
 | Mode | Speed | Aplikasi |
 |------|-------|----------|
@@ -136,9 +138,9 @@ SCL             ┌───────┘
 | Fast Mode Plus | 1 Mbps | High-speed sensors |
 | High Speed | 3.4 Mbps | Special applications |
 
-### 3. I2C pada STM32F103
+## 3. I2C pada STM32F103
 
-#### 3.1 Fitur I2C STM32F103
+### 3.1 Fitur I2C STM32F103
 
 - 2 I2C peripheral (I2C1, I2C2)
 - 7-bit dan 10-bit addressing
@@ -154,7 +156,7 @@ SCL             ┌───────┘
 | I2C1 | PB6 | PB7 | PB8 | PB9 |
 | I2C2 | PB10 | PB11 | - | - |
 
-#### 3.2 Konfigurasi I2C STM32 (HAL)
+### 3.2 Konfigurasi I2C STM32 (HAL)
 
 ```c
 I2C_HandleTypeDef hi2c1;
@@ -183,7 +185,7 @@ void I2C1_Init(void) {
 }
 ```
 
-#### 3.3 Operasi I2C STM32
+### 3.3 Operasi I2C STM32
 
 **Scan I2C Bus:**
 ```c
@@ -214,9 +216,9 @@ HAL_StatusTypeDef I2C_Read(uint8_t dev_addr, uint8_t reg, uint8_t* data, uint16_
 }
 ```
 
-### 4. I2C pada ESP32
+## 4. I2C pada ESP32
 
-#### 4.1 Fitur I2C ESP32
+### 4.1 Fitur I2C ESP32
 
 - 2 I2C controller (I2C_NUM_0, I2C_NUM_1)
 - Flexible GPIO mapping (any GPIO)
@@ -225,7 +227,7 @@ HAL_StatusTypeDef I2C_Read(uint8_t dev_addr, uint8_t reg, uint8_t* data, uint16_
 - Clock stretching support
 - Arbitration support
 
-#### 4.2 Konfigurasi I2C ESP32 (Arduino)
+### 4.2 Konfigurasi I2C ESP32 (Arduino)
 
 ```cpp
 #include <Wire.h>
@@ -242,7 +244,7 @@ void setup() {
 }
 ```
 
-#### 4.3 I2C ESP32 dengan ESP-IDF
+### 4.3 I2C ESP32 dengan ESP-IDF
 
 ```cpp
 #include <driver/i2c.h>
@@ -262,9 +264,9 @@ void i2c_master_init(void) {
 }
 ```
 
-### 5. Sensor I2C Populer
+## 5. Sensor I2C Populer
 
-#### 5.1 BME280 - Temperature, Humidity, Pressure Sensor
+### 5.1 BME280 - Temperature, Humidity, Pressure Sensor
 
 **Spesifikasi:**
 | Parameter | Range | Accuracy |
@@ -319,7 +321,7 @@ void loop() {
 }
 ```
 
-#### 5.2 SSD1306 - OLED Display
+### 5.2 SSD1306 - OLED Display
 
 **Spesifikasi:**
 - Resolusi: 128×64 atau 128×32 pixels
@@ -352,7 +354,7 @@ void setup() {
 }
 ```
 
-#### 5.3 DS3231 - Real-Time Clock
+### 5.3 DS3231 - Real-Time Clock
 
 **Spesifikasi:**
 - Accuracy: ±2ppm (±1 min/year)
@@ -410,7 +412,7 @@ void loop() {
 }
 ```
 
-#### 5.4 24LC256 - I2C EEPROM
+### 5.4 24LC256 - I2C EEPROM
 
 **Spesifikasi:**
 - Capacity: 256 Kbit (32KB)
@@ -453,9 +455,9 @@ void EEPROM_WritePage(uint16_t addr, uint8_t* data, uint8_t len) {
 }
 ```
 
-### 6. Multi-Device I2C
+## 6. Multi-Device I2C
 
-#### 6.1 Scanning Multiple Devices
+### 6.1 Scanning Multiple Devices
 
 ```cpp
 void scanI2CDevices() {
@@ -489,7 +491,7 @@ void scanI2CDevices() {
 }
 ```
 
-#### 6.2 Integrated System Example
+### 6.2 Integrated System Example
 
 ```cpp
 // Multiple I2C devices working together
@@ -517,9 +519,9 @@ void updateDisplay() {
 }
 ```
 
-### 7. I2C Bus Recovery
+## 7. I2C Bus Recovery
 
-#### 7.1 Common I2C Problems
+### 7.1 Common I2C Problems
 
 | Problem | Symptom | Cause | Solution |
 |---------|---------|-------|----------|
@@ -528,7 +530,7 @@ void updateDisplay() {
 | Timeout | Operation hangs | Clock stretching too long | Increase timeout |
 | Data corruption | Wrong data | EMI, wrong pull-up | Add filtering |
 
-#### 7.2 Bus Recovery Algorithm
+### 7.2 Bus Recovery Algorithm
 
 ```cpp
 void i2c_bus_recovery(int sda_pin, int scl_pin) {
@@ -560,9 +562,9 @@ void i2c_bus_recovery(int sda_pin, int scl_pin) {
 }
 ```
 
-### 8. Pull-up Resistor Calculation
+## 8. Pull-up Resistor Calculation
 
-#### 8.1 Calculation Formula
+### 8.1 Calculation Formula
 
 ```
 Rp_min = (Vcc - Vol) / Iol
@@ -575,7 +577,7 @@ Where:
 - Cb = bus capacitance (pF)
 ```
 
-#### 8.2 Recommended Values
+### 8.2 Recommended Values
 
 | Mode | Bus Cap | Rp Value |
 |------|---------|----------|
@@ -584,21 +586,21 @@ Where:
 | Fast (400kHz) | <100pF | 2.2kΩ |
 | Fast (400kHz) | <200pF | 1kΩ |
 
-### 9. Best Practices
+## 9. Best Practices
 
-#### 9.1 Hardware Design
+### 9.1 Hardware Design
 - Use appropriate pull-up resistors
 - Keep I2C traces short (<30cm)
 - Use decoupling capacitors near devices
 - Consider separate I2C buses for high-speed and low-speed devices
 
-#### 9.2 Software Design
+### 9.2 Software Design
 - Always check return values
 - Implement timeout handling
 - Use bus recovery mechanism
 - Validate data with CRC when available
 
-#### 9.3 Debugging Tips
+### 9.3 Debugging Tips
 ```cpp
 // Debug wrapper for I2C operations
 HAL_StatusTypeDef I2C_Debug_Write(uint8_t addr, uint8_t reg, uint8_t* data, uint16_t len) {
@@ -614,7 +616,137 @@ HAL_StatusTypeDef I2C_Debug_Write(uint8_t addr, uint8_t reg, uint8_t* data, uint
 }
 ```
 
-### 10. Rangkuman
+## 10. Internal RTC (Real-Time Clock)
+
+Selain menggunakan DS3231 via I2C, mikrokontroler memiliki RTC internal yang berguna untuk timekeeping sederhana tanpa komponen eksternal.
+
+### 10.1 RTC Internal STM32F103
+
+STM32F103 memiliki RTC built-in yang berjalan di domain backup power (VBAT):
+
+```c
+RTC_HandleTypeDef hrtc;
+
+void RTC_Init(void)
+{
+    /* Enable backup domain access */
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWR_EnableBkUpAccess();
+    __HAL_RCC_BKP_CLK_ENABLE();
+
+    /* Konfigurasi LSE sebagai clock source */
+    RCC_OscInitTypeDef osc = {0};
+    osc.OscillatorType = RCC_OSCILLATORTYPE_LSE;
+    osc.LSEState       = RCC_LSE_ON;
+    HAL_RCC_OscConfig(&osc);
+
+    RCC_PeriphCLKInitTypeDef clk = {0};
+    clk.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+    clk.RTCClockSelection    = RCC_RTCCLKSOURCE_LSE;
+    HAL_RCCEx_PeriphCLKConfig(&clk);
+
+    __HAL_RCC_RTC_ENABLE();
+
+    hrtc.Instance = RTC;
+    hrtc.Init.AsynchPrediv = RTC_AUTO_1_SECOND;
+    HAL_RTC_Init(&hrtc);
+}
+
+void RTC_SetTime(uint8_t hours, uint8_t minutes, uint8_t seconds)
+{
+    RTC_TimeTypeDef time = {0};
+    time.Hours   = hours;
+    time.Minutes = minutes;
+    time.Seconds = seconds;
+    HAL_RTC_SetTime(&hrtc, &time, RTC_FORMAT_BIN);
+}
+
+void RTC_GetTime(uint8_t *h, uint8_t *m, uint8_t *s)
+{
+    RTC_TimeTypeDef time;
+    HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
+    *h = time.Hours;
+    *m = time.Minutes;
+    *s = time.Seconds;
+}
+
+/* Backup Register — menyimpan data saat VBAT terhubung */
+void RTC_SaveBackupData(uint32_t reg, uint32_t data)
+{
+    HAL_RTCEx_BKUPWrite(&hrtc, reg, data);
+}
+
+uint32_t RTC_ReadBackupData(uint32_t reg)
+{
+    return HAL_RTCEx_BKUPRead(&hrtc, reg);
+}
+```
+
+> **Penting:** RTC STM32F103 tetap berjalan selama VBAT terhubung ke baterai coin cell (CR2032), bahkan saat VDD mati.
+
+### 10.2 RTC Internal ESP32
+
+ESP32 memiliki RTC yang terintegrasi dengan sistem deep sleep:
+
+```c
+#include <sys/time.h>
+#include <time.h>
+#include "esp_sntp.h"
+
+void rtc_set_time(void)
+{
+    /* Set waktu manual */
+    struct timeval tv = {
+        .tv_sec = 1704067200,  /* 2024-01-01 00:00:00 UTC */
+        .tv_usec = 0
+    };
+    settimeofday(&tv, NULL);
+}
+
+void rtc_get_time(void)
+{
+    time_t now;
+    struct tm timeinfo;
+    
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    
+    printf("Waktu: %02d:%02d:%02d\n",
+           timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    printf("Tanggal: %04d-%02d-%02d\n",
+           timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
+}
+
+/* Sinkronisasi NTP (butuh WiFi) */
+void rtc_sync_ntp(void)
+{
+    esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    esp_sntp_setservername(0, "pool.ntp.org");
+    esp_sntp_init();
+    
+    /* Tunggu sinkronisasi */
+    int retry = 0;
+    while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && ++retry < 10) {
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+}
+```
+
+### 10.3 Perbandingan RTC Internal vs Eksternal
+
+| Aspek | RTC Internal | DS3231 (Eksternal) |
+|-------|-------------|-------------------|
+| **Akurasi** | ±20 ppm (LSE) | ±2 ppm (TCXO) |
+| **Drift/hari** | ~1.7 detik | ~0.17 detik |
+| **Backup** | VBAT pin (STM32) | Baterai CR2032 |
+| **Alarm** | 1-2 alarm | 2 alarm + SQW |
+| **Komponen** | Kristal 32.768kHz | Modul lengkap |
+| **Biaya** | ~Rp 500 (kristal) | ~Rp 15.000 (modul) |
+| **Rekomendasi** | Timekeeping sederhana | Presisi tinggi |
+
+---
+
+## 11. Rangkuman
 
 1. **I2C** adalah protokol serial synchronous dengan 2 wire (SDA, SCL)
 2. **Addressing** 7-bit memungkinkan hingga 127 device pada satu bus
@@ -623,10 +755,11 @@ HAL_StatusTypeDef I2C_Debug_Write(uint8_t addr, uint8_t reg, uint8_t* data, uint
 5. **Sensor populer**: BME280 (environment), DS3231 (RTC), SSD1306 (OLED)
 6. **Pull-up resistors** penting untuk integritas sinyal
 7. **Bus recovery** diperlukan untuk menangani kondisi error
+8. **RTC internal** cocok untuk timekeeping sederhana tanpa modul eksternal
 
 ---
 
-## 📊 Diagram Perbandingan Platform
+## Diagram Perbandingan Platform
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -647,7 +780,7 @@ HAL_StatusTypeDef I2C_Debug_Write(uint8_t addr, uint8_t reg, uint8_t* data, uint
 
 ---
 
-## 📖 Referensi
+## Referensi
 
 1. I2C-bus Specification and User Manual (NXP UM10204)
 2. STM32F103 Reference Manual (RM0008) - Chapter 26: I2C

@@ -1,4 +1,4 @@
-# Modul 13: Network & IoT — Konektivitas Jaringan
+# Modul 13: Network dan IoT
 
 ## Daftar Isi
 1. [Pendahuluan](#1-pendahuluan)
@@ -942,7 +942,213 @@ TLS (Transport Layer Security) mengenkripsi komunikasi antara client dan server:
 
 ---
 
-## 13. Daftar Percobaan
+## 13. ESP-NOW — Peer-to-Peer Communication
+
+ESP-NOW adalah protokol proprietary Espressif yang memungkinkan komunikasi langsung antar ESP32 **tanpa router WiFi**. Sangat ideal untuk sensor network dan remote control.
+
+### 13.1 Karakteristik ESP-NOW
+
+| Fitur | Spesifikasi |
+|-------|-------------|
+| **Range** | ~200m (open area), ~50m (indoor) |
+| **Data rate** | 1 Mbps |
+| **Max payload** | 250 bytes per packet |
+| **Max peers** | 20 (encrypted: 10) |
+| **Latency** | < 1 ms |
+| **Enkripsi** | CCMP (optional) |
+| **Power** | Sangat rendah (bisa dengan deep sleep) |
+
+### 13.2 Implementasi ESP-NOW
+
+**Sender (Pengirim):**
+
+```c
+#include "esp_now.h"
+#include "esp_wifi.h"
+
+/* MAC address receiver — ganti dengan MAC receiver sebenarnya */
+static uint8_t peer_mac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+typedef struct {
+    float temperature;
+    float humidity;
+    uint32_t timestamp;
+} sensor_data_t;
+
+void espnow_send_cb(const uint8_t *mac, esp_now_send_status_t status)
+{
+    printf("Send to %02X:%02X:%02X:%02X:%02X:%02X: %s\n",
+           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
+           status == ESP_NOW_SEND_SUCCESS ? "OK" : "FAIL");
+}
+
+void espnow_init_sender(void)
+{
+    /* WiFi harus diinisialisasi (STA atau AP mode) */
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    esp_wifi_init(&cfg);
+    esp_wifi_set_mode(WIFI_MODE_STA);
+    esp_wifi_start();
+
+    esp_now_init();
+    esp_now_register_send_cb(espnow_send_cb);
+
+    /* Tambah peer */
+    esp_now_peer_info_t peer = {
+        .channel = 0,
+        .encrypt = false,
+    };
+    memcpy(peer.peer_addr, peer_mac, 6);
+    esp_now_add_peer(&peer);
+}
+
+void send_sensor_data(float temp, float hum)
+{
+    sensor_data_t data = {
+        .temperature = temp,
+        .humidity    = hum,
+        .timestamp   = esp_timer_get_time() / 1000,
+    };
+    esp_now_send(peer_mac, (uint8_t *)&data, sizeof(data));
+}
+```
+
+**Receiver (Penerima):**
+
+```c
+void espnow_recv_cb(const esp_now_recv_info_t *info,
+                    const uint8_t *data, int len)
+{
+    sensor_data_t *sensor = (sensor_data_t *)data;
+    printf("From %02X:%02X: Temp=%.1f°C, Hum=%.1f%%\n",
+           info->src_addr[4], info->src_addr[5],
+           sensor->temperature, sensor->humidity);
+}
+
+void espnow_init_receiver(void)
+{
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    esp_wifi_init(&cfg);
+    esp_wifi_set_mode(WIFI_MODE_STA);
+    esp_wifi_start();
+
+    esp_now_init();
+    esp_now_register_recv_cb(espnow_recv_cb);
+}
+```
+
+---
+
+## 14. OTA — Over-The-Air Update
+
+OTA memungkinkan update firmware tanpa koneksi fisik — sangat penting untuk perangkat IoT yang sudah deploy di lapangan.
+
+### 14.1 OTA pada ESP32
+
+ESP32 menggunakan dual partition scheme (OTA_0 dan OTA_1) untuk safe update:
+
+```
+OTA Process:
+┌──────────────┐     ┌──────────────┐
+│  OTA_0       │     │  OTA_1       │
+│  (running)   │     │  (empty)     │
+│  v1.0        │     │              │
+└──────┬───────┘     └──────────────┘
+       │  Download new firmware
+       ▼                    │
+┌──────────────┐     ┌──────┴───────┐
+│  OTA_0       │     │  OTA_1       │
+│  (old)       │     │  (new v1.1)  │
+│  v1.0        │     │  ← Running!  │
+└──────────────┘     └──────────────┘
+       │  If v1.1 fails → rollback to v1.0
+```
+
+**Implementasi OTA HTTP:**
+
+```c
+#include "esp_ota_ops.h"
+#include "esp_http_client.h"
+#include "esp_https_ota.h"
+
+void ota_update_task(void *param)
+{
+    const char *url = "https://server.com/firmware.bin";
+    
+    esp_http_client_config_t config = {
+        .url = url,
+        .cert_pem = server_cert_pem,  /* TLS certificate */
+    };
+    
+    esp_https_ota_config_t ota_config = {
+        .http_config = &config,
+    };
+    
+    printf("Starting OTA update from %s\n", url);
+    esp_err_t ret = esp_https_ota(&ota_config);
+    
+    if (ret == ESP_OK) {
+        printf("OTA Success! Restarting...\n");
+        esp_restart();
+    } else {
+        printf("OTA Failed: %s\n", esp_err_to_name(ret));
+    }
+    vTaskDelete(NULL);
+}
+
+/* Validasi firmware setelah boot */
+void validate_ota(void)
+{
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    esp_ota_img_states_t state;
+    esp_ota_get_state_partition(running, &state);
+    
+    if (state == ESP_OTA_IMG_PENDING_VERIFY) {
+        /* Firmware baru — lakukan self-test */
+        if (self_test_passed()) {
+            esp_ota_mark_app_valid_cancel_rollback();
+            printf("Firmware validated!\n");
+        } else {
+            printf("Self-test failed, rolling back...\n");
+            esp_ota_mark_app_invalid_rollback_and_reboot();
+        }
+    }
+}
+```
+
+### 14.2 Bootloader dan Booting Process
+
+Proses boot pada mikrokontroler:
+
+```
+STM32 Boot Process:
+┌────────────────────────────────────────────────┐
+│ 1. Reset → Check BOOT pins                    │
+│    BOOT0=0 → Boot from Flash (normal)          │
+│    BOOT0=1 → Boot from System Memory (DFU)     │
+│                                                │
+│ 2. Vector Table → Stack Pointer (0x08000000)   │
+│ 3. Reset Handler → SystemInit() → main()       │
+│                                                │
+│ Custom Bootloader (optional):                  │
+│    0x08000000: Bootloader (checks for update)  │
+│    0x08004000: Application (user code)         │
+└────────────────────────────────────────────────┘
+
+ESP32 Boot Process:
+┌────────────────────────────────────────────────┐
+│ 1. ROM Code (1st stage bootloader)             │
+│ 2. 2nd Stage Bootloader (0x1000)               │
+│    → Reads partition table (0x8000)             │
+│    → Selects app partition (factory/OTA)        │
+│ 3. Application startup                         │
+│    → ESP-IDF init → FreeRTOS → app_main()      │
+└────────────────────────────────────────────────┘
+```
+
+---
+
+## 15. Daftar Percobaan
 
 ### ESP32 (12 Percobaan — Native WiFi/BLE):
 

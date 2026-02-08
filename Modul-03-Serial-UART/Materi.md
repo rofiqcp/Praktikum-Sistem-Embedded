@@ -1,6 +1,9 @@
-# BAB 03: Serial UART Communication
+# Modul 03: Komunikasi Serial — UART
 
-## 🎯 Capaian Pembelajaran
+
+## Daftar Isi
+
+## Capaian Pembelajaran
 
 Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
@@ -13,11 +16,10 @@ Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
 ---
 
-## 📚 Materi Pembelajaran
 
-### 1. Pendahuluan Komunikasi Serial
+## 1. Pendahuluan Komunikasi Serial
 
-#### 1.1 Apa itu Komunikasi Serial?
+### 1.1 Apa itu Komunikasi Serial?
 
 **Komunikasi Serial** adalah metode transmisi data di mana bit-bit data dikirim secara berurutan (satu per satu) melalui satu jalur komunikasi. Berbeda dengan komunikasi paralel yang mengirim multiple bit sekaligus, serial communication lebih efisien untuk jarak jauh karena hanya memerlukan sedikit kabel.
 
@@ -40,7 +42,7 @@ Serial Communication:
 └────────────────────────────────────────┘
 ```
 
-#### 1.2 Jenis Komunikasi Serial
+### 1.2 Jenis Komunikasi Serial
 
 | Tipe | Synchronous | Asynchronous |
 |------|-------------|--------------|
@@ -50,7 +52,7 @@ Serial Communication:
 | **Contoh** | SPI, I2C | UART, RS-232 |
 | **Kompleksitas** | Higher | Lower |
 
-#### 1.3 UART (Universal Asynchronous Receiver-Transmitter)
+### 1.3 UART (Universal Asynchronous Receiver-Transmitter)
 
 **UART** adalah protokol komunikasi serial asynchronous yang paling umum digunakan. Disebut "asynchronous" karena tidak memerlukan sinyal clock bersama - kedua device harus sepakat tentang timing (baud rate) sebelumnya.
 
@@ -62,9 +64,9 @@ Serial Communication:
 
 ---
 
-### 2. Frame Data UART
+## 2. Frame Data UART
 
-#### 2.1 Struktur Frame
+### 2.1 Struktur Frame
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -86,7 +88,7 @@ Timing (9600 baud, 8N1):
 Total Frame = 10 bits × 104.17µs = 1.04ms per byte
 ```
 
-#### 2.2 Komponen Frame
+### 2.2 Komponen Frame
 
 | Komponen | Fungsi | Keterangan |
 |----------|--------|------------|
@@ -96,7 +98,7 @@ Total Frame = 10 bits × 104.17µs = 1.04ms per byte
 | **Parity Bit** | Error detection | Optional: Even, Odd, None |
 | **Stop Bit** | Menandai akhir frame | HIGH, 1 atau 2 bits |
 
-#### 2.3 Baud Rate
+### 2.3 Baud Rate
 
 **Baud Rate** adalah jumlah simbol (bit) yang ditransmisikan per detik. Kedua device HARUS menggunakan baud rate yang sama.
 
@@ -120,7 +122,7 @@ Throughput (8N1) = Baud_Rate / 10 bits per byte
                  = 11.25 KB/s
 ```
 
-#### 2.4 Notasi Konfigurasi
+### 2.4 Notasi Konfigurasi
 
 Format: **[Data Bits][Parity][Stop Bits]**
 
@@ -131,9 +133,9 @@ Contoh umum:
 
 ---
 
-### 3. UART pada STM32F103C8T6
+## 3. UART pada STM32F103C8T6
 
-#### 3.1 USART Peripheral STM32
+### 3.1 USART Peripheral STM32
 
 STM32F103C8T6 memiliki 3 USART (Universal Synchronous/Asynchronous Receiver-Transmitter):
 
@@ -168,7 +170,7 @@ STM32F103C8T6 memiliki 3 USART (Universal Synchronous/Asynchronous Receiver-Tran
 └─────────────────────────────────────────────────────────────┘
 ```
 
-#### 3.2 Perhitungan Baud Rate STM32
+### 3.2 Perhitungan Baud Rate STM32
 
 ```
 USARTDIV = f_CLK / (16 × Baud_Rate)
@@ -186,7 +188,7 @@ Fraction = 0.0625 × 16 = 1 = 0x1
 BRR = 0x271
 ```
 
-#### 3.3 Konfigurasi Register STM32 USART
+### 3.3 Konfigurasi Register STM32 USART
 
 ```c
 // USART1 Initialization @ 115200 baud, 8N1
@@ -214,7 +216,7 @@ USART1->CR2 = 0;  // 1 stop bit
 USART1->CR1 |= USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
 ```
 
-#### 3.4 Fungsi Kirim dan Terima STM32
+### 3.4 Fungsi Kirim dan Terima STM32
 
 ```c
 // Blocking transmit
@@ -241,7 +243,7 @@ int USART1_Available(void) {
 }
 ```
 
-#### 3.5 UART dengan Interrupt STM32
+### 3.5 UART dengan Interrupt STM32
 
 ```c
 // Enable RXNE interrupt
@@ -275,9 +277,9 @@ void USART1_IRQHandler(void) {
 
 ---
 
-### 4. UART pada ESP32
+## 4. UART pada ESP32
 
-#### 4.1 UART Peripheral ESP32
+### 4.1 UART Peripheral ESP32
 
 ESP32 memiliki 3 UART:
 
@@ -289,7 +291,7 @@ ESP32 memiliki 3 UART:
 
 **Catatan:** UART0 biasanya digunakan untuk programming dan Serial Monitor. Gunakan UART1 atau UART2 untuk komunikasi dengan device lain.
 
-#### 4.2 Konfigurasi UART ESP32 (ESP-IDF)
+### 4.2 Konfigurasi UART ESP32 (ESP-IDF)
 
 ```c
 #include "driver/uart.h"
@@ -323,7 +325,7 @@ void uart_init(void) {
 }
 ```
 
-#### 4.3 Fungsi UART ESP-IDF
+### 4.3 Fungsi UART ESP-IDF
 
 ```c
 // === Transmit ===
@@ -359,7 +361,7 @@ uart_wait_tx_done(UART_PORT, 100 / portTICK_PERIOD_MS);  // Wait TX complete
 uart_flush(UART_PORT);  // Flush RX buffer
 ```
 
-#### 4.4 UART Event-Driven dengan ESP-IDF
+### 4.4 UART Event-Driven dengan ESP-IDF
 
 ```c
 #include "driver/uart.h"
@@ -419,9 +421,9 @@ static void uart_event_task(void *pvParameters) {
 
 ---
 
-### 5. Komunikasi MCU-to-MCU
+## 5. Komunikasi MCU-to-MCU
 
-#### 5.1 Koneksi Hardware
+### 5.1 Koneksi Hardware
 
 ```
 ┌───────────────────┐         ┌───────────────────┐
@@ -440,7 +442,7 @@ PENTING:
 4. Both devices use same baud rate
 ```
 
-#### 5.2 Level Shifting (jika diperlukan)
+### 5.2 Level Shifting (jika diperlukan)
 
 Jika voltages berbeda (misal 5V Arduino ke 3.3V ESP32):
 
@@ -454,7 +456,7 @@ Jika voltages berbeda (misal 5V Arduino ke 3.3V ESP32):
 Voltage divider: 5V × 2k/(1k+2k) = 3.3V ✓
 ```
 
-#### 5.3 Protokol Komunikasi Sederhana
+### 5.3 Protokol Komunikasi Sederhana
 
 **Text-based Protocol:**
 ```
@@ -504,9 +506,9 @@ int readCommand(char *out, size_t maxLen) {
 
 ---
 
-### 6. Advanced UART Topics
+## 6. Advanced UART Topics
 
-#### 6.1 Circular Buffer Implementation
+### 6.1 Circular Buffer Implementation
 
 ```cpp
 // Ring buffer untuk non-blocking UART
@@ -543,7 +545,7 @@ uint16_t bufferAvailable(RingBuffer* buf) {
 }
 ```
 
-#### 6.2 DMA-based UART (STM32)
+### 6.2 DMA-based UART (STM32)
 
 ```c
 // DMA configuration untuk UART TX
@@ -572,7 +574,7 @@ void USART_DMA_Send(const uint8_t* data, uint16_t length) {
 }
 ```
 
-#### 6.3 Error Detection dan Handling
+### 6.3 Error Detection dan Handling
 
 ```c
 // UART Error Flags STM32 (HAL-based)
@@ -613,7 +615,7 @@ uint8_t calculateChecksum(const char* data) {
 
 ---
 
-### 7. Perbandingan UART: STM32 vs ESP32
+## 7. Perbandingan UART: STM32 vs ESP32
 
 | Aspek | STM32F103C8T6 | ESP32 |
 |-------|---------------|-------|
@@ -629,9 +631,9 @@ uint8_t calculateChecksum(const char* data) {
 
 ---
 
-### 8. Best Practices UART
+## 8. Best Practices UART
 
-#### 8.1 Design Guidelines
+### 8.1 Design Guidelines
 
 1. **Gunakan Baud Rate Standar**
    - Stick dengan 9600, 115200, atau rates umum lainnya
@@ -651,7 +653,7 @@ uint8_t calculateChecksum(const char* data) {
    - Timeout untuk incomplete messages
    - Retry mechanism untuk critical data
 
-#### 8.2 Common Mistakes
+### 8.2 Common Mistakes
 
 ```c
 // ❌ SALAH: Blocking di ISR
@@ -704,7 +706,7 @@ void USART1_IRQHandler(void) {
 }
 ```
 
-#### 8.3 Debugging Tips
+### 8.3 Debugging Tips
 
 1. **Gunakan Logic Analyzer**
    - Verify actual baud rate
@@ -725,9 +727,9 @@ void USART1_IRQHandler(void) {
 
 ---
 
-### 9. Aplikasi Praktis
+## 9. Aplikasi Praktis
 
-#### 9.1 Serial Command Parser
+### 9.1 Serial Command Parser
 
 ```c
 // Struktur command parser
@@ -775,7 +777,7 @@ void processCommand(char *input) {
 }
 ```
 
-#### 9.2 Data Logging Protocol
+### 9.2 Data Logging Protocol
 
 ```c
 // Structured data packet
@@ -815,22 +817,255 @@ void sendPacket_HAL(UART_HandleTypeDef *huart, uint8_t type,
 
 ---
 
-## 📖 Referensi
+## 10. USB — Universal Serial Bus
+
+USB adalah standar komunikasi serial yang sangat penting di sistem embedded modern. STM32F103 memiliki peripheral USB Full-Speed built-in, sementara ESP32-S2/S3 mendukung USB native.
+
+### 10.1 Arsitektur USB
+
+```
+USB Communication Architecture:
+┌──────────┐     ┌──────────────┐
+│   HOST   │────→│   DEVICE     │
+│   (PC)   │ D+  │ (MCU)        │
+│          │←───│              │
+│          │ D-  │  Endpoint 0  │  ← Control (Setup/Status)
+│          │     │  Endpoint 1  │  ← Data IN/OUT
+│          │     │  Endpoint 2  │  ← Data IN/OUT
+└──────────┘     └──────────────┘
+
+Transfer Types:
+• Control    — Setup, konfigurasi (semua device wajib)
+• Bulk       — Data besar, reliable (CDC, MSC)
+• Interrupt  — Kecil, periodik (HID: keyboard, mouse)
+• Isochronous — Streaming, no retry (audio, video)
+```
+
+### 10.2 USB pada STM32F103
+
+STM32F103C8T6 memiliki USB 2.0 Full-Speed (12 Mbps) dengan 8 endpoints:
+
+**USB-CDC (Virtual COM Port):**
+
+```c
+/* STM32 USB CDC — Mengirim data via Virtual Serial Port */
+#include "usbd_cdc_if.h"
+
+/* Kirim string via USB CDC */
+void USB_SendString(const char *str)
+{
+    CDC_Transmit_FS((uint8_t *)str, strlen(str));
+}
+
+/* Callback saat data diterima dari PC */
+static int8_t CDC_Receive_FS(uint8_t *Buf, uint32_t *Len)
+{
+    /* Proses data yang diterima */
+    for (uint32_t i = 0; i < *Len; i++) {
+        process_byte(Buf[i]);
+    }
+    
+    /* Siapkan buffer untuk penerimaan berikutnya */
+    USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+    USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+    return USBD_OK;
+}
+```
+
+**USB-HID (Human Interface Device):**
+
+```c
+/* STM32 USB HID — Keyboard/Mouse emulation */
+#include "usbd_hid.h"
+
+typedef struct {
+    uint8_t modifier;   /* Ctrl, Shift, Alt */
+    uint8_t reserved;
+    uint8_t keycode[6]; /* Max 6 simultaneous keys */
+} KeyboardReport_t;
+
+void USB_SendKey(uint8_t keycode)
+{
+    KeyboardReport_t report = {0};
+    report.keycode[0] = keycode;
+    USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t *)&report, sizeof(report));
+    
+    HAL_Delay(50);
+    
+    /* Release key */
+    memset(&report, 0, sizeof(report));
+    USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t *)&report, sizeof(report));
+}
+```
+
+### 10.3 USB pada ESP32-S2/S3
+
+ESP32-S2 dan S3 memiliki USB-OTG Full-Speed native:
+
+```c
+/* ESP32-S2/S3 USB CDC menggunakan TinyUSB (ESP-IDF) */
+#include "tinyusb.h"
+#include "tusb_cdc_acm.h"
+
+void app_main(void)
+{
+    /* Inisialisasi TinyUSB */
+    const tinyusb_config_t tusb_cfg = {
+        .device_descriptor = NULL,  /* Gunakan default */
+        .string_descriptor = NULL,
+        .external_phy = false,
+    };
+    tinyusb_driver_install(&tusb_cfg);
+
+    /* Konfigurasi CDC ACM */
+    tinyusb_config_cdcacm_t acm_cfg = {
+        .usb_dev = TINYUSB_USBDEV_0,
+        .cdc_port = TINYUSB_CDC_ACM_0,
+        .rx_unread_buf_sz = 64,
+        .callback_rx = &cdc_rx_callback,
+    };
+    tusb_cdc_acm_init(&acm_cfg);
+}
+
+/* Callback penerimaan data */
+void cdc_rx_callback(int itf, cdcacm_event_t *event)
+{
+    uint8_t buf[64];
+    size_t rx_size = 0;
+    tinyusb_cdcacm_read(itf, buf, sizeof(buf), &rx_size);
+    printf("Received %d bytes: %.*s\n", rx_size, rx_size, buf);
+}
+```
+
+### 10.4 Perbandingan USB: STM32 vs ESP32
+
+| Aspek | STM32F103 | ESP32-S2/S3 |
+|-------|-----------|-------------|
+| **USB Type** | Full-Speed (12 Mbps) | Full-Speed (12 Mbps) |
+| **Library** | STM32 USB Device Lib | TinyUSB |
+| **CDC** | ✅ Virtual COM Port | ✅ Via TinyUSB |
+| **HID** | ✅ Keyboard/Mouse | ✅ Via TinyUSB |
+| **MSC** | ✅ Mass Storage | ✅ Via TinyUSB |
+| **OTG** | ❌ Device only | ✅ Host + Device |
+| **Pin** | PA11(DM), PA12(DP) | GPIO19(D-), GPIO20(D+) |
+
+> **Catatan:** ESP32 (tanpa S2/S3) **tidak** memiliki USB native. Hanya UART via CP2102/CH340.
+
+---
+
+## 11. Hardware CRC
+
+CRC (Cyclic Redundancy Check) digunakan untuk validasi integritas data pada komunikasi serial, storage, dan protokol jaringan.
+
+### 11.1 CRC Hardware pada STM32
+
+STM32F103 memiliki CRC calculation unit built-in yang menghitung CRC-32 secara hardware (jauh lebih cepat dari software):
+
+```c
+#include "stm32f1xx_hal.h"
+
+CRC_HandleTypeDef hcrc;
+
+void CRC_Init(void)
+{
+    __HAL_RCC_CRC_CLK_ENABLE();
+    hcrc.Instance = CRC;
+    HAL_CRC_Init(&hcrc);
+}
+
+uint32_t Calculate_CRC(uint32_t *data, uint32_t length)
+{
+    return HAL_CRC_Calculate(&hcrc, data, length);
+}
+
+/* Contoh penggunaan */
+void test_crc(void)
+{
+    uint32_t test_data[] = {0x12345678, 0x9ABCDEF0, 0x11223344};
+    uint32_t crc = Calculate_CRC(test_data, 3);
+    printf("CRC-32: 0x%08lX\n", crc);
+    
+    /* Verifikasi: hitung ulang harus sama */
+    uint32_t crc_verify = Calculate_CRC(test_data, 3);
+    printf("Verify:  0x%08lX (%s)\n", crc_verify,
+           (crc == crc_verify) ? "MATCH" : "MISMATCH");
+}
+```
+
+### 11.2 CRC pada ESP32
+
+ESP32 tidak memiliki CRC hardware khusus, tetapi ROM berisi fungsi CRC yang cepat:
+
+```c
+#include "rom/crc.h"
+
+void test_esp32_crc(void)
+{
+    uint8_t data[] = "Hello CRC!";
+    
+    /* CRC-32 menggunakan ROM function */
+    uint32_t crc32 = crc32_le(0, data, sizeof(data) - 1);
+    printf("CRC-32: 0x%08lX\n", crc32);
+    
+    /* CRC-16 */
+    uint16_t crc16 = crc16_le(0, data, sizeof(data) - 1);
+    printf("CRC-16: 0x%04X\n", crc16);
+    
+    /* CRC-8 */
+    uint8_t crc8 = crc8_le(0, data, sizeof(data) - 1);
+    printf("CRC-8:  0x%02X\n", crc8);
+}
+```
+
+### 11.3 Kapan Menggunakan CRC?
+
+| Aplikasi | Jenis CRC | Keterangan |
+|----------|-----------|------------|
+| UART packet validation | CRC-8 / CRC-16 | Ringan, cukup untuk data kecil |
+| File integrity | CRC-32 | Standard untuk file system |
+| Network frame | CRC-32 | Ethernet, WiFi |
+| Flash storage | CRC-32 | Validasi firmware |
+| Modbus RTU | CRC-16 | Standard industri |
+
+---
+
+## 12. Daftar Program Praktikum
+
+| No | Platform | Nama Program | Topik | Tingkat |
+|----|----------|-------------|-------|---------|
+| 01 | ESP32 | UART_Basic | Kirim/terima string via UART | Dasar |
+| 02 | ESP32 | UART_Interrupt | UART dengan interrupt handler | Dasar |
+| 03 | ESP32 | UART_Event | Event-driven UART | Menengah |
+| 04 | ESP32 | UART_DMA | UART dengan DMA transfer | Menengah |
+| 05 | ESP32 | UART_MCU2MCU | Komunikasi antar MCU | Menengah |
+| 06 | ESP32 | UART_Protocol | Command parser protocol | Lanjut |
+| 07 | STM32 | UART_Basic | Kirim/terima string via USART | Dasar |
+| 08 | STM32 | UART_Interrupt | USART dengan interrupt | Dasar |
+| 09 | STM32 | UART_DMA | USART dengan DMA transfer | Menengah |
+| 10 | STM32 | UART_RingBuffer | Circular buffer implementation | Menengah |
+| 11 | STM32 | UART_MCU2MCU | Komunikasi antar MCU | Menengah |
+| 12 | STM32 | UART_Protocol | Command parser protocol | Lanjut |
+
+---
+
+## Referensi
 
 ### Dokumentasi Resmi
 1. **STM32F103C8 Reference Manual** (RM0008) - ST Microelectronics
    - Chapter 27: Universal synchronous asynchronous receiver transmitter (USART)
+   - Chapter 14: CRC calculation unit
 2. **ESP32 Technical Reference Manual** - Espressif Systems
    - Chapter 12: UART Controller
 3. **ESP-IDF UART Documentation**
    - https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/uart.html
+4. **USB 2.0 Specification** - usb.org
 
 ### Buku Referensi
-1. *Mastering STM32* - Carmine Noviello (Chapter 8: USART)
-2. *Serial Port Complete* - Jan Axelson
-3. *The Embedded Rust Book* - UART Communication
+1. *Mastering STM32* - Carmine Noviello (Chapter 8: USART, Chapter USB)
+2. *Kolban's Book on ESP32* - Neil Kolban (UART & USB sections)
+3. *Serial Port Complete* - Jan Axelson
 
 ### Standards
 1. **RS-232** - EIA/TIA-232 Standard
 2. **TTL Serial** - 3.3V/5V Logic Levels
-
+3. **USB 2.0** - Universal Serial Bus Specification

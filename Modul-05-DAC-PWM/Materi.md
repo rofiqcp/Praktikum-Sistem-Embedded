@@ -1,6 +1,9 @@
-# Modul 05: Menghidupkan Sinyal — DAC & PWM Output
+# Modul 05: DAC dan PWM Output
 
-## 🎯 Capaian Pembelajaran
+
+## Daftar Isi
+
+## Capaian Pembelajaran
 
 Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
@@ -14,9 +17,8 @@ Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
 ---
 
-## 📚 Materi Pembelajaran
 
-### 1. Pendahuluan
+## 1. Pendahuluan
 
 Dalam sistem embedded, seringkali kita perlu menghasilkan sinyal analog dari mikrokontroler yang bekerja secara digital. Ada dua metode utama untuk menghasilkan output analog:
 
@@ -25,9 +27,9 @@ Dalam sistem embedded, seringkali kita perlu menghasilkan sinyal analog dari mik
 
 Kedua metode memiliki karakteristik, kelebihan, dan aplikasi yang berbeda.
 
-### 2. Teori Dasar DAC
+## 2. Teori Dasar DAC
 
-#### 2.1 Prinsip Kerja DAC
+### 2.1 Prinsip Kerja DAC
 
 DAC mengkonversi nilai digital (binary) menjadi tegangan analog proporsional.
 
@@ -46,9 +48,9 @@ Dimana:
 - Input = 127 → Vout = 1.64V
 - Input = 255 → Vout = 3.3V
 
-#### 2.2 Arsitektur DAC
+### 2.2 Arsitektur DAC
 
-##### a) R-2R Ladder DAC
+#### a) R-2R Ladder DAC
 ```
                     Vref
                      │
@@ -79,7 +81,7 @@ Dimana:
 - Akurat dan linear
 - Mudah dikaskade untuk resolusi lebih tinggi
 
-##### b) Weighted Resistor DAC
+#### b) Weighted Resistor DAC
 ```
         R
 D3 ────/\/\/──┐
@@ -92,12 +94,12 @@ D0 ────/\/\/──┘    │Amp │
                    └────┘
 ```
 
-##### c) Delta-Sigma DAC
+#### c) Delta-Sigma DAC
 - Menggunakan oversampling dan noise shaping
 - Resolusi tinggi dengan komponen sederhana
 - Bandwidth lebih rendah
 
-#### 2.3 Spesifikasi Penting DAC
+### 2.3 Spesifikasi Penting DAC
 
 | Parameter | Deskripsi |
 |-----------|-----------|
@@ -108,9 +110,9 @@ D0 ────/\/\/──┘    │Amp │
 | **Glitch Energy** | Transient saat perubahan kode |
 | **SFDR (Spurious Free Dynamic Range)** | Rasio fundamental ke spurious terbesar |
 
-### 3. DAC pada STM32F103
+## 3. DAC pada STM32F103
 
-#### 3.1 Fitur DAC STM32F103
+### 3.1 Fitur DAC STM32F103
 
 **STM32F103C8T6** memiliki:
 - 2 channel DAC (DAC1 dan DAC2)
@@ -137,7 +139,7 @@ D0 ────/\/\/──┘    │Amp │
 └─────────────────────────────────────────────────┘
 ```
 
-#### 3.2 Register DAC STM32
+### 3.2 Register DAC STM32
 
 | Register | Fungsi |
 |----------|--------|
@@ -148,7 +150,7 @@ D0 ────/\/\/──┘    │Amp │
 | DAC_DHR8R1 | Data Holding Register 8-bit right-aligned Ch1 |
 | DAC_DOR1 | Data Output Register Channel 1 |
 
-#### 3.3 Mode Trigger DAC
+### 3.3 Mode Trigger DAC
 
 ```c
 // Sumber Trigger DAC STM32
@@ -165,7 +167,7 @@ typedef enum {
 } DAC_Trigger_TypeDef;
 ```
 
-#### 3.4 Konfigurasi DAC STM32 dengan HAL
+### 3.4 Konfigurasi DAC STM32 dengan HAL
 
 ```c
 // Struktur konfigurasi DAC
@@ -202,9 +204,9 @@ void DAC_SetValue(uint16_t value) {
 }
 ```
 
-### 4. DAC pada ESP32
+## 4. DAC pada ESP32
 
-#### 4.1 Fitur DAC ESP32
+### 4.1 Fitur DAC ESP32
 
 ESP32 memiliki:
 - 2 channel DAC 8-bit
@@ -234,7 +236,7 @@ ESP32 memiliki:
 └─────────────────────────────────────────────────┘
 ```
 
-#### 4.2 Kode DAC ESP32 (Arduino)
+### 4.2 Kode DAC ESP32 (Arduino)
 
 ```cpp
 #include <Arduino.h>
@@ -262,7 +264,7 @@ void loop() {
 }
 ```
 
-#### 4.3 Cosine Wave Generator ESP32
+### 4.3 Cosine Wave Generator ESP32
 
 ```cpp
 #include <driver/dac.h>
@@ -282,9 +284,9 @@ void generateCosineWave(uint8_t channel, uint32_t frequency) {
 }
 ```
 
-### 5. Teori Dasar PWM
+## 5. Teori Dasar PWM
 
-#### 5.1 Konsep PWM
+### 5.1 Konsep PWM
 
 PWM adalah teknik modulasi dimana lebar pulsa (duty cycle) diatur untuk mengontrol daya rata-rata yang dikirim ke beban.
 
@@ -316,7 +318,7 @@ Dimana:
 - Vavg = Tegangan rata-rata
 ```
 
-#### 5.2 Frekuensi PWM
+### 5.2 Frekuensi PWM
 
 Pemilihan frekuensi PWM sangat penting:
 
@@ -328,7 +330,7 @@ Pemilihan frekuensi PWM sangat penting:
 | Servo | 50 Hz | Standard hobby servo |
 | Power Supply | 100 kHz+ | Komponen filter lebih kecil |
 
-#### 5.3 Resolusi PWM
+### 5.3 Resolusi PWM
 
 ```
 Resolusi = log2(Max_Count + 1)
@@ -342,9 +344,9 @@ Trade-off: Resolusi tinggi vs Frekuensi tinggi
 Max_Freq = Clock / (2^Resolusi)
 ```
 
-### 6. PWM pada STM32
+## 6. PWM pada STM32
 
-#### 6.1 Timer untuk PWM
+### 6.1 Timer untuk PWM
 
 STM32 menggunakan Timer untuk generate PWM:
 
@@ -371,7 +373,7 @@ STM32 menggunakan Timer untuk generate PWM:
 └───────────────────────────────────────────────────────┘
 ```
 
-#### 6.2 Konfigurasi PWM STM32 dengan HAL
+### 6.2 Konfigurasi PWM STM32 dengan HAL
 
 ```c
 TIM_HandleTypeDef htim3;
@@ -417,7 +419,7 @@ void PWM_SetDutyCycle(uint16_t duty) {
 }
 ```
 
-#### 6.3 Mode PWM
+### 6.3 Mode PWM
 
 ```c
 // PWM Mode 1: Active saat CNT < CCR
@@ -441,9 +443,9 @@ PWM Mode 2 (TIM_OCMODE_PWM2):
 */
 ```
 
-### 7. PWM pada ESP32
+## 7. PWM pada ESP32
 
-#### 7.1 LEDC (LED Control) Peripheral
+### 7.1 LEDC (LED Control) Peripheral
 
 ESP32 memiliki LEDC peripheral yang didesain untuk LED control tetapi dapat digunakan untuk PWM umum:
 
@@ -475,7 +477,7 @@ ESP32 memiliki LEDC peripheral yang didesain untuk LED control tetapi dapat digu
 - Hardware fade support
 - Frekuensi hingga 40 MHz
 
-#### 7.2 Kode PWM ESP32 (Arduino)
+### 7.2 Kode PWM ESP32 (Arduino)
 
 ```cpp
 #include <Arduino.h>
@@ -506,7 +508,7 @@ void loop() {
 }
 ```
 
-#### 7.3 Hardware Fade ESP32
+### 7.3 Hardware Fade ESP32
 
 ```cpp
 #include <driver/ledc.h>
@@ -549,9 +551,9 @@ void fadeToTarget(uint32_t target_duty, int fade_time_ms) {
 }
 ```
 
-### 8. Aplikasi PWM
+## 8. Aplikasi PWM
 
-#### 8.1 Kontrol Motor DC
+### 8.1 Kontrol Motor DC
 
 ```cpp
 // H-Bridge motor control dengan PWM
@@ -575,7 +577,7 @@ void motorSetSpeed(int speed) {
 }
 ```
 
-#### 8.2 Kontrol Servo Motor
+### 8.2 Kontrol Servo Motor
 
 ```
 Servo Signal Timing:
@@ -622,7 +624,7 @@ void loop() {
 }
 ```
 
-#### 8.3 PWM sebagai Pseudo-DAC
+### 8.3 PWM sebagai Pseudo-DAC
 
 ```cpp
 // PWM + Low-pass filter = Pseudo DAC
@@ -643,7 +645,7 @@ PWM Out ─────/\/\/\──────┬────── Analog Out
 // - Atau gunakan active low-pass filter
 ```
 
-### 9. Perbandingan DAC vs PWM
+## 9. Perbandingan DAC vs PWM
 
 | Aspek | DAC | PWM |
 |-------|-----|-----|
@@ -655,9 +657,9 @@ PWM Out ─────/\/\/\──────┬────── Analog Out
 | **Cost** | Perlu DAC peripheral | Hanya timer |
 | **Audio Quality** | Lebih baik | Perlu filtering |
 
-### 10. Best Practices
+## 10. Best Practices
 
-#### 10.1 DAC Best Practices
+### 10.1 DAC Best Practices
 
 ```c
 // 1. Gunakan buffer untuk menghindari loading effect
@@ -675,7 +677,7 @@ sConfig.DAC_Trigger = DAC_TRIGGER_T6_TRGO;
 // STM32F103: ~3µs settling time
 ```
 
-#### 10.2 PWM Best Practices
+### 10.2 PWM Best Practices
 
 ```c
 // 1. Pilih frekuensi sesuai aplikasi
@@ -697,7 +699,7 @@ void motorSoftStart(int targetSpeed) {
 HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
 ```
 
-### 11. Troubleshooting
+## 11. Troubleshooting
 
 | Problem | Kemungkinan Penyebab | Solusi |
 |---------|---------------------|--------|
@@ -707,7 +709,7 @@ HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
 | Servo jitter | Interrupt mengganggu timing | Gunakan hardware PWM |
 | DAC stepping | Resolusi kurang | Gunakan dithering |
 
-### 12. Rangkuman
+## 12. Rangkuman
 
 1. **DAC** mengkonversi nilai digital langsung ke tegangan analog dengan kualitas tinggi
 2. **PWM** menggunakan duty cycle untuk mengontrol daya rata-rata
@@ -720,7 +722,240 @@ HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
 
 ---
 
-## 📊 Diagram Perbandingan Platform
+## 13. I2S — Inter-IC Sound
+
+I2S adalah protokol serial khusus untuk audio digital. Meskipun namanya mirip I2C, I2S berbeda sama sekali — dirancang untuk transfer data audio berkualitas tinggi.
+
+### 13.1 Arsitektur I2S
+
+```
+I2S Bus:
+┌──────────────┐     SCK (Serial Clock)    ┌──────────────┐
+│              │─────────────────────────→│              │
+│   MASTER     │     WS (Word Select)      │    SLAVE     │
+│  (MCU/DAC)   │─────────────────────────→│  (Codec/Amp) │
+│              │     SD (Serial Data)      │              │
+│              │─────────────────────────→│              │
+└──────────────┘                           └──────────────┘
+
+WS = 0 → Left Channel
+WS = 1 → Right Channel
+```
+
+### 13.2 I2S pada ESP32
+
+ESP32 memiliki 2 peripheral I2S (I2S0, I2S1) yang sangat fleksibel:
+
+```c
+#include "driver/i2s_std.h"
+
+i2s_chan_handle_t tx_handle;
+
+void i2s_init(void)
+{
+    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(
+        I2S_NUM_0, I2S_ROLE_MASTER);
+    i2s_new_channel(&chan_cfg, &tx_handle, NULL);
+
+    i2s_std_config_t std_cfg = {
+        .clk_cfg  = I2S_STD_CLK_DEFAULT_CONFIG(44100),  /* 44.1 kHz */
+        .slot_cfg = I2S_STD_MSB_SLOT_DEFAULT_CONFIG(
+                        I2S_DATA_BIT_WIDTH_16BIT,
+                        I2S_SLOT_MODE_STEREO),
+        .gpio_cfg = {
+            .mclk = GPIO_NUM_0,
+            .bclk = GPIO_NUM_26,
+            .ws   = GPIO_NUM_25,
+            .dout = GPIO_NUM_22,
+            .din  = I2S_GPIO_UNUSED,
+        },
+    };
+    i2s_channel_init_std_mode(tx_handle, &std_cfg);
+    i2s_channel_enable(tx_handle);
+}
+
+/* Kirim audio samples */
+void i2s_play_tone(uint16_t freq, uint32_t duration_ms)
+{
+    int16_t samples[256];
+    size_t bytes_written;
+    
+    /* Generate sine wave */
+    for (int i = 0; i < 256; i++) {
+        float t = (float)i / 44100.0f;
+        samples[i] = (int16_t)(32767.0f * sinf(2.0f * M_PI * freq * t));
+    }
+    
+    uint32_t end = xTaskGetTickCount() + pdMS_TO_TICKS(duration_ms);
+    while (xTaskGetTickCount() < end) {
+        i2s_channel_write(tx_handle, samples, sizeof(samples),
+                          &bytes_written, portMAX_DELAY);
+    }
+}
+```
+
+### 13.3 I2S pada STM32
+
+STM32F103 memiliki SPI/I2S peripheral yang bisa dikonfigurasi sebagai I2S:
+
+```c
+/* STM32 I2S menggunakan SPI peripheral */
+I2S_HandleTypeDef hi2s2;
+
+void I2S_Init(void)
+{
+    hi2s2.Instance          = SPI2;
+    hi2s2.Init.Mode         = I2S_MODE_MASTER_TX;
+    hi2s2.Init.Standard     = I2S_STANDARD_PHILIPS;
+    hi2s2.Init.DataFormat   = I2S_DATAFORMAT_16B;
+    hi2s2.Init.MCLKOutput   = I2S_MCLKOUTPUT_ENABLE;
+    hi2s2.Init.AudioFreq    = I2S_AUDIOFREQ_44K;
+    hi2s2.Init.CPOL         = I2S_CPOL_LOW;
+    HAL_I2S_Init(&hi2s2);
+}
+
+void I2S_SendSample(int16_t left, int16_t right)
+{
+    HAL_I2S_Transmit(&hi2s2, (uint16_t[]){left, right}, 2, HAL_MAX_DELAY);
+}
+```
+
+---
+
+## 14. RMT — Remote Control Transceiver (ESP32)
+
+RMT (Remote Control) adalah peripheral unik ESP32 yang sangat berguna untuk mengontrol LED addressable (WS2812/NeoPixel), IR remote, dan sinyal timing presisi.
+
+### 14.1 Konsep RMT
+
+RMT menghasilkan/menangkap sinyal pulse dengan timing yang sangat akurat (resolusi 12.5 ns pada clock 80 MHz). Ideal untuk protokol yang membutuhkan timing presisi.
+
+### 14.2 RMT untuk WS2812 NeoPixel
+
+```c
+#include "driver/rmt_tx.h"
+#include "led_strip.h"
+
+led_strip_handle_t led_strip;
+
+void neopixel_init(void)
+{
+    /* Konfigurasi LED strip via RMT */
+    led_strip_config_t strip_config = {
+        .strip_gpio_num = GPIO_NUM_48,    /* GPIO data NeoPixel */
+        .max_leds = 8,                     /* Jumlah LED */
+    };
+    
+    led_strip_rmt_config_t rmt_config = {
+        .resolution_hz = 10 * 1000 * 1000, /* 10 MHz */
+    };
+    
+    led_strip_new_rmt_device(&strip_config, &rmt_config, &led_strip);
+    led_strip_clear(led_strip);
+}
+
+/* Set warna RGB pada LED tertentu */
+void neopixel_set_color(uint32_t index, uint8_t r, uint8_t g, uint8_t b)
+{
+    led_strip_set_pixel(led_strip, index, r, g, b);
+    led_strip_refresh(led_strip);
+}
+
+/* Efek rainbow */
+void rainbow_effect(void)
+{
+    for (int hue = 0; hue < 360; hue += 10) {
+        for (int i = 0; i < 8; i++) {
+            int h = (hue + i * 45) % 360;
+            /* HSV to RGB conversion */
+            uint8_t r, g, b;
+            hsv_to_rgb(h, 255, 64, &r, &g, &b);
+            led_strip_set_pixel(led_strip, i, r, g, b);
+        }
+        led_strip_refresh(led_strip);
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+}
+```
+
+### 14.3 RMT untuk IR Remote
+
+```c
+#include "driver/rmt_tx.h"
+
+rmt_channel_handle_t ir_channel;
+
+void ir_init(void)
+{
+    rmt_tx_channel_config_t tx_cfg = {
+        .gpio_num = GPIO_NUM_18,
+        .clk_src  = RMT_CLK_SRC_DEFAULT,
+        .resolution_hz = 1000000,  /* 1 µs resolution */
+        .mem_block_symbols = 64,
+        .trans_queue_depth = 4,
+    };
+    rmt_new_tx_channel(&tx_cfg, &ir_channel);
+    rmt_channel_enable(ir_channel);
+}
+
+/* Kirim NEC IR command */
+void ir_send_nec(uint8_t address, uint8_t command)
+{
+    /* NEC Protocol:
+     * Leader: 9ms pulse + 4.5ms space
+     * Bit 0:  562µs pulse + 562µs space
+     * Bit 1:  562µs pulse + 1687µs space
+     */
+    rmt_symbol_word_t symbols[68]; /* Max 34 bits × 2 */
+    
+    /* Leader code */
+    symbols[0].duration0 = 9000;  symbols[0].level0 = 1;
+    symbols[0].duration1 = 4500;  symbols[0].level1 = 0;
+    
+    /* Encode address + command (32 bits) */
+    uint32_t data = (address << 24) | ((~address & 0xFF) << 16)
+                  | (command << 8) | (~command & 0xFF);
+    
+    for (int i = 0; i < 32; i++) {
+        symbols[1 + i].duration0 = 562;
+        symbols[1 + i].level0    = 1;
+        symbols[1 + i].duration1 = (data & (1 << (31 - i))) ? 1687 : 562;
+        symbols[1 + i].level1    = 0;
+    }
+    
+    /* Stop bit */
+    symbols[33].duration0 = 562;  symbols[33].level0 = 1;
+    symbols[33].duration1 = 0;    symbols[33].level1 = 0;
+    
+    rmt_transmit_config_t tx_config = { .loop_count = 0 };
+    /* Note: Actual implementation uses rmt_encoder_t */
+}
+```
+
+> **Note:** STM32 tidak memiliki peripheral RMT equivalent. Untuk NeoPixel pada STM32, biasanya menggunakan SPI DMA atau Timer DMA.
+
+---
+
+## 15. Daftar Program Praktikum
+
+| No | Platform | Nama Program | Topik | Tingkat |
+|----|----------|-------------|-------|---------|
+| 01 | ESP32 | DAC_Basic | Output tegangan analog | Dasar |
+| 02 | ESP32 | DAC_Waveform | Pembangkit sinyal sinus/cosinus | Menengah |
+| 03 | ESP32 | PWM_LED_Fade | LED dimming dengan LEDC | Dasar |
+| 04 | ESP32 | PWM_Servo | Kontrol motor servo | Menengah |
+| 05 | ESP32 | PWM_Motor | Kontrol motor DC + H-Bridge | Menengah |
+| 06 | ESP32 | PWM_Buzzer | Tone generator buzzer | Dasar |
+| 07 | STM32 | DAC_Basic | Output tegangan analog | Dasar |
+| 08 | STM32 | DAC_Waveform | Triangle/noise waveform | Menengah |
+| 09 | STM32 | PWM_LED_Fade | LED dimming dengan Timer | Dasar |
+| 10 | STM32 | PWM_Servo | Kontrol motor servo | Menengah |
+| 11 | STM32 | PWM_Motor | Kontrol motor DC + H-Bridge | Menengah |
+| 12 | STM32 | PWM_RGB | RGB LED color mixing | Menengah |
+
+---
+
+## Diagram Perbandingan Platform
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -744,7 +979,7 @@ HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
 
 ---
 
-## 📖 Referensi
+## Referensi
 
 1. STM32F103 Reference Manual (RM0008)
 2. ESP32 Technical Reference Manual
@@ -755,7 +990,7 @@ HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
 
 ---
 
-## 🔗 Link Terkait
+## Link Terkait
 
 - [Modul 04: ADC](../Modul-04-ADC/Materi.md) - Input Analog
 - [Modul 06: I2C](../Modul-06-I2C-Sensor/Materi.md) - Komunikasi dengan sensor

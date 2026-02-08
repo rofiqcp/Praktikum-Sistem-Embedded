@@ -1,4 +1,4 @@
-# Materi Modul 11: FreeRTOS Software Timer dan Task Notification
+# Modul 11: FreeRTOS — Software Timer dan Task Notification
 
 ## 📚 Daftar Isi
 1. [Pendahuluan](#1-pendahuluan)
@@ -1092,7 +1092,7 @@ printf("Current notification: 0x%08lX\n", notifyValue);
 
 ---
 
-## 📚 Ringkasan
+## Ringkasan
 
 ### Software Timer
 - Gunakan untuk periodic atau delayed actions
@@ -1114,4 +1114,28 @@ Timer Callback → Task Notification → Handler Task
 
 ---
 
-*Materi Modul 11 - FreeRTOS Software Timer dan Task Notification*
+## 11. Daftar Program Praktikum
+
+| No | Platform | Nama Program | Topik | Tingkat |
+|----|----------|-------------|-------|---------|
+| 01 | ESP32 | Timer_OneShot | Software timer one-shot | Dasar |
+| 02 | ESP32 | Timer_AutoReload | Software timer auto-reload | Dasar |
+| 03 | ESP32 | Timer_Debounce | Button debounce via timer | Menengah |
+| 04 | ESP32 | Notification_Basic | Task notification as binary semaphore | Dasar |
+| 05 | ESP32 | Notification_Value | Task notification with value | Menengah |
+| 06 | ESP32 | Notification_EventFlags | Task notification as event flags | Lanjut |
+| 07 | STM32 | Timer_OneShot | Software timer one-shot | Dasar |
+| 08 | STM32 | Timer_AutoReload | Software timer auto-reload | Dasar |
+| 09 | STM32 | Timer_Debounce | Button debounce via timer | Menengah |
+| 10 | STM32 | Notification_Basic | Task notification as binary semaphore | Dasar |
+| 11 | STM32 | Notification_Value | Task notification with value | Menengah |
+| 12 | STM32 | Notification_EventFlags | Task notification as event flags | Lanjut |
+
+---
+
+## Referensi
+
+1. FreeRTOS Software Timers: https://freertos.org/FreeRTOS-Software-Timer-API-Functions.html
+2. FreeRTOS Task Notifications: https://freertos.org/RTOS-task-notifications.html
+3. Mastering the FreeRTOS Real Time Kernel - Richard Barry
+4. ESP-IDF FreeRTOS Documentation - Espressif Systems

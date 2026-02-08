@@ -1,4 +1,4 @@
-# Materi Modul 10: FreeRTOS Queue dan Semaphore
+# Modul 10: FreeRTOS — Queue dan Semaphore
 
 ## 📚 Daftar Isi
 1. [Pendahuluan](#1-pendahuluan)
@@ -1456,7 +1456,7 @@ TaskA → Mutex1 → TaskB (waiting)
 
 ---
 
-## 📝 Ringkasan
+## Ringkasan
 
 | Konsep | Kapan Digunakan | API Utama |
 |--------|-----------------|-----------|
@@ -1468,8 +1468,22 @@ TaskA → Mutex1 → TaskB (waiting)
 
 ---
 
-## 📚 Referensi
-1. FreeRTOS Queue API: https://freertos.org/a00018.html
-2. FreeRTOS Semaphore API: https://freertos.org/a00113.html
-3. FreeRTOS Mutex: https://freertos.org/Real-time-embedded-RTOS-mutexes.html
-4. Mastering the FreeRTOS Real Time Kernel - Richard Barry
+## 9. Daftar Program Praktikum
+
+| No | Platform | Nama Program | Topik | Tingkat |
+|----|----------|-------------|-------|---------|
+| 01 | ESP32 | Queue_Basic | Queue send/receive antar task | Dasar |
+| 02 | ESP32 | Queue_Struct | Queue dengan data struct | Menengah |
+| 03 | ESP32 | Semaphore_Binary | Binary semaphore sinkronisasi | Dasar |
+| 04 | ESP32 | Semaphore_Counting | Counting semaphore resource | Menengah |
+| 05 | ESP32 | Mutex_SharedData | Mutex proteksi shared resource | Menengah |
+| 06 | ESP32 | EventGroup | Event group multi-event sync | Lanjut |
+| 07 | STM32 | Queue_Basic | Queue send/receive antar task | Dasar |
+| 08 | STM32 | Queue_Struct | Queue dengan data struct | Menengah |
+| 09 | STM32 | Semaphore_Binary | Binary semaphore sinkronisasi | Dasar |
+| 10 | STM32 | Semaphore_Counting | Counting semaphore resource | Menengah |
+| 11 | STM32 | Mutex_SharedData | Mutex proteksi shared resource | Menengah |
+| 12 | STM32 | EventGroup | Event group multi-event sync | Lanjut |
+
+---
+

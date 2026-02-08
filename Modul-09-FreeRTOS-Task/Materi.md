@@ -1,6 +1,9 @@
-# BAB 09: FreeRTOS Task Management
+# Modul 09: FreeRTOS — Task Management
 
-## 🎯 Capaian Pembelajaran
+
+## Daftar Isi
+
+## Capaian Pembelajaran
 
 Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
@@ -13,11 +16,10 @@ Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
 ---
 
-## 📚 Materi Pembelajaran
 
-### 1. Pendahuluan Real-Time Operating System
+## 1. Pendahuluan Real-Time Operating System
 
-#### 1.1 Apa itu RTOS?
+### 1.1 Apa itu RTOS?
 
 Real-Time Operating System (RTOS) adalah sistem operasi yang dirancang untuk menjalankan aplikasi dengan waktu respons yang terjamin dan dapat diprediksi (deterministic). Berbeda dengan general-purpose OS (seperti Windows/Linux), RTOS mengutamakan:
 
@@ -50,7 +52,7 @@ Real-Time Operating System (RTOS) adalah sistem operasi yang dirancang untuk men
 └─────────────────────────────────────────────────────────────┘
 ```
 
-#### 1.2 FreeRTOS Overview
+### 1.2 FreeRTOS Overview
 
 FreeRTOS adalah open-source RTOS yang paling populer untuk embedded systems:
 
@@ -79,9 +81,9 @@ FreeRTOS adalah open-source RTOS yang paling populer untuk embedded systems:
 
 ---
 
-### 2. Task Fundamentals
+## 2. Task Fundamentals
 
-#### 2.1 Apa itu Task?
+### 2.1 Apa itu Task?
 
 Task adalah unit eksekusi independen dalam FreeRTOS. Setiap task memiliki:
 
@@ -116,7 +118,7 @@ Task adalah unit eksekusi independen dalam FreeRTOS. Setiap task memiliki:
 └─────────────────────────────────────────┘
 ```
 
-#### 2.2 Task States
+### 2.2 Task States
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -163,7 +165,7 @@ Task adalah unit eksekusi independen dalam FreeRTOS. Setiap task memiliki:
 | **Blocked** | Menunggu event/timeout | Ready |
 | **Suspended** | Ditunda manual | Ready (via vTaskResume) |
 
-#### 2.3 Task Priority
+### 2.3 Task Priority
 
 FreeRTOS menggunakan priority-based preemptive scheduling:
 
@@ -196,9 +198,9 @@ FreeRTOS menggunakan priority-based preemptive scheduling:
 
 ---
 
-### 3. Task API Reference
+## 3. Task API Reference
 
-#### 3.1 Membuat Task
+### 3.1 Membuat Task
 
 ```c
 // API: xTaskCreate()
@@ -246,7 +248,7 @@ xTaskCreate(
 );
 ```
 
-#### 3.2 Stack Size Calculation
+### 3.2 Stack Size Calculation
 
 ```c
 // Stack size harus mencakup:
@@ -272,7 +274,7 @@ xTaskCreate(
 // - Task with floating point: 256+ words
 ```
 
-#### 3.3 Task Control APIs
+### 3.3 Task Control APIs
 
 ```c
 // === DELAY APIs ===
@@ -313,7 +315,7 @@ UBaseType_t uxTaskPriorityGet(TaskHandle_t xTask);
 void vTaskDelete(TaskHandle_t xTaskToDelete);  // NULL = self
 ```
 
-#### 3.4 Task Utilities
+### 3.4 Task Utilities
 
 ```c
 // Get task info
@@ -329,9 +331,9 @@ void vTaskList(char *pcWriteBuffer);
 
 ---
 
-### 4. Scheduler dan Context Switching
+## 4. Scheduler dan Context Switching
 
-#### 4.1 Scheduler Operation
+### 4.1 Scheduler Operation
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -363,7 +365,7 @@ void vTaskList(char *pcWriteBuffer);
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-#### 4.2 Context Switch Mechanism
+### 4.2 Context Switch Mechanism
 
 ```c
 // Context switch terjadi saat:
@@ -402,7 +404,7 @@ void vTaskList(char *pcWriteBuffer);
  */
 ```
 
-#### 4.3 Tick Configuration
+### 4.3 Tick Configuration
 
 ```c
 // FreeRTOSConfig.h
@@ -429,9 +431,9 @@ pdTICKS_TO_MS(ticks) // Convert ticks to milliseconds
 
 ---
 
-### 5. Implementasi STM32
+## 5. Implementasi STM32
 
-#### 5.1 Setup Project dengan STM32CubeMX
+### 5.1 Setup Project dengan STM32CubeMX
 
 ```c
 // 1. Enable FreeRTOS di STM32CubeMX
@@ -466,7 +468,7 @@ pdTICKS_TO_MS(ticks) // Convert ticks to milliseconds
 // heap_5.c: Multiple memory regions
 ```
 
-#### 5.2 STM32 Code Template
+### 5.2 STM32 Code Template
 
 ```c
 /* Includes */
@@ -533,9 +535,9 @@ int main(void)
 
 ---
 
-### 6. Implementasi ESP32
+## 6. Implementasi ESP32
 
-#### 6.1 ESP32 FreeRTOS Differences
+### 6.1 ESP32 FreeRTOS Differences
 
 ESP32 menggunakan FreeRTOS yang dimodifikasi oleh Espressif (ESP-IDF FreeRTOS):
 
@@ -573,7 +575,7 @@ xTaskCreatePinnedToCore(
 );
 ```
 
-#### 6.2 ESP32 Arduino Framework
+### 6.2 ESP32 Arduino Framework
 
 ```cpp
 // ESP32 dengan Arduino Framework
@@ -628,7 +630,7 @@ void sensorTask(void *pvParameter) {
 }
 ```
 
-#### 6.3 ESP-IDF Native
+### 6.3 ESP-IDF Native
 
 ```c
 // ESP-IDF Framework
@@ -658,9 +660,9 @@ void app_main(void)
 
 ---
 
-### 7. Advanced Task Patterns
+## 7. Advanced Task Patterns
 
-#### 7.1 Dynamic Task Creation/Deletion
+### 7.1 Dynamic Task Creation/Deletion
 
 ```c
 // Pattern: Worker task yang dibuat on-demand
@@ -695,7 +697,7 @@ void vWorkerTask(void *pvParam)
 }
 ```
 
-#### 7.2 Task dengan Parameter
+### 7.2 Task dengan Parameter
 
 ```c
 // Passing parameters ke task
@@ -728,7 +730,7 @@ static TaskParams_t taskParams = {
 xTaskCreate(vParameterizedTask, "Param", 256, &taskParams, 2, NULL);
 ```
 
-#### 7.3 Rate Monotonic Scheduling
+### 7.3 Rate Monotonic Scheduling
 
 ```c
 // Rate Monotonic: Task dengan period lebih pendek = prioritas lebih tinggi
@@ -770,7 +772,7 @@ xTaskCreate(vMediumTask, "Med", 256, NULL, 2, NULL);
 xTaskCreate(vSlowTask, "Slow", 256, NULL, 1, NULL);   // Lowest
 ```
 
-#### 7.4 Idle Hook dan Tick Hook
+### 7.4 Idle Hook dan Tick Hook
 
 ```c
 // FreeRTOSConfig.h
@@ -805,9 +807,9 @@ void vApplicationTickHook(void)
 
 ---
 
-### 8. Debugging dan Troubleshooting
+## 8. Debugging dan Troubleshooting
 
-#### 8.1 Stack Overflow Detection
+### 8.1 Stack Overflow Detection
 
 ```c
 // FreeRTOSConfig.h
@@ -835,7 +837,7 @@ void vPrintStackUsage(void)
 }
 ```
 
-#### 8.2 Task Statistics
+### 8.2 Task Statistics
 
 ```c
 // Enable runtime stats
@@ -870,7 +872,7 @@ void vPrintRunTimeStats(void)
 }
 ```
 
-#### 8.3 Common Issues
+### 8.3 Common Issues
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
@@ -882,9 +884,9 @@ void vPrintRunTimeStats(void)
 
 ---
 
-### 9. Best Practices
+## 9. Best Practices
 
-#### 9.1 Task Design Guidelines
+### 9.1 Task Design Guidelines
 
 ```c
 // DO: Clear, focused tasks
@@ -910,7 +912,7 @@ void vDoEverythingTask(void *pvParam)
 }
 ```
 
-#### 9.2 Memory Considerations
+### 9.2 Memory Considerations
 
 ```c
 // DO: Static allocation untuk predictability
@@ -933,7 +935,7 @@ for(int i = 0; i < 100; i++) {
 }
 ```
 
-#### 9.3 Priority Guidelines
+### 9.3 Priority Guidelines
 
 ```c
 // Recommended priority scheme:
@@ -953,7 +955,7 @@ for(int i = 0; i < 100; i++) {
 
 ---
 
-### 10. Perbandingan STM32 vs ESP32
+## 10. Perbandingan STM32 vs ESP32
 
 | Aspek | STM32F103 | ESP32 |
 |-------|-----------|-------|
@@ -968,7 +970,7 @@ for(int i = 0; i < 100; i++) {
 
 ---
 
-## 📊 Diagram Ringkasan
+## Diagram Ringkasan
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -1014,10 +1016,25 @@ for(int i = 0; i < 100; i++) {
 
 ---
 
-## 📖 Referensi
+## 11. Daftar Program Praktikum
 
-1. **FreeRTOS Official Documentation** - https://www.freertos.org/Documentation/
-2. **Mastering the FreeRTOS Real Time Kernel** - Richard Barry
+| No | Platform | Nama Program | Topik | Tingkat |
+|----|----------|-------------|-------|---------|
+| 01 | ESP32 | Task_Create | Membuat task dasar | Dasar |
+| 02 | ESP32 | Task_Priority | Prioritas dan preemption | Dasar |
+| 03 | ESP32 | Task_Delay | vTaskDelay dan vTaskDelayUntil | Dasar |
+| 04 | ESP32 | Task_Param | Task dengan parameter struct | Menengah |
+| 05 | ESP32 | Task_DualCore | Pinning task ke core (dual-core) | Menengah |
+| 06 | ESP32 | Task_Dynamic | Dynamic create/delete task | Lanjut |
+| 07 | STM32 | Task_Create | Membuat task dasar | Dasar |
+| 08 | STM32 | Task_Priority | Prioritas dan preemption | Dasar |
+| 09 | STM32 | Task_Delay | vTaskDelay dan vTaskDelayUntil | Dasar |
+| 10 | STM32 | Task_Param | Task dengan parameter struct | Menengah |
+| 11 | STM32 | Task_Stats | Runtime statistics + vTaskList | Menengah |
+| 12 | STM32 | Task_Dynamic | Dynamic create/delete task | Lanjut |
+
+---
+
 3. **STM32 HAL and FreeRTOS Guide** - STMicroelectronics AN4631
 4. **ESP-IDF FreeRTOS Documentation** - Espressif Systems
 5. **FreeRTOS API Reference** - https://www.freertos.org/a00106.html

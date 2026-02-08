@@ -1,4 +1,4 @@
-# Modul 14: Power Management pada Sistem Embedded
+# Modul 14: Power Management
 
 ## Daftar Isi
 1. [Pendahuluan](#1-pendahuluan)
@@ -760,6 +760,253 @@ float current_mA = raw_current * 0.1;  // tergantung kalibrasi
 
 ---
 
+## 16. ULP Coprocessor — Detail Instruction Set
+
+ULP (Ultra Low Power) coprocessor ESP32 dapat menjalankan program sederhana saat main CPU tidur, mengonsumsi hanya ~150 µA.
+
+### 16.1 ULP Assembly Programming
+
+ULP memiliki instruction set sendiri (bukan Xtensa/RISC-V):
+
+```
+ULP Assembly Instructions:
+┌─────────────────────────────────────────────────────┐
+│ Arithmetic:  ADD, SUB, AND, OR, LSH, RSH            │
+│ Memory:      ST (store), LD (load)                   │
+│ Branch:      JUMP, JUMPR, JUMPS                      │
+│ I/O:         REG_RD, REG_WR (register access)       │
+│ ADC:         ADC (read ADC in ULP)                   │
+│ Wakeup:      WAKE (wakeup main CPU)                  │
+│ Control:     HALT (stop ULP until next timer)        │
+│ Counter:     STAGE_INC, STAGE_DEC, STAGE_RST         │
+└─────────────────────────────────────────────────────┘
+```
+
+### 16.2 Contoh ULP: Monitoring Sensor Saat Deep Sleep
+
+```c
+#include "esp_sleep.h"
+#include "ulp.h"
+#include "ulp_main.h"  /* Generated from ULP assembly */
+
+/* ULP Assembly Program (ulp_program.S) */
+/*
+    .global entry
+entry:
+    // Baca ADC
+    adc r0, 0, 6        // ADC1_CH6 (GPIO34)
+    
+    // Simpan hasil ke RTC memory
+    move r1, adc_value
+    st r0, r1, 0
+    
+    // Bandingkan dengan threshold
+    move r1, threshold
+    ld r1, r1, 0
+    sub r0, r0, r1
+    jump wake_cpu, ov    // Jika > threshold, bangunkan CPU
+    
+    halt                 // Kembali tidur
+    
+wake_cpu:
+    wake                 // Bangunkan main CPU
+    halt
+    
+    .global adc_value
+adc_value: .long 0
+    .global threshold
+threshold: .long 2000   // ~1.6V pada 12-bit ADC
+*/
+
+void setup_ulp_monitoring(void)
+{
+    /* Load ULP program */
+    ulp_load_binary(0, ulp_main_bin_start,
+                    (ulp_main_bin_end - ulp_main_bin_start) / sizeof(uint32_t));
+    
+    /* Set ULP wakeup period: setiap 500ms */
+    ulp_set_wakeup_period(0, 500000);  /* microseconds */
+    
+    /* Set threshold via RTC memory */
+    ulp_threshold = 2000;
+    
+    /* Jalankan ULP dan tidurkan main CPU */
+    ulp_run(&ulp_entry - RTC_SLOW_MEM);
+    esp_deep_sleep_start();
+}
+
+/* Saat main CPU bangun, baca data ULP */
+void app_main(void)
+{
+    if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_ULP) {
+        uint16_t adc_val = ulp_adc_value & 0xFFFF;
+        printf("ULP detected threshold! ADC=%d\n", adc_val);
+        /* Kirim alert via WiFi, dll */
+    }
+    
+    setup_ulp_monitoring();  /* Kembali tidur */
+}
+```
+
+---
+
+## 17. Security — Secure Boot dan Flash Encryption
+
+### 17.1 ESP32 Secure Boot
+
+Secure Boot memastikan hanya firmware yang sah yang bisa dijalankan:
+
+```
+Secure Boot Flow:
+┌──────────────────────────────────────────────┐
+│ 1. eFuse stores public key hash              │
+│ 2. ROM verifies 2nd stage bootloader         │
+│ 3. Bootloader verifies app partition         │
+│ 4. If verification fails → refuse to boot    │
+└──────────────────────────────────────────────┘
+
+Enable via menuconfig:
+  Security features →
+    [*] Enable hardware Secure Boot in bootloader
+    [*] Sign binaries during build
+```
+
+### 17.2 ESP32 Flash Encryption
+
+Flash encryption melindungi firmware dan data dari pembacaan:
+
+```
+Flash Encryption:
+┌──────────────────────────────────────────────┐
+│ Plain firmware → AES-256 → Encrypted flash   │
+│ Decryption key stored in eFuse (one-time)    │
+│ Transparent to software (decrypt on read)    │
+│                                              │
+│ ⚠️ WARNING: Sekali di-enable, tidak bisa     │
+│    di-disable! (eFuse bersifat one-time)     │
+└──────────────────────────────────────────────┘
+```
+
+### 17.3 STM32 Read-Out Protection
+
+STM32 memiliki 3 level Read-Out Protection (RDP):
+
+| Level | Proteksi | Reversible? |
+|-------|----------|-------------|
+| **Level 0** | Tidak ada proteksi | — |
+| **Level 1** | Flash tidak bisa dibaca via debugger | Ya (erase flash) |
+| **Level 2** | Permanent — debug port disabled | **Tidak!** |
+
+```c
+/* Enable RDP Level 1 */
+void enable_rdp(void)
+{
+    HAL_FLASH_Unlock();
+    HAL_FLASH_OB_Unlock();
+    
+    FLASH_OBProgramInitTypeDef ob = {0};
+    ob.OptionType = OPTIONBYTE_RDP;
+    ob.RDPLevel   = OB_RDP_LEVEL_1;
+    HAL_FLASHEx_OBProgram(&ob);
+    
+    HAL_FLASH_OB_Launch();  /* Reset required */
+}
+```
+
+> ⚠️ **HATI-HATI!** Level 2 bersifat **permanent** dan tidak bisa dibatalkan. Chip akan terkunci selamanya.
+
+---
+
+## 18. Advanced Debugging
+
+### 18.1 Serial Wire Viewer (SWV) — STM32
+
+SWV memungkinkan trace output real-time tanpa mengganggu eksekusi program:
+
+```c
+/* ITM (Instrumentation Trace Macrocell) untuk printf via SWO */
+int _write(int file, char *ptr, int len)
+{
+    for (int i = 0; i < len; i++) {
+        ITM_SendChar(*ptr++);
+    }
+    return len;
+}
+
+/* Sekarang printf() keluar via SWO pin, bukan UART */
+/* Di debugger, enable SWV di frekuensi SWO yang sesuai */
+```
+
+### 18.2 ESP32 Core Dump
+
+ESP32 dapat menyimpan core dump saat crash untuk analisis post-mortem:
+
+```c
+/* menuconfig → ESP System Settings →
+   Core dump destination: Flash */
+
+/* Saat crash terjadi, core dump otomatis tersimpan di flash */
+/* Untuk menganalisis: */
+/* $ espcoredump.py info_corefile -t elf build/project.elf core.bin */
+```
+
+### 18.3 Fault Analysis STM32
+
+```c
+/* Hard Fault Handler untuk debugging */
+void HardFault_Handler(void)
+{
+    __asm volatile(
+        "TST LR, #4    \n"
+        "ITE EQ        \n"
+        "MRSEQ R0, MSP \n"
+        "MRSNE R0, PSP \n"
+        "B hard_fault_handler_c \n"
+    );
+}
+
+void hard_fault_handler_c(uint32_t *stack)
+{
+    printf("=== HARD FAULT ===\n");
+    printf("R0  = 0x%08lX\n", stack[0]);
+    printf("R1  = 0x%08lX\n", stack[1]);
+    printf("R2  = 0x%08lX\n", stack[2]);
+    printf("R3  = 0x%08lX\n", stack[3]);
+    printf("R12 = 0x%08lX\n", stack[4]);
+    printf("LR  = 0x%08lX\n", stack[5]);
+    printf("PC  = 0x%08lX\n", stack[6]);  /* ← Alamat crash */
+    printf("xPSR= 0x%08lX\n", stack[7]);
+    
+    /* Baca Fault Status Registers */
+    printf("CFSR = 0x%08lX\n", SCB->CFSR);
+    printf("HFSR = 0x%08lX\n", SCB->HFSR);
+    printf("BFAR = 0x%08lX\n", SCB->BFAR);
+    
+    while (1);  /* Halt for debugger */
+}
+```
+
+---
+
+## 19. Daftar Program Praktikum
+
+| No | Platform | Nama Program | Topik | Tingkat |
+|----|----------|-------------|-------|---------|
+| 01 | ESP32 | Light_Sleep | Light sleep + GPIO wakeup | Dasar |
+| 02 | ESP32 | Deep_Sleep | Deep sleep + timer wakeup | Dasar |
+| 03 | ESP32 | Touch_Wakeup | Deep sleep + touch pad wakeup | Menengah |
+| 04 | ESP32 | ULP_Monitor | ULP ADC monitoring saat deep sleep | Lanjut |
+| 05 | ESP32 | DFS_Dynamic | Dynamic Frequency Scaling | Menengah |
+| 06 | ESP32 | Battery_Monitor | ADC battery voltage + power budget | Menengah |
+| 07 | STM32 | Sleep_Mode | CPU sleep mode + EXTI wakeup | Dasar |
+| 08 | STM32 | Stop_Mode | Stop mode + RTC wakeup | Menengah |
+| 09 | STM32 | Standby_Mode | Standby + WKUP pin wakeup | Menengah |
+| 10 | STM32 | Clock_Gating | Peripheral clock enable/disable | Menengah |
+| 11 | STM32 | RTC_Backup | RTC + backup register | Menengah |
+| 12 | STM32 | Current_Measure | INA219 power measurement | Lanjut |
+
+---
+
 ## Referensi API
 
 ### ESP32 ESP-IDF
@@ -768,6 +1015,8 @@ float current_mA = raw_current * 0.1;  // tergantung kalibrasi
 - `driver/touch_pad.h` — Touch pad driver
 - `esp_adc/adc_oneshot.h` — ADC oneshot reading
 - `driver/periph_ctrl.h` — Peripheral clock control
+- `esp_ota_ops.h` — OTA update operations
+- `ulp.h` — ULP coprocessor programming
 
 ### STM32 HAL
 - `stm32f1xx_hal_pwr.h` — Power control (Sleep, Stop, Standby)
@@ -775,7 +1024,9 @@ float current_mA = raw_current * 0.1;  // tergantung kalibrasi
 - `stm32f1xx_hal_rtc.h` — RTC & backup registers
 - `stm32f1xx_hal_adc.h` — ADC for battery monitoring
 - `stm32f1xx_hal_gpio.h` — GPIO configuration for low-power
+- `stm32f1xx_hal_flash_ex.h` — Flash & Option Bytes (RDP)
 
----
-
-*Modul ini mencakup 24 percobaan (12 ESP32 + 12 STM32) yang membahas secara mendalam teknik-teknik power management untuk sistem embedded battery-powered.*
+### Buku Referensi
+1. *Mastering STM32* — Chapters: Power Management, Booting, Advanced Debug
+2. *Kolban's Book on ESP32* — Sections: ULP, Security, OTA
+3. ESP-IDF Programming Guide — Security, Deep Sleep, ULP

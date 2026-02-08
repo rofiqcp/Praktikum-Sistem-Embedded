@@ -1,6 +1,9 @@
-# BAB 07: SPI Bus dan Storage
+# Modul 07: SPI Bus dan Storage
 
-## 🎯 Capaian Pembelajaran
+
+## Daftar Isi
+
+## Capaian Pembelajaran
 
 Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
@@ -14,11 +17,10 @@ Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 
 ---
 
-## 📚 Materi Pembelajaran
 
-### 1. Pendahuluan SPI Bus
+## 1. Pendahuluan SPI Bus
 
-#### 1.1 Apa itu SPI?
+### 1.1 Apa itu SPI?
 
 **Serial Peripheral Interface (SPI)** adalah protokol komunikasi serial synchronous full-duplex yang dikembangkan oleh Motorola. SPI menggunakan arsitektur **Master-Slave** dimana satu Master dapat berkomunikasi dengan multiple Slave devices.
 
@@ -32,7 +34,7 @@ Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 | Distance | Short distance (PCB level) |
 | Wires | 4 wires + 1 CS per slave |
 
-#### 1.2 SPI Bus Lines
+### 1.2 SPI Bus Lines
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -62,7 +64,7 @@ Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 1.3 SPI Clock Configuration (CPOL dan CPHA)
+### 1.3 SPI Clock Configuration (CPOL dan CPHA)
 
 SPI memiliki 4 mode berdasarkan kombinasi **Clock Polarity (CPOL)** dan **Clock Phase (CPHA)**:
 
@@ -91,7 +93,7 @@ SCLK    │   │   │   │           ───────┘   └───�
     - General purpose
 ```
 
-#### 1.4 SPI vs I2C vs UART Comparison
+### 1.4 SPI vs I2C vs UART Comparison
 
 | Feature | SPI | I2C | UART |
 |---------|-----|-----|------|
@@ -106,9 +108,9 @@ SCLK    │   │   │   │           ───────┘   └───�
 
 ---
 
-### 2. SPI pada STM32F103C8T6
+## 2. SPI pada STM32F103C8T6
 
-#### 2.1 Hardware Overview
+### 2.1 Hardware Overview
 
 STM32F103C8T6 memiliki **2 SPI peripherals**:
 
@@ -150,7 +152,7 @@ STM32F103C8T6 memiliki **2 SPI peripherals**:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 2.2 SPI Clock Calculation
+### 2.2 SPI Clock Calculation
 
 ```
 SPI Clock Frequency = APB Clock / Prescaler
@@ -180,7 +182,7 @@ For SPI2 (APB1 = 36 MHz):
 └───────────┴──────────────┘
 ```
 
-#### 2.3 HAL SPI Configuration
+### 2.3 HAL SPI Configuration
 
 ```c
 /* SPI Handle Structure */
@@ -208,9 +210,9 @@ void MX_SPI1_Init(void)
 
 ---
 
-### 3. SPI pada ESP32
+## 3. SPI pada ESP32
 
-#### 3.1 ESP32 SPI Hardware
+### 3.1 ESP32 SPI Hardware
 
 ESP32 memiliki **4 SPI controllers**, namun hanya 2 yang available untuk user:
 
@@ -247,7 +249,7 @@ ESP32 memiliki **4 SPI controllers**, namun hanya 2 yang available untuk user:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 3.2 ESP32 Arduino SPI Library
+### 3.2 ESP32 Arduino SPI Library
 
 ```cpp
 #include <SPI.h>
@@ -272,9 +274,9 @@ void setup() {
 
 ---
 
-### 4. SD Card Interface
+## 4. SD Card Interface
 
-#### 4.1 SD Card SPI Mode
+### 4.1 SD Card SPI Mode
 
 SD Card mendukung dua mode: **SD mode** (4-bit) dan **SPI mode** (1-bit). Untuk embedded systems, SPI mode lebih umum digunakan karena lebih sederhana.
 
@@ -312,7 +314,7 @@ SD Card mendukung dua mode: **SD mode** (4-bit) dan **SPI mode** (1-bit). Untuk 
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 4.2 SD Card SPI Commands
+### 4.2 SD Card SPI Commands
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
@@ -345,7 +347,7 @@ SD Card mendukung dua mode: **SD mode** (4-bit) dan **SPI mode** (1-bit). Untuk 
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 4.3 SD Card Initialization Sequence
+### 4.3 SD Card Initialization Sequence
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
@@ -405,9 +407,9 @@ SD Card mendukung dua mode: **SD mode** (4-bit) dan **SPI mode** (1-bit). Untuk 
 
 ---
 
-### 5. Flash Memory (W25Qxx Series)
+## 5. Flash Memory (W25Qxx Series)
 
-#### 5.1 W25Q Overview
+### 5.1 W25Q Overview
 
 Winbond W25Qxx adalah serial NOR flash memory dengan SPI interface:
 
@@ -434,7 +436,7 @@ Winbond W25Qxx adalah serial NOR flash memory dengan SPI interface:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 5.2 W25Qxx Pinout
+### 5.2 W25Qxx Pinout
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -468,7 +470,7 @@ Winbond W25Qxx adalah serial NOR flash memory dengan SPI interface:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 5.3 W25Qxx Commands
+### 5.3 W25Qxx Commands
 
 ```c
 // W25Qxx Instruction Set
@@ -496,9 +498,9 @@ Winbond W25Qxx adalah serial NOR flash memory dengan SPI interface:
 
 ---
 
-### 6. File Systems untuk Embedded
+## 6. File Systems untuk Embedded
 
-#### 6.1 FatFS (File Allocation Table)
+### 6.1 FatFS (File Allocation Table)
 
 FatFS adalah file system paling umum untuk SD Card:
 
@@ -536,7 +538,7 @@ FatFS adalah file system paling umum untuk SD Card:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 6.2 SPIFFS dan LittleFS (ESP32)
+### 6.2 SPIFFS dan LittleFS (ESP32)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -562,9 +564,9 @@ FatFS adalah file system paling umum untuk SD Card:
 
 ---
 
-### 7. DMA dengan SPI
+## 7. DMA dengan SPI
 
-#### 7.1 SPI DMA Transfer
+### 7.1 SPI DMA Transfer
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -595,7 +597,7 @@ FatFS adalah file system paling umum untuk SD Card:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 7.2 STM32 SPI DMA Example
+### 7.2 STM32 SPI DMA Example
 
 ```c
 /* DMA Configuration for SPI1 TX */
@@ -618,9 +620,9 @@ HAL_SPI_Transmit_DMA(&hspi1, txBuffer, size);
 
 ---
 
-### 8. Best Practices
+## 8. Best Practices
 
-#### 8.1 SPI Design Guidelines
+### 8.1 SPI Design Guidelines
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -658,7 +660,164 @@ HAL_SPI_Transmit_DMA(&hspi1, txBuffer, size);
 
 ---
 
-### 9. Troubleshooting Guide
+## 9. Internal Flash Memory
+
+Selain menggunakan external flash (W25Qxx), mikrokontroler memiliki internal flash yang bisa digunakan untuk menyimpan konfigurasi, kalibrasi, dan data non-volatile.
+
+### 9.1 STM32F103 Internal Flash
+
+STM32F103C8T6 memiliki 64KB flash (128KB pada beberapa chip) dengan page size 1KB:
+
+```c
+#include "stm32f1xx_hal.h"
+
+/* Alamat flash untuk data user (page terakhir) */
+#define USER_FLASH_ADDR  0x0800FC00  /* Page 63 (1KB dari akhir) */
+
+/* Tulis data ke internal flash */
+HAL_StatusTypeDef Flash_Write(uint32_t addr, uint32_t *data, uint32_t len)
+{
+    HAL_FLASH_Unlock();
+    
+    /* Erase halaman dulu (wajib sebelum write) */
+    FLASH_EraseInitTypeDef erase = {
+        .TypeErase   = FLASH_TYPEERASE_PAGES,
+        .PageAddress = addr,
+        .NbPages     = 1,
+    };
+    uint32_t page_error;
+    HAL_FLASHEx_Erase(&erase, &page_error);
+    
+    /* Write data per 32-bit word */
+    for (uint32_t i = 0; i < len; i++) {
+        HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
+                          addr + (i * 4), data[i]);
+    }
+    
+    HAL_FLASH_Lock();
+    return HAL_OK;
+}
+
+/* Baca data dari flash */
+void Flash_Read(uint32_t addr, uint32_t *data, uint32_t len)
+{
+    for (uint32_t i = 0; i < len; i++) {
+        data[i] = *(volatile uint32_t *)(addr + (i * 4));
+    }
+}
+
+/* Contoh: Simpan kalibrasi sensor */
+typedef struct {
+    float offset;
+    float gain;
+    uint32_t checksum;
+} CalibData_t;
+
+void save_calibration(float offset, float gain)
+{
+    CalibData_t cal = {
+        .offset   = offset,
+        .gain     = gain,
+        .checksum = 0xDEADBEEF
+    };
+    Flash_Write(USER_FLASH_ADDR, (uint32_t *)&cal,
+                sizeof(cal) / 4);
+}
+```
+
+### 9.2 ESP32 NVS (Non-Volatile Storage) — Detail
+
+NVS pada ESP32 menggunakan flash partition khusus untuk menyimpan key-value pairs. Lebih aman dan efisien dari raw flash write:
+
+```c
+#include "nvs_flash.h"
+#include "nvs.h"
+
+void nvs_example(void)
+{
+    /* Inisialisasi NVS */
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
+        err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        nvs_flash_erase();
+        nvs_flash_init();
+    }
+
+    nvs_handle_t handle;
+    nvs_open("storage", NVS_READWRITE, &handle);
+    
+    /* Simpan berbagai tipe data */
+    nvs_set_i32(handle, "boot_count", 42);
+    nvs_set_str(handle, "device_name", "Sensor-01");
+    
+    /* Simpan data binary (blob) */
+    float calibration[] = {1.0f, 0.5f, -0.3f};
+    nvs_set_blob(handle, "cal_data", calibration, sizeof(calibration));
+    
+    nvs_commit(handle);  /* Wajib! Flush ke flash */
+    
+    /* Baca kembali */
+    int32_t count;
+    nvs_get_i32(handle, "boot_count", &count);
+    printf("Boot count: %ld\n", count);
+    
+    char name[32];
+    size_t len = sizeof(name);
+    nvs_get_str(handle, "device_name", name, &len);
+    printf("Device: %s\n", name);
+    
+    nvs_close(handle);
+}
+
+/* Iterasi semua key di namespace */
+void nvs_list_keys(void)
+{
+    nvs_iterator_t it = NULL;
+    nvs_entry_find("nvs", "storage", NVS_TYPE_ANY, &it);
+    
+    while (it != NULL) {
+        nvs_entry_info_t info;
+        nvs_entry_info(it, &info);
+        printf("Key: %-16s  Type: %d\n", info.key, info.type);
+        nvs_entry_next(&it);
+    }
+    nvs_release_iterator(it);
+}
+```
+
+### 9.3 ESP32 Partition Table
+
+ESP32 menggunakan partition table untuk membagi flash menjadi beberapa area:
+
+```
+Default Partition Table (4MB Flash):
+┌────────────────────────────────────────────────────┐
+│ Offset    │ Size   │ Name       │ Type             │
+├───────────┼────────┼────────────┼──────────────────┤
+│ 0x009000  │  4KB   │ nvs        │ data/nvs         │
+│ 0x00A000  │  4KB   │ otadata    │ data/ota         │
+│ 0x00E000  │  8KB   │ phy_init   │ data/phy         │
+│ 0x010000  │ 1MB    │ factory    │ app/factory       │
+│ 0x110000  │ 1MB    │ ota_0      │ app/ota_0        │
+│ 0x210000  │ 1MB    │ ota_1      │ app/ota_1        │
+│ 0x310000  │ 960KB  │ spiffs     │ data/spiffs      │
+└────────────────────────────────────────────────────┘
+```
+
+**Custom Partition Table (partitions.csv):**
+
+```csv
+# Name,   Type, SubType,  Offset,  Size,  Flags
+nvs,      data, nvs,      0x9000,  24K,
+otadata,  data, ota,      0xf000,  8K,
+phy_init, data, phy,      0x11000, 4K,
+factory,  app,  factory,  0x20000, 1M,
+storage,  data, spiffs,   0x120000,896K,
+```
+
+---
+
+## 10. Troubleshooting Guide
 
 | Problem | Possible Cause | Solution |
 |---------|---------------|----------|
@@ -669,15 +828,38 @@ HAL_SPI_Transmit_DMA(&hspi1, txBuffer, size);
 | Flash write fails | Sector not erased | Erase sebelum write |
 | MISO always high/low | MISO wiring wrong | Check connections |
 | Wrong data read | Mode mismatch | Match CPOL/CPHA dengan device |
+| NVS full | Partition penuh | `nvs_flash_erase()` + reinit |
+| Flash wear-out | Terlalu sering write | Gunakan NVS (built-in wear leveling) |
 
 ---
 
-## 📖 Referensi
+## 11. Daftar Program Praktikum
 
-1. **STM32 Reference Manual RM0008** - SPI Chapter
+| No | Platform | Nama Program | Topik | Tingkat |
+|----|----------|-------------|-------|---------|
+| 01 | ESP32 | SPI_Basic | SPI Master dasar | Dasar |
+| 02 | ESP32 | SPI_Flash | W25Qxx Flash read/write | Menengah |
+| 03 | ESP32 | SPI_SD_Card | SD Card SPI mode | Menengah |
+| 04 | ESP32 | SPI_OLED | SSD1306 OLED via SPI | Menengah |
+| 05 | ESP32 | SPI_Multi_Device | Multiple SPI slaves | Lanjut |
+| 06 | ESP32 | SPI_DMA | DMA SPI transfer | Lanjut |
+| 07 | STM32 | SPI_Basic | SPI Master dasar | Dasar |
+| 08 | STM32 | SPI_Flash | W25Qxx Flash read/write | Menengah |
+| 09 | STM32 | SPI_SD_Card | SD Card SPI mode + FatFS | Menengah |
+| 10 | STM32 | SPI_OLED | SSD1306 OLED via SPI | Menengah |
+| 11 | STM32 | SPI_Multi_Device | Multiple SPI slaves | Lanjut |
+| 12 | STM32 | SPI_DMA | DMA SPI transfer | Lanjut |
+
+---
+
+## Referensi
+
+1. **STM32 Reference Manual RM0008** - SPI Chapter, Flash Chapter
 2. **ESP32 Technical Reference Manual** - SPI Chapter
 3. **SD Specifications Part 1** - Physical Layer Simplified
 4. **W25Q64 Datasheet** - Winbond Serial Flash
 5. **FatFS Module Application Note** - elm-chan.org
-6. **"Mastering STM32"** - Carmine Noviello, Chapter 16: SPI
+6. **"Mastering STM32"** - Carmine Noviello, Chapter 16: SPI, Chapter Flash
+7. **"Kolban's Book on ESP32"** - NVS & Partition Table sections
+8. **ESP-IDF NVS Documentation** - https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html
 

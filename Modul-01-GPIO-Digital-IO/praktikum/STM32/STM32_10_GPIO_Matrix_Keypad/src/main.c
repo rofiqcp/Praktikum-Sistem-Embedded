@@ -1,43 +1,14 @@
 /**
- * ============================================================================
- * @file    main.c
- * @brief   STM32_10 - 4x4 Matrix Keypad Scanner with Debounce
- * @project STM32_10_GPIO_Matrix_Keypad
- * ============================================================================
- *
- * Description:
- *   Implements a row-column scanning algorithm for a 4x4 matrix keypad.
- *   Rows are configured as output push-pull (active-low scanning).
- *   Columns are configured as input with internal pull-up.
- *
- *   Scanning Algorithm:
- *     1. Set all rows HIGH (idle state)
- *     2. Drive one row LOW at a time
- *     3. Read all column pins
- *     4. A LOW column reading = key pressed at (row, col) intersection
- *     5. Look up key character from mapping table
- *     6. Debounce using HAL_GetTick() to prevent multiple triggers
- *
- * Key Map (standard 4x4 keypad):
- *         COL0   COL1   COL2   COL3
- *   ROW0   1      2      3      A
- *   ROW1   4      5      6      B
- *   ROW2   7      8      9      C
- *   ROW3   *      0      #      D
- *
- * Hardware:
- *   - 4x4 membrane keypad or tactile button matrix
- *   - Rows: PA0-PA3 (directly to keypad row pins)
- *   - Columns: PB0, PB1, PB3, PB4 (directly to keypad column pins)
- *     (PB2 skipped = BOOT1 pin on Blue Pill)
- *
- * Board Support: Blue Pill (F103C8), F401CC, F411CE
- *
- * ============================================================================
+ * @file main.c
+ * @brief STM32_10_GPIO_Matrix_Keypad - Matrix Keypad - Scanning Keypad 4x4
+ * 
+ * FUNGSI: Row-column scanning algorithm untuk keypad matrix dengan debounce
+ * Supported: STM32F103C8T6, STM32F401CCU6, STM32F411CEU6
  */
 
+
+
 #include "config.h"
-#include <stdio.h>
 
 /* ========================= Key Map ======================================= */
 static const char keymap[NUM_ROWS][NUM_COLS] = {
@@ -59,11 +30,6 @@ char Keypad_Scan(void);
 void Rows_Set_All_High(void);
 
 /* ========================= Printf Redirect (ITM/SWO) ==================== */
-int _write(int file, char *ptr, int len) {
-    (void)file;
-    for (int i = 0; i < len; i++) {
-        ITM_SendChar(*ptr++);
-    }
     return len;
 }
 
@@ -212,7 +178,7 @@ void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-#ifdef STM32F103xB
+#ifdef STM32F103xC
     /*--- F103: 8MHz HSE -> PLL x9 -> 72MHz SYSCLK ---*/
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState       = RCC_HSE_ON;

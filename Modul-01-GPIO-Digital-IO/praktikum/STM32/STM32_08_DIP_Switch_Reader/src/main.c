@@ -1,37 +1,14 @@
 /**
- * ============================================================================
- * @file    main.c
- * @brief   STM32_08 - 4-Bit DIP Switch Reader with Binary Decoding
- * @project STM32_08_DIP_Switch_Reader
- * ============================================================================
- *
- * Description:
- *   Reads a 4-position DIP switch connected to Port B. Each switch is
- *   configured as input with internal pull-up resistor. Switch ON connects
- *   pin to GND (reads LOW = logic 1). The 4 individual bits are combined
- *   into a nibble (0-15) using bit masking and shifting.
- *
- *   The decoded value is displayed as binary and decimal, and interpreted
- *   as a device address or configuration setting.
- *
- * Pin Mapping (avoids PB2 = BOOT1):
- *   PB0 -> DIP SW1 -> Bit 0 (LSB)
- *   PB1 -> DIP SW2 -> Bit 1
- *   PB3 -> DIP SW3 -> Bit 2
- *   PB4 -> DIP SW4 -> Bit 3 (MSB)
- *
- * Hardware:
- *   - 4x DIP switch module (or 4 individual toggle switches)
- *   - Each switch: one side to PBx, other side to GND
- *   - Internal pull-ups used (no external resistors needed)
- *
- * Board Support: Blue Pill (F103C8), F401CC, F411CE
- *
- * ============================================================================
+ * @file main.c
+ * @brief STM32_08_DIP_Switch_Reader - DIP Switch Reader - Membaca DIP Switch
+ * 
+ * FUNGSI: Baca 4-bit DIP switch dan convert ke nilai decimal/binary
+ * Supported: STM32F103C8T6, STM32F401CCU6, STM32F411CEU6
  */
 
+
+
 #include "config.h"
-#include <stdio.h>
 
 /* ========================= Function Prototypes =========================== */
 void SystemClock_Config(void);
@@ -42,11 +19,6 @@ void Print_Binary(uint8_t value, uint8_t bits);
 void Decode_Setting(uint8_t value);
 
 /* ========================= Printf Redirect (ITM/SWO) ==================== */
-int _write(int file, char *ptr, int len) {
-    (void)file;
-    for (int i = 0; i < len; i++) {
-        ITM_SendChar(*ptr++);
-    }
     return len;
 }
 
@@ -175,7 +147,7 @@ void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-#ifdef STM32F103xB
+#ifdef STM32F103xC
     /*--- F103: 8MHz HSE -> PLL x9 -> 72MHz SYSCLK ---*/
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState       = RCC_HSE_ON;

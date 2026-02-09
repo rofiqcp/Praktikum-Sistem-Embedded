@@ -1,41 +1,14 @@
 /**
- * ============================================================================
- * @file    main.c
- * @brief   STM32_09 - Direct GPIO Port Register Access (BSRR, ODR, IDR)
- * @project STM32_09_GPIO_Port_Register
- * ============================================================================
- *
- * Description:
- *   Demonstrates low-level GPIO register access on STM32, bypassing the
- *   HAL library for direct hardware manipulation. This is essential for
- *   understanding how GPIO works at the register level and for achieving
- *   maximum performance in time-critical applications.
- *
- *   Key Registers Demonstrated:
- *     BSRR (Bit Set/Reset Register) - ATOMIC pin control:
- *       - Bits [15:0]  (BS): Write 1 to SET corresponding pin HIGH
- *       - Bits [31:16] (BR): Write 1 to RESET corresponding pin LOW
- *       - Single-cycle, interrupt-safe, no read-modify-write needed
- *
- *     ODR (Output Data Register) - Direct output state:
- *       - Read: current output latch state
- *       - Write: set all pins simultaneously (NOT atomic!)
- *
- *     IDR (Input Data Register) - Read-only input state:
- *       - Read: current pin level after Schmitt trigger
- *
- *   The program also benchmarks BSRR vs HAL_GPIO_WritePin() speed.
- *
- * Hardware:
- *   - 4x LEDs with 220 ohm resistors on PA0, PA1, PA2, PA3
- *
- * Board Support: Blue Pill (F103C8), F401CC, F411CE
- *
- * ============================================================================
+ * @file main.c
+ * @brief STM32_09_GPIO_Port_Register - GPIO Register - Akses Register GPIO Langsung
+ * 
+ * FUNGSI: Direct register access (IDR, ODR, BSRR) vs HAL functions
+ * Supported: STM32F103C8T6, STM32F401CCU6, STM32F411CEU6
  */
 
+
+
 #include "config.h"
-#include <stdio.h>
 
 /* ========================= Function Prototypes =========================== */
 void SystemClock_Config(void);
@@ -48,11 +21,6 @@ void Demo_Speed_Comparison(void);
 void Print_Port_State(const char *label);
 
 /* ========================= Printf Redirect (ITM/SWO) ==================== */
-int _write(int file, char *ptr, int len) {
-    (void)file;
-    for (int i = 0; i < len; i++) {
-        ITM_SendChar(*ptr++);
-    }
     return len;
 }
 
@@ -289,7 +257,7 @@ void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-#ifdef STM32F103xB
+#ifdef STM32F103xC
     /*--- F103: 8MHz HSE -> PLL x9 -> 72MHz SYSCLK ---*/
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState       = RCC_HSE_ON;

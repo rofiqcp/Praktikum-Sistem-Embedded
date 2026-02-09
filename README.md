@@ -8,13 +8,13 @@
 [![ESP32](https://img.shields.io/badge/ESP32-DevKitC-E7352C.svg?style=for-the-badge&logo=espressif)](https://www.espressif.com/en/products/socs/esp32)
 [![License](https://img.shields.io/badge/License-MIT-28A745.svg?style=for-the-badge)](LICENSE)
 
-<img src="https://img.shields.io/badge/Programs-334%20Total-gold.svg?style=for-the-badge&logo=code"/>
+<img src="https://img.shields.io/badge/Programs-364%20Total-gold.svg?style=for-the-badge&logo=code"/>
 <img src="https://img.shields.io/badge/Modules-14%20Complete-success.svg?style=for-the-badge&logo=checkmark"/>
 <img src="https://img.shields.io/badge/Difficulty-Beginner%20to%20Advanced-purple.svg?style=for-the-badge"/>
 
 ---
 
-### 🎯 **334 Production-Ready Programs** | 🧩 **14 Learning Modules** | 📚 **Comprehensive Documentation**
+### 🎯 **364 Production-Ready Programs** | 🧩 **14 Learning Modules** | 📚 **Comprehensive Documentation**
 
 *Master embedded systems development from GPIO basics to industrial-grade FreeRTOS applications*
 
@@ -67,7 +67,7 @@ pio device monitor
 
 </div>
 
-🚀 **334 carefully crafted programs** for mastering **STM32F103C8T6** and **ESP32** development  
+🚀 **364 carefully crafted programs** for mastering **STM32F103C8T6** and **ESP32** development  
 📚 **14 progressive modules** covering fundamentals to industrial-grade applications  
 🏭 **Production-ready code** with best practices and real-world patterns  
 🎓 **Academic-quality documentation** with detailed explanations and exercises
@@ -94,27 +94,27 @@ pio device monitor
 
 | 📱 Platform | 🧮 Programs | 📊 Percentage | ⭐ Highlights |
 |:---:|:---:|:---:|:---|
-| **STM32F103C8** | **174** | 52% | Blue Pill, HAL/LL APIs, Real-time focus |
-| **ESP32** | **160** | 48% | WiFi/BLE, Arduino Framework, IoT focus |
-| **📊 Total** | **🏆 334** | 100% | Production-ready, Well-documented |
+| **STM32F103C8** | **182** | 50% | Blue Pill, HAL/LL APIs, Real-time focus |
+| **ESP32** | **182** | 50% | WiFi/BLE, Arduino Framework, IoT focus |
+| **📊 Total** | **🏆 364** | 100% | Production-ready, Well-documented |
 
 ### 🎯 Coverage by Domain
 
 ```
-🔌 Digital I/O        ████████████████████ 20%
-⚡ Interrupts/Timers  ████████████████████ 20% 
-📡 Communication      ████████████████████ 20%
-🔄 FreeRTOS          █████████████████████████████████ 33%
-🌐 Networking        ███████ 7%
+🔌 GPIO & Basic I/O    ████████████████████ 20%
+⚡ Interrupts/Timers   ████████████████████ 20% 
+📡 Communication       ████████████████████████████████ 32%
+🔄 FreeRTOS           ████████████████████████████ 26%
+🌐 Networking         ██ 2%
 ```
 
 ### 📈 Complexity Distribution
 
 | Level | Modules | Programs | Focus |
 |:---:|:---:|:---:|:---|
-| 🟢 **Beginner** | 3 | 72 | GPIO, Timers, UART |
-| 🟡 **Intermediate** | 4 | 78 | ADC/PWM, I2C/SPI, DMA |
-| 🔴 **Advanced** | 7 | 184 | FreeRTOS, Networking, Production |
+| 🟢 **Beginner** | 3 | 74 | GPIO, Timers, UART |
+| 🟡 **Intermediate** | 5 | 146 | ADC/PWM, I2C/SPI, DMA |
+| 🔴 **Advanced** | 6 | 144 | FreeRTOS, Networking, Power Management |
 
 </div>
 
@@ -127,44 +127,44 @@ pio device monitor
 </div>
 
 <details>
-<summary><b>🟢 Module 01-03: Foundation (72 Programs)</b></summary>
+<summary><b>🟢 Module 01-03: Foundation (74 Programs)</b></summary>
 
 | Module | Topic | STM32 | ESP32 | Key Concepts |
 |:---:|:---|:---:|:---:|:---|
-| **01** | 🔌 **Digital I/O & GPIO** | 12 | 12 | LED control, button handling, debouncing |
-| **02** | ⚡ **Interrupt & Timer** | 12 | 12 | EXTI, hardware timers, PWM basics |
-| **03** | 📡 **Serial Communication** | 12 | 12 | UART/USART, CLI, data parsing |
+| **01** | 🔌 **GPIO Digital I/O** | 12 | 12 | LED control, button handling, debouncing, matrix keypad |
+| **02** | ⚡ **Interrupt & Timer** | 12 | 12 | EXTI, hardware timers, PWM basics, encoder interface |
+| **03** | 📡 **Serial UART** | 12 | 12 | UART communication, protocols, JSON parsing |
 
 **Focus**: Hardware interfacing, basic peripherals, polling vs interrupts
 </details>
 
 <details>
-<summary><b>🟡 Module 04-08: Intermediate (78 Programs)</b></summary>
+<summary><b>🟡 Module 04-08: Intermediate (146 Programs)</b></summary>
 
 | Module | Topic | STM32 | ESP32 | Key Concepts |
 |:---:|:---|:---:|:---:|:---|
-| **04** | 📊 **ADC/DAC & PWM** | 12 | 25 | Analog I/O, motor control, sensor reading |
-| **05** | 🔗 **I2C Sensors** | - | 12 | I2C protocol, sensor interfacing |
-| **06** | 💾 **SPI Storage** | - | 12 | SPI protocol, SD cards, external memory |
-| **07** | 🚀 **DMA Transfer** | 11 | 6 | High-throughput data transfer |
-| **08** | 🔄 **FreeRTOS Basics** | 13 | 6 | Task creation, scheduling concepts |
+| **04** | 📊 **ADC Analog Input** | 13 | 13 | Single/multi-channel, DMA, calibration, battery monitoring |
+| **05** | 📈 **DAC & PWM** | 13 | 13 | Waveform generation, servo control, motor speed |
+| **06** | 🔗 **I2C Sensor** | 13 | 13 | OLED, temperature, accelerometer, EEPROM |
+| **07** | 💾 **SPI Storage** | 12 | 12 | SD card, flash memory, multi-slave communication |
+| **08** | 🚀 **DMA Transfer** | 12 | 12 | High-throughput data transfer, circular buffers |
 
-**Focus**: Communication protocols, high-speed transfers, RTOS introduction
+**Focus**: Communication protocols, analog interfacing, high-speed transfers
 </details>
 
 <details>
-<summary><b>🔴 Module 09-14: Advanced (184 Programs)</b></summary>
+<summary><b>🔴 Module 09-14: Advanced (144 Programs)</b></summary>
 
 | Module | Topic | STM32 | ESP32 | Key Concepts |
 |:---:|:---|:---:|:---:|:---|
-| **09** | 🧵 **FreeRTOS Tasks** | 20 | 11 | Task management, synchronization |
-| **10** | 📬 **FreeRTOS Queues** | 56 | 26 | Inter-task communication, semaphores |
-| **11** | ⏱️ **FreeRTOS Timers** | - | - | Software timers, notifications |
-| **12** | 🧠 **FreeRTOS Memory** | - | - | Memory management, advanced features |
-| **13** | 🌐 **Networking** | 14 | 14 | TCP/IP, HTTP, MQTT, WebSocket |
-| **14** | 🏭 **Industrial Patterns** | 12 | 12 | Production patterns, system design |
+| **09** | 🧵 **FreeRTOS Task** | 12 | 12 | Task creation, priorities, core affinity, watchdog |
+| **10** | 📬 **FreeRTOS Queue-Semaphore** | 12 | 12 | Inter-task communication, mutex, producer-consumer |
+| **11** | ⏱️ **FreeRTOS Timer-Notification** | 12 | 12 | Software timers, task notifications, event groups |
+| **12** | 🧠 **FreeRTOS Memory-Advanced** | 12 | 12 | Heap monitoring, stack overflow, memory pools |
+| **13** | 🌐 **Network Connectivity** | 12 | 12 | WiFi, TCP/UDP, HTTP, MQTT, BLE, WebSocket |
+| **14** | ⚡ **Power Management** | 12 | 12 | Sleep modes, ULP, frequency scaling, battery optimization |
 
-**Focus**: Real-time systems, networking, production-ready architectures
+**Focus**: Real-time systems, networking, power efficiency, production patterns
 </details>
 
 ### 🎯 Learning Progression
@@ -838,21 +838,21 @@ SOFTWARE.
 
 | Module | Status | STM32 | ESP32 | Completion |
 |:---:|:---:|:---:|:---:|:---:|
-| 01 - Digital I/O | ✅ | 12/12 | 12/12 | 100% |
-| 02 - Interrupts | ✅ | 12/12 | 12/12 | 100% |
+| 01 - GPIO Digital I/O | ✅ | 12/12 | 12/12 | 100% |
+| 02 - Interrupt & Timer | ✅ | 12/12 | 12/12 | 100% |
 | 03 - Serial UART | ✅ | 12/12 | 12/12 | 100% |
-| 04 - ADC/PWM | ✅ | 12/12 | 25/25 | 100% |
-| 05 - I2C Sensors | ✅ | 0/0 | 12/12 | 100% |
-| 06 - SPI Storage | ✅ | 0/0 | 12/12 | 100% |
-| 07 - DMA | ✅ | 11/11 | 6/6 | 100% |
-| 08 - FreeRTOS Tasks | ✅ | 13/13 | 6/6 | 100% |
-| 09 - FreeRTOS Queues | ✅ | 20/20 | 11/11 | 100% |
-| 10 - FreeRTOS Timers | ✅ | 56/56 | 26/26 | 100% |
-| 11 - FreeRTOS Memory | ⏸️ | 0/0 | 0/0 | - |
-| 12 - FreeRTOS Advanced | ⏸️ | 0/0 | 0/0 | - |
-| 13 - Networking | ✅ | 14/14 | 14/14 | 100% |
-| 14 - Industrial | ✅ | 12/12 | 12/12 | 100% |
-| **🏆 TOTAL** | **🎯** | **174** | **160** | **334 Programs** |
+| 04 - ADC Analog Input | ✅ | 13/13 | 13/13 | 100% |
+| 05 - DAC & PWM | ✅ | 13/13 | 13/13 | 100% |
+| 06 - I2C Sensor | ✅ | 13/13 | 13/13 | 100% |
+| 07 - SPI Storage | ✅ | 12/12 | 12/12 | 100% |
+| 08 - DMA Transfer | ✅ | 12/12 | 12/12 | 100% |
+| 09 - FreeRTOS Task | ✅ | 12/12 | 12/12 | 100% |
+| 10 - FreeRTOS Queue-Semaphore | ✅ | 12/12 | 12/12 | 100% |
+| 11 - FreeRTOS Timer-Notification | ✅ | 12/12 | 12/12 | 100% |
+| 12 - FreeRTOS Memory-Advanced | ✅ | 12/12 | 12/12 | 100% |
+| 13 - Network Connectivity | ✅ | 12/12 | 12/12 | 100% |
+| 14 - Power Management | ✅ | 12/12 | 12/12 | 100% |
+| **🏆 TOTAL** | **🎯** | **182** | **182** | **364 Programs** |
 
 ---
 

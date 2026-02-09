@@ -1,15 +1,14 @@
 /**
  * @file main.c
- * @brief STM32_02_Multi_LED_Running - Running Light Pattern
- *
- * 4 LEDs on PA0, PA1, PA2, PA3 create a sequential running light.
- * Each LED turns on one at a time in sequence: LED1 -> LED2 -> LED3 -> LED4 -> repeat
- *
- * Hardware: 4x LED + 4x 220 ohm resistors on PA0-PA3
+ * @brief STM32_02_Multi_LED_Running - Running LED - Lampu Bergeser Berurutan
+ * 
+ * FUNGSI: 4 LED bergeser menyala satu per satu membentuk pola running light
+ * Supported: STM32F103C8T6, STM32F401CCU6, STM32F411CEU6
  */
 
+
+
 #include "config.h"
-#include <stdio.h>
 
 /* ---- Function Prototypes ---- */
 void SystemClock_Config(void);
@@ -17,13 +16,6 @@ void MX_GPIO_Init(void);
 void Error_Handler(void);
 
 /* ---- printf stub (no UART needed) ---- */
-int _write(int file, char *ptr, int len)
-{
-    (void)file;
-    (void)ptr;
-    (void)len;
-    return len;
-}
 
 /* LED pin lookup table */
 static const uint16_t led_pins[NUM_LEDS] = {
@@ -85,7 +77,7 @@ void MX_GPIO_Init(void)
 /* ============================================================
  *  System Clock Configuration
  * ============================================================ */
-#ifdef STM32F103xB
+#ifdef STM32F103xC
 /* F103: 8MHz HSE -> PLL x9 -> 72MHz SYSCLK */
 void SystemClock_Config(void)
 {

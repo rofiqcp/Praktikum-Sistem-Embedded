@@ -1,37 +1,14 @@
 /**
- * ============================================================================
- * @file    main.c
- * @brief   STM32_07 - GPIO Drive Strength (Output Speed) Demonstration
- * @project STM32_07_GPIO_Drive_Strength
- * ============================================================================
- *
- * Description:
- *   Demonstrates GPIO output speed configuration on STM32. Unlike ESP32
- *   which has configurable drive strength (current capability), STM32
- *   provides output speed settings that control the slew rate (rise/fall
- *   time) of GPIO transitions.
- *
- *   The program cycles through LOW, MEDIUM, and HIGH speed settings,
- *   reconfiguring the GPIO each time. On F4 chips, VERY_HIGH is also shown.
- *
- *   Use an oscilloscope on PA0 to observe the difference in edge sharpness.
- *   Higher speed = faster edges but more EMI.
- *
- * GPIO Speed Reference:
- *   F103: LOW=2MHz, MEDIUM=10MHz, HIGH=50MHz
- *   F4xx: LOW=2MHz, MEDIUM=25MHz, HIGH=50MHz, VERY_HIGH=100MHz
- *
- * Hardware:
- *   - 1x LED + 220 ohm resistor on PA0
- *   - Optional: oscilloscope / multimeter
- *
- * Board Support: Blue Pill (F103C8), F401CC, F411CE
- *
- * ============================================================================
+ * @file main.c
+ * @brief STM32_07_GPIO_Drive_Strength - GPIO Drive Strength - Konfigurasi Kekuatan GPIO
+ * 
+ * FUNGSI: Testing drive strength berbagai level dan karakteristik beban
+ * Supported: STM32F103C8T6, STM32F401CCU6, STM32F411CEU6
  */
 
+
+
 #include "config.h"
-#include <stdio.h>
 #include <string.h>
 
 /* ========================= Function Prototypes =========================== */
@@ -41,11 +18,6 @@ void GPIO_Init_WithSpeed(uint32_t speed);
 const char *Speed_To_String(uint32_t speed);
 
 /* ========================= Printf Redirect (ITM/SWO) ==================== */
-int _write(int file, char *ptr, int len) {
-    (void)file;
-    for (int i = 0; i < len; i++) {
-        ITM_SendChar(*ptr++);
-    }
     return len;
 }
 
@@ -104,7 +76,7 @@ int main(void) {
 #if defined(STM32F401xC) || defined(STM32F411xE)
             printf("           GPIOA->OSPEEDR = 0x%08lX\r\n",
                    (unsigned long)LED_PORT->OSPEEDR);
-#elif defined(STM32F103xB)
+#elif defined(STM32F103xC)
             printf("           GPIOA->CRL = 0x%08lX\r\n",
                    (unsigned long)LED_PORT->CRL);
 #endif
@@ -130,7 +102,7 @@ const char *Speed_To_String(uint32_t speed) {
         case GPIO_SPEED_FREQ_LOW:
             return "LOW (2 MHz slew rate)";
         case GPIO_SPEED_FREQ_MEDIUM:
-#ifdef STM32F103xB
+#ifdef STM32F103xC
             return "MEDIUM (10 MHz slew rate)";
 #else
             return "MEDIUM (25 MHz slew rate)";
@@ -151,7 +123,7 @@ void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-#ifdef STM32F103xB
+#ifdef STM32F103xC
     /*--- F103: 8MHz HSE -> PLL x9 -> 72MHz SYSCLK ---*/
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState       = RCC_HSE_ON;

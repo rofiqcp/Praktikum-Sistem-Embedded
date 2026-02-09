@@ -1,21 +1,14 @@
 /**
  * @file main.c
- * @brief STM32_04_Button_Debounce - Debounced Button with State Machine
- *
- * Button on PB0 (input with internal pull-up), LED on PC13
- * 3-state debounce state machine:
- *   IDLE            -> button pressed? -> PRESS_DETECTED (record timestamp)
- *   PRESS_DETECTED  -> debounce time elapsed & still pressed? -> CONFIRMED
- *   CONFIRMED       -> button released? -> IDLE (toggle LED)
- *
- * Toggle LED on each confirmed press.
- * PC13 is active-LOW on Blue Pill: LOW = ON, HIGH = OFF
- *
- * Hardware: 1x push button on PB0 (to GND) + 10k ohm pull-up + LED on PC13
+ * @brief STM32_04_Button_Debounce - Button Debounce - Tombol dengan Debouncing
+ * 
+ * FUNGSI: Membaca tombol dengan state machine debounce 3-state
+ * Supported: STM32F103C8T6, STM32F401CCU6, STM32F411CEU6
  */
 
+
+
 #include "config.h"
-#include <stdio.h>
 
 /* ---- Function Prototypes ---- */
 void SystemClock_Config(void);
@@ -23,13 +16,6 @@ void MX_GPIO_Init(void);
 void Error_Handler(void);
 
 /* ---- printf stub (no UART needed) ---- */
-int _write(int file, char *ptr, int len)
-{
-    (void)file;
-    (void)ptr;
-    (void)len;
-    return len;
-}
 
 /* ============================================================
  *  MAIN
@@ -123,7 +109,7 @@ void MX_GPIO_Init(void)
 /* ============================================================
  *  System Clock Configuration
  * ============================================================ */
-#ifdef STM32F103xB
+#ifdef STM32F103xC
 /* F103: 8MHz HSE -> PLL x9 -> 72MHz SYSCLK */
 void SystemClock_Config(void)
 {

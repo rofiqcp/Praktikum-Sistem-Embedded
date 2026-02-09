@@ -1,49 +1,14 @@
 /**
- * ============================================================================
- * @file    main.c
- * @brief   STM32_12 - 8-LED Test Pattern Generator with Direct Port Write
- * @project STM32_12_LED_Test_Pattern
- * ============================================================================
- *
- * Description:
- *   Generates various LED test patterns using 8 LEDs connected to PA0-PA7.
- *   Uses direct port writes (GPIOA->ODR) for efficient simultaneous control
- *   of all 8 LEDs in a single bus write cycle.
- *
- *   Test Patterns:
- *     0. ALL ON     - All 8 LEDs lit (0xFF)
- *     1. ALL OFF    - All 8 LEDs off (0x00)
- *     2. WALKING 1  - Single LED walks left: 0x01->0x02->0x04->...->0x80
- *     3. WALKING 0  - Single LED off walks left: 0xFE->0xFD->0xFB->...->0x7F
- *     4. BINARY CNT - Binary counter 0x00 to 0xFF
- *     5. ALTERNATING- Alternating pattern: 0x55 <-> 0xAA (checkerboard)
- *
- *   This is commonly used for:
- *     - PCB bring-up and LED connectivity testing
- *     - Visual verification of GPIO port wiring
- *     - Manufacturing test sequences
- *
- * Hardware:
- *   - 8x LEDs with 220 ohm resistors on PA0 through PA7
- *   - Common cathode to GND
- *
- * Wiring:
- *   PA0 ---[220R]--- LED0 --- GND   (bit 0, LSB)
- *   PA1 ---[220R]--- LED1 --- GND
- *   PA2 ---[220R]--- LED2 --- GND
- *   PA3 ---[220R]--- LED3 --- GND
- *   PA4 ---[220R]--- LED4 --- GND
- *   PA5 ---[220R]--- LED5 --- GND
- *   PA6 ---[220R]--- LED6 --- GND
- *   PA7 ---[220R]--- LED7 --- GND   (bit 7, MSB)
- *
- * Board Support: Blue Pill (F103C8), F401CC, F411CE
- *
- * ============================================================================
+ * @file main.c
+ * @brief STM32_12_LED_Test_Pattern - LED Test Pattern - Pola Diagnostik LED
+ * 
+ * FUNGSI: Sequential test pattern untuk diagnostic dan self-testing
+ * Supported: STM32F103C8T6, STM32F401CCU6, STM32F411CEU6
  */
 
+
+
 #include "config.h"
-#include <stdio.h>
 
 /* ========================= Function Prototypes =========================== */
 void SystemClock_Config(void);
@@ -59,11 +24,6 @@ void Pattern_Alternating(void);
 const char *Pattern_Name(uint8_t pattern_id);
 
 /* ========================= Printf Redirect (ITM/SWO) ==================== */
-int _write(int file, char *ptr, int len) {
-    (void)file;
-    for (int i = 0; i < len; i++) {
-        ITM_SendChar(*ptr++);
-    }
     return len;
 }
 
@@ -240,7 +200,7 @@ void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-#ifdef STM32F103xB
+#ifdef STM32F103xC
     /*--- F103: 8MHz HSE -> PLL x9 -> 72MHz SYSCLK ---*/
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState       = RCC_HSE_ON;

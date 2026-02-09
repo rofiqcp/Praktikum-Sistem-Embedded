@@ -65,7 +65,8 @@ build_project() {
     local project_name
     project_name="$(basename "$project_dir")"
     local module_name
-    module_name="$(basename "$(dirname "$(dirname "$project_dir")")")"
+    # Extract module name: Modul-XX-Name/praktikum/PLATFORM/PROJECT
+    module_name="$(basename "$(dirname "$(dirname "$(dirname "$project_dir")")")")"
     local platform
     platform="$(basename "$(dirname "$project_dir")")"
     

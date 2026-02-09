@@ -1,26 +1,14 @@
 /**
  * @file main.c
- * @brief STM32_06_Toggle_Latch - Edge-Triggered Toggle with Latch
- *
- * Button on PB0, LED on PC13
- * Edge detection: prev_state != current_state
- * Toggle LED on falling edge (button press, HIGH->LOW transition)
- * Includes debounce delay to prevent false triggers
- *
- * Algorithm:
- *   - Read button state every loop iteration
- *   - Compare with previous state
- *   - If falling edge detected (prev=HIGH, curr=LOW): toggle LED
- *   - Apply debounce delay after edge detection
- *   - Update previous state
- *
- * PC13 is active-LOW on Blue Pill: LOW = ON, HIGH = OFF
- *
- * Hardware: 1x push button on PB0 (to GND) + LED on PC13
+ * @brief STM32_06_Toggle_Latch - Toggle Latch - Toggle On/Off dengan Tombol
+ * 
+ * FUNGSI: Toggle LED state pada setiap tekan tombol dengan edge detection
+ * Supported: STM32F103C8T6, STM32F401CCU6, STM32F411CEU6
  */
 
+
+
 #include "config.h"
-#include <stdio.h>
 
 /* ---- Function Prototypes ---- */
 void SystemClock_Config(void);
@@ -28,13 +16,6 @@ void MX_GPIO_Init(void);
 void Error_Handler(void);
 
 /* ---- printf stub (no UART needed) ---- */
-int _write(int file, char *ptr, int len)
-{
-    (void)file;
-    (void)ptr;
-    (void)len;
-    return len;
-}
 
 /* ============================================================
  *  MAIN
@@ -106,7 +87,7 @@ void MX_GPIO_Init(void)
 /* ============================================================
  *  System Clock Configuration
  * ============================================================ */
-#ifdef STM32F103xB
+#ifdef STM32F103xC
 /* F103: 8MHz HSE -> PLL x9 -> 72MHz SYSCLK */
 void SystemClock_Config(void)
 {

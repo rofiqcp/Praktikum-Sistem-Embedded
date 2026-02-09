@@ -1,24 +1,14 @@
 /**
  * @file main.c
- * @brief STM32_05_Long_Short_Press - Short/Long Press Detection
- *
- * Button on PB0, LED_SHORT on PA0, LED_LONG on PA1
- * Measures press duration using HAL_GetTick():
- *   - Short press (<1s): toggles LED_SHORT (PA0)
- *   - Long press  (>1s): toggles LED_LONG  (PA1)
- *
- * Algorithm:
- *   1. Wait for button press (falling edge with debounce)
- *   2. Record press_start_tick
- *   3. Wait for button release
- *   4. Calculate duration = release_tick - press_start_tick
- *   5. Toggle appropriate LED based on duration
- *
- * Hardware: 1x button (PB0 to GND) + 2x LED + 2x 220 ohm on PA0, PA1
+ * @brief STM32_05_Long_Short_Press - Long/Short Press - Deteksi Durasi Tekan
+ * 
+ * FUNGSI: Membedakan tekan panjang (>1s) vs tekan pendek (<1s)
+ * Supported: STM32F103C8T6, STM32F401CCU6, STM32F411CEU6
  */
 
+
+
 #include "config.h"
-#include <stdio.h>
 
 /* ---- Function Prototypes ---- */
 void SystemClock_Config(void);
@@ -26,13 +16,6 @@ void MX_GPIO_Init(void);
 void Error_Handler(void);
 
 /* ---- printf stub (no UART needed) ---- */
-int _write(int file, char *ptr, int len)
-{
-    (void)file;
-    (void)ptr;
-    (void)len;
-    return len;
-}
 
 /* ============================================================
  *  MAIN
@@ -132,7 +115,7 @@ void MX_GPIO_Init(void)
 /* ============================================================
  *  System Clock Configuration
  * ============================================================ */
-#ifdef STM32F103xB
+#ifdef STM32F103xC
 /* F103: 8MHz HSE -> PLL x9 -> 72MHz SYSCLK */
 void SystemClock_Config(void)
 {

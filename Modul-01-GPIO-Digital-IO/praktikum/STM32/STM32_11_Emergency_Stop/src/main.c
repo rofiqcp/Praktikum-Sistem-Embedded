@@ -1,47 +1,14 @@
 /**
- * ============================================================================
- * @file    main.c
- * @brief   STM32_11 - Emergency Stop System with NC Button (Fail-Safe)
- * @project STM32_11_Emergency_Stop
- * ============================================================================
- *
- * Description:
- *   Implements a fail-safe emergency stop system using a Normally Closed (NC)
- *   push button. The NC design ensures safety: if the wire breaks or the
- *   button contact opens unexpectedly, the system immediately enters
- *   emergency mode (fail-safe principle).
- *
- *   System States:
- *     NORMAL:    PB0 = HIGH -> LED slow blink, buzzer OFF
- *     EMERGENCY: PB0 = LOW  -> LED fast blink, buzzer ON
- *     RESET:     PB0 must stay HIGH for 2 seconds to clear emergency
- *
- *   The NC button is wired so that:
- *     - Normal operation: button closed, PB0 pulled HIGH
- *     - Emergency: button opened (or wire break) -> PB0 goes LOW
- *     - This is the OPPOSITE of a normal NO (Normally Open) button
- *
- * Hardware:
- *   - 1x NC (Normally Closed) push button on PB0
- *   - External 10K pull-up resistor PB0 to VCC recommended
- *   - NC button connects PB0 through button to VCC
- *   - 1x LED on PC13 (Blue Pill onboard, active-LOW)
- *   - 1x Active buzzer on PA1 (through NPN transistor or MOSFET)
- *
- * Wiring:
- *   VCC ---[NC_BUTTON]--- PB0 ---[10K]--- GND
- *                               (or use internal pull-up + external pull-down)
- *   PC13 --- onboard LED (active LOW)
- *   PA1  ---[1K]--- NPN_BASE, NPN_COLLECTOR --- BUZZER+ --- VCC
- *                             NPN_EMITTER --- GND, BUZZER- --- NPN_COLLECTOR
- *
- * Board Support: Blue Pill (F103C8), F401CC, F411CE
- *
- * ============================================================================
+ * @file main.c
+ * @brief STM32_11_Emergency_Stop - Emergency Stop - Tombol Safety Interlock
+ * 
+ * FUNGSI: Safety critical button dengan interrupt priority dan safe state
+ * Supported: STM32F103C8T6, STM32F401CCU6, STM32F411CEU6
  */
 
+
+
 #include "config.h"
-#include <stdio.h>
 
 /* ========================= System States ================================= */
 typedef enum {
@@ -64,11 +31,6 @@ void Buzzer_Off(void);
 const char *State_To_String(SystemState_t state);
 
 /* ========================= Printf Redirect (ITM/SWO) ==================== */
-int _write(int file, char *ptr, int len) {
-    (void)file;
-    for (int i = 0; i < len; i++) {
-        ITM_SendChar(*ptr++);
-    }
     return len;
 }
 
@@ -267,7 +229,7 @@ void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-#ifdef STM32F103xB
+#ifdef STM32F103xC
     /*--- F103: 8MHz HSE -> PLL x9 -> 72MHz SYSCLK ---*/
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState       = RCC_HSE_ON;

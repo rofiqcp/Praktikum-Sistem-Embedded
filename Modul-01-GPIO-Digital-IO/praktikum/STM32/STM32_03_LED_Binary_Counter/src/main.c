@@ -1,21 +1,14 @@
 /**
  * @file main.c
- * @brief STM32_03_LED_Binary_Counter - 4-bit Binary Counter
- *
- * 4 LEDs on PA0-PA3 display binary count from 0 to 15.
- * Uses bitwise operations: (count >> bit) & 0x01
- * Increments every 500ms, wraps around at 16 (back to 0).
- * Pure digital - NO PWM!
- *
- * Binary patterns:
- *   0 = 0000, 1 = 0001, 2 = 0010, ... 15 = 1111
- *   PA0 = bit0 (LSB), PA3 = bit3 (MSB)
- *
- * Hardware: 4x LED + 4x 220 ohm resistors on PA0-PA3
+ * @brief STM32_03_LED_Binary_Counter - Binary Counter - Penghitung Biner
+ * 
+ * FUNGSI: 4 LED menampilkan hitung biner 0-15 menggunakan bit manipulation
+ * Supported: STM32F103C8T6, STM32F401CCU6, STM32F411CEU6
  */
 
+
+
 #include "config.h"
-#include <stdio.h>
 
 /* ---- Function Prototypes ---- */
 void SystemClock_Config(void);
@@ -24,13 +17,6 @@ void Error_Handler(void);
 void Display_Binary(uint8_t value);
 
 /* ---- printf stub (no UART needed) ---- */
-int _write(int file, char *ptr, int len)
-{
-    (void)file;
-    (void)ptr;
-    (void)len;
-    return len;
-}
 
 /* LED pin lookup table indexed by bit position */
 static const uint16_t led_pins[NUM_BITS] = {
@@ -106,7 +92,7 @@ void MX_GPIO_Init(void)
 /* ============================================================
  *  System Clock Configuration
  * ============================================================ */
-#ifdef STM32F103xB
+#ifdef STM32F103xC
 /* F103: 8MHz HSE -> PLL x9 -> 72MHz SYSCLK */
 void SystemClock_Config(void)
 {

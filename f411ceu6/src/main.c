@@ -1,21 +1,19 @@
 /**
  * @file main.c
- * @brief STM32F411CEU6 LED Blink via USB
+ * @brief STM32_01_LED_Blink - Berkedip LED Dasar pada PC13
  * 
  * FUNGSI: Membuat LED berkedip dengan interval 500ms
- * - Inisialisasi GPIO sebagai output
- * - Kontrol LED ON/OFF dengan HAL_GPIO_WritePin()
- * - Menggunakan HAL_Delay() untuk timing
+ * - Menunjukkan cara inisialisasi GPIO sebagai output
+ * - Demonstrasi GPIO_WritePin() untuk kontrol ON/OFF
+ * - Penggunaan HAL_Delay() untuk timing
  * 
- * Hardware: STM32F411CEU6 dengan LED pada PC13
- * Upload: Via USB DFU Bootloader (hold BOOT0 saat upload)
+ * Hardware: 1x LED pada PC13 (built-in)
+ * Supported: STM32F103C8T6, STM32F401CCU6, STM32F411CEU6
  */
 
 #include "config.h"
 
-/* ============================================================
- *  Function Prototypes
- * ============================================================ */
+/* ---- Function Prototypes ---- */
 void SystemClock_Config(void);
 void MX_GPIO_Init(void);
 void Error_Handler(void);
@@ -25,24 +23,39 @@ void Error_Handler(void);
  * ============================================================ */
 int main(void)
 {
-    /* Initialize HAL and System Clock */
     HAL_Init();
     SystemClock_Config();
     MX_GPIO_Init();
+    
+    /* Configure PA0 as input with pull-up */
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin   = GPIO_PIN_0;
+    GPIO_InitStruct.Mode  = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull  = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    /* Main LED Blink Loop */
+    /* Test 1: Simple blinking - verify clock frequency */
+    /* If clock is 100MHz: 50 million iterations ≈ 0.5 seconds */
+    for (int test = 0; test < 10; test++) {
+        HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_RESET);  /* ON */
+        volatile uint32_t i;
+        for(i = 0; i < 50000000; i++);  /* 0.5 sec delay */
+        
+        HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);    /* OFF */
+        for(i = 0; i < 50000000; i++);  /* 0.5 sec delay */
+    }
+    
+    /* Test 2: PA0 input controls PC13 output (real-time response) */
     while (1)
     {
-        /* LED ON  (active-low: RESET = ON) */
-        HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_RESET);
-        HAL_Delay(BLINK_DELAY_MS);
-
-        /* LED OFF (active-low: SET = OFF) */
-        HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
-        HAL_Delay(BLINK_DELAY_MS);
+        GPIO_PinState pa0_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+        HAL_GPIO_WritePin(LED_PORT, LED_PIN, pa0_state);
+        
+        /* Small delay to avoid glitches */
+        volatile uint32_t i;
+        for(i = 0; i < 100; i++);
     }
-
-    return 0;
 }
 
 /* ============================================================
@@ -52,60 +65,86 @@ void MX_GPIO_Init(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    /* Enable GPIO Port C Clock */
+    /* Enable GPIO Clocks */
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
 
-    /* Pre-set LED OFF before configuring as output */
-    HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
-
-    /* Configure LED pin (PC13) as push-pull output */
+    /* Configure LED pin as push-pull output */
     GPIO_InitStruct.Pin   = LED_PIN;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(LED_PORT, &GPIO_InitStruct);
+    
+    /* Initialize LED to OFF state (active-low: HIGH = OFF) */
+    HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
 }
 
 /* ============================================================
- *  System Clock Configuration (84 MHz)
+ *  System Clock Configuration
  * ============================================================ */
+#if defined(STM32F103x8)
+/* F103: 8MHz HSE -> PLL x9 -> 72MHz SYSCLK */
 void SystemClock_Config(void)
 {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-    /* Enable Power Control Clock */
-    __HAL_RCC_PWR_CLK_ENABLE();
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
-
-    /* Configure Oscillator: 25MHz HSE -> PLL -> 84MHz */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState       = RCC_HSE_ON;
+    RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
-    RCC_OscInitStruct.PLL.PLLM       = 25;    /* Divide by 25 -> 1 MHz */
-    RCC_OscInitStruct.PLL.PLLN       = 168;   /* Multiply by 168 -> 168 MHz */
-    RCC_OscInitStruct.PLL.PLLP       = RCC_PLLP_DIV2;  /* Divide by 2 -> 84 MHz */
-    RCC_OscInitStruct.PLL.PLLQ       = 4;
-
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-    {
+    RCC_OscInitStruct.PLL.PLLMUL     = RCC_PLL_MUL9;
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         Error_Handler();
     }
 
-    /* Configure Clock Dividers */
     RCC_ClkInitStruct.ClockType      = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
                                      | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-    {
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
         Error_Handler();
     }
 }
+
+#elif defined(STM32F401xC) || defined(STM32F411xE)
+/* F4xx: 25MHz HSE -> PLL -> 84MHz SYSCLK */
+void SystemClock_Config(void)
+{
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+    __HAL_RCC_PWR_CLK_ENABLE();
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState       = RCC_HSE_ON;
+    RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLM       = 25;
+    RCC_OscInitStruct.PLL.PLLN       = 168;
+    RCC_OscInitStruct.PLL.PLLP       = RCC_PLLP_DIV2;
+    RCC_OscInitStruct.PLL.PLLQ       = 4;
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+        Error_Handler();
+    }
+
+    RCC_ClkInitStruct.ClockType      = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                                     | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
+        Error_Handler();
+    }
+}
+#endif
 
 /* ============================================================
  *  Error Handler

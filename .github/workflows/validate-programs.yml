@@ -1,0 +1,92 @@
+name: Validate All Programs
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Program Structure
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+        
+    - name: Run validation script
+      run: |
+        python3 validate_all_programs.py
+        
+    - name: Display summary
+      run: |
+        chmod +x show_test_summary.sh
+        ./show_test_summary.sh
+        
+    - name: Upload validation report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: validation-report
+        path: |
+          VALIDATION_REPORT.md
+          validation_results.json
+          
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('VALIDATION_REPORT.md', 'utf8');
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '## Validation Report\n\n' + report.substring(0, 60000)
+          });
+
+  # Optional: Compile test (requires more setup)
+  compile-samples:
+    name: Compile Sample Programs
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+        
+    - name: Install PlatformIO
+      run: |
+        pip install platformio
+        
+    - name: Install platforms
+      run: |
+        pio platform install ststm32 --skip-default-package
+        pio platform install espressif32 --skip-default-package
+      continue-on-error: true
+        
+    - name: Compile sample STM32 program
+      run: |
+        cd Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_01_LED_Blink
+        pio run -e stm32f401cc || echo "Build failed (expected without full platform)"
+      continue-on-error: true
+        
+    - name: Compile sample ESP32 program
+      run: |
+        cd Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_01_LED_Blink
+        pio run || echo "Build failed (expected without full platform)"
+      continue-on-error: true

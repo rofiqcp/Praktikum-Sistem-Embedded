@@ -1,0 +1,3096 @@
+{
+  "total": 343,
+  "passed": 343,
+  "failed": 0,
+  "warnings": 0,
+  "projects": [
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_01_LED_Blink",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "ESP32",
+      "name": "ESP32_01_LED_Blink",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_02_Multi_LED_Running",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "ESP32",
+      "name": "ESP32_02_Multi_LED_Running",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_03_LED_Binary_Counter",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "ESP32",
+      "name": "ESP32_03_LED_Binary_Counter",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_04_Button_Debounce",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "ESP32",
+      "name": "ESP32_04_Button_Debounce",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_05_Long_Short_Press",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "ESP32",
+      "name": "ESP32_05_Long_Short_Press",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_06_Toggle_Latch",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "ESP32",
+      "name": "ESP32_06_Toggle_Latch",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_07_GPIO_Drive_Strength",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "ESP32",
+      "name": "ESP32_07_GPIO_Drive_Strength",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_08_DIP_Switch_Reader",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "ESP32",
+      "name": "ESP32_08_DIP_Switch_Reader",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_09_GPIO_Port_Register",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "ESP32",
+      "name": "ESP32_09_GPIO_Port_Register",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_10_GPIO_Matrix_Keypad",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "ESP32",
+      "name": "ESP32_10_GPIO_Matrix_Keypad",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_11_Emergency_Stop",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "ESP32",
+      "name": "ESP32_11_Emergency_Stop",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_12_LED_Test_Pattern",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "ESP32",
+      "name": "ESP32_12_LED_Test_Pattern",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_01_LED_Blink",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "STM32",
+      "name": "STM32_01_LED_Blink",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_02_Multi_LED_Running",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "STM32",
+      "name": "STM32_02_Multi_LED_Running",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_03_LED_Binary_Counter",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "STM32",
+      "name": "STM32_03_LED_Binary_Counter",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_04_Button_Debounce",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "STM32",
+      "name": "STM32_04_Button_Debounce",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_05_Long_Short_Press",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "STM32",
+      "name": "STM32_05_Long_Short_Press",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_06_Toggle_Latch",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "STM32",
+      "name": "STM32_06_Toggle_Latch",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_07_GPIO_Drive_Strength",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "STM32",
+      "name": "STM32_07_GPIO_Drive_Strength",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_08_DIP_Switch_Reader",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "STM32",
+      "name": "STM32_08_DIP_Switch_Reader",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_09_GPIO_Port_Register",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "STM32",
+      "name": "STM32_09_GPIO_Port_Register",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_10_GPIO_Matrix_Keypad",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "STM32",
+      "name": "STM32_10_GPIO_Matrix_Keypad",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_11_Emergency_Stop",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "STM32",
+      "name": "STM32_11_Emergency_Stop",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_12_LED_Test_Pattern",
+      "module": "Modul-01-GPIO-Digital-IO",
+      "platform": "STM32",
+      "name": "STM32_12_LED_Test_Pattern",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/ESP32/ESP32_01_EXTI_Interrupt",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "ESP32",
+      "name": "ESP32_01_EXTI_Interrupt",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/ESP32/ESP32_02_EXTI_Debounce",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "ESP32",
+      "name": "ESP32_02_EXTI_Debounce",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/ESP32/ESP32_03_Timer_Periodic",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "ESP32",
+      "name": "ESP32_03_Timer_Periodic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/ESP32/ESP32_04_Timer_One_Shot",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "ESP32",
+      "name": "ESP32_04_Timer_One_Shot",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/ESP32/ESP32_05_Timer_PWM_Basic",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "ESP32",
+      "name": "ESP32_05_Timer_PWM_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/ESP32/ESP32_06_Watchdog_Timer",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "ESP32",
+      "name": "ESP32_06_Watchdog_Timer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/ESP32/ESP32_07_Timer_Cascade",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "ESP32",
+      "name": "ESP32_07_Timer_Cascade",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/ESP32/ESP32_08_Output_Compare_Toggle",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "ESP32",
+      "name": "ESP32_08_Output_Compare_Toggle",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/ESP32/ESP32_09_Input_Capture",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "ESP32",
+      "name": "ESP32_09_Input_Capture",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/ESP32/ESP32_10_Encoder_Interface",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "ESP32",
+      "name": "ESP32_10_Encoder_Interface",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/ESP32/ESP32_11_Multiple_Timers",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "ESP32",
+      "name": "ESP32_11_Multiple_Timers",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/ESP32/ESP32_12_NVIC_Priority",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "ESP32",
+      "name": "ESP32_12_NVIC_Priority",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/STM32/STM32_01_EXTI_Interrupt",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "STM32",
+      "name": "STM32_01_EXTI_Interrupt",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/STM32/STM32_02_EXTI_Debounce",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "STM32",
+      "name": "STM32_02_EXTI_Debounce",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/STM32/STM32_03_Timer_Periodic",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "STM32",
+      "name": "STM32_03_Timer_Periodic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/STM32/STM32_04_Timer_One_Shot",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "STM32",
+      "name": "STM32_04_Timer_One_Shot",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/STM32/STM32_05_Timer_PWM_Basic",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "STM32",
+      "name": "STM32_05_Timer_PWM_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/STM32/STM32_06_Watchdog_Timer",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "STM32",
+      "name": "STM32_06_Watchdog_Timer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/STM32/STM32_07_Timer_Cascade",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "STM32",
+      "name": "STM32_07_Timer_Cascade",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/STM32/STM32_08_Output_Compare_Toggle",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "STM32",
+      "name": "STM32_08_Output_Compare_Toggle",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/STM32/STM32_09_Input_Capture",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "STM32",
+      "name": "STM32_09_Input_Capture",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/STM32/STM32_10_Encoder_Interface",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "STM32",
+      "name": "STM32_10_Encoder_Interface",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/STM32/STM32_11_Multiple_Timers",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "STM32",
+      "name": "STM32_11_Multiple_Timers",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-02-Interrupt-Timer/praktikum/STM32/STM32_12_NVIC_Priority",
+      "module": "Modul-02-Interrupt-Timer",
+      "platform": "STM32",
+      "name": "STM32_12_NVIC_Priority",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/ESP32/ESP32_01_UART_Echo",
+      "module": "Modul-03-Serial-UART",
+      "platform": "ESP32",
+      "name": "ESP32_01_UART_Echo",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/ESP32/ESP32_02_UART_Interrupt_RX",
+      "module": "Modul-03-Serial-UART",
+      "platform": "ESP32",
+      "name": "ESP32_02_UART_Interrupt_RX",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/ESP32/ESP32_03_UART_Ring_Buffer",
+      "module": "Modul-03-Serial-UART",
+      "platform": "ESP32",
+      "name": "ESP32_03_UART_Ring_Buffer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/ESP32/ESP32_04_UART_Printf_Redirect",
+      "module": "Modul-03-Serial-UART",
+      "platform": "ESP32",
+      "name": "ESP32_04_UART_Printf_Redirect",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/ESP32/ESP32_05_UART_Command_Parser",
+      "module": "Modul-03-Serial-UART",
+      "platform": "ESP32",
+      "name": "ESP32_05_UART_Command_Parser",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/ESP32/ESP32_06_UART_JSON_Protocol",
+      "module": "Modul-03-Serial-UART",
+      "platform": "ESP32",
+      "name": "ESP32_06_UART_JSON_Protocol",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/ESP32/ESP32_07_UART_Line_Editor",
+      "module": "Modul-03-Serial-UART",
+      "platform": "ESP32",
+      "name": "ESP32_07_UART_Line_Editor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/ESP32/ESP32_08_UART_Framing_STX_ETX",
+      "module": "Modul-03-Serial-UART",
+      "platform": "ESP32",
+      "name": "ESP32_08_UART_Framing_STX_ETX",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/ESP32/ESP32_09_UART_CRC_Checksum",
+      "module": "Modul-03-Serial-UART",
+      "platform": "ESP32",
+      "name": "ESP32_09_UART_CRC_Checksum",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/ESP32/ESP32_10_UART_Timeout_Parser",
+      "module": "Modul-03-Serial-UART",
+      "platform": "ESP32",
+      "name": "ESP32_10_UART_Timeout_Parser",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/ESP32/ESP32_11_UART_Bridge_Multi",
+      "module": "Modul-03-Serial-UART",
+      "platform": "ESP32",
+      "name": "ESP32_11_UART_Bridge_Multi",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/ESP32/ESP32_12_UART_Error_Statistics",
+      "module": "Modul-03-Serial-UART",
+      "platform": "ESP32",
+      "name": "ESP32_12_UART_Error_Statistics",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/STM32/STM32_01_UART_Echo",
+      "module": "Modul-03-Serial-UART",
+      "platform": "STM32",
+      "name": "STM32_01_UART_Echo",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/STM32/STM32_02_UART_Interrupt_RX",
+      "module": "Modul-03-Serial-UART",
+      "platform": "STM32",
+      "name": "STM32_02_UART_Interrupt_RX",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/STM32/STM32_03_UART_Ring_Buffer",
+      "module": "Modul-03-Serial-UART",
+      "platform": "STM32",
+      "name": "STM32_03_UART_Ring_Buffer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/STM32/STM32_04_UART_Printf_Redirect",
+      "module": "Modul-03-Serial-UART",
+      "platform": "STM32",
+      "name": "STM32_04_UART_Printf_Redirect",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/STM32/STM32_05_UART_Command_Parser",
+      "module": "Modul-03-Serial-UART",
+      "platform": "STM32",
+      "name": "STM32_05_UART_Command_Parser",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/STM32/STM32_06_UART_JSON_Protocol",
+      "module": "Modul-03-Serial-UART",
+      "platform": "STM32",
+      "name": "STM32_06_UART_JSON_Protocol",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/STM32/STM32_07_UART_Line_Editor",
+      "module": "Modul-03-Serial-UART",
+      "platform": "STM32",
+      "name": "STM32_07_UART_Line_Editor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/STM32/STM32_08_UART_Framing_STX_ETX",
+      "module": "Modul-03-Serial-UART",
+      "platform": "STM32",
+      "name": "STM32_08_UART_Framing_STX_ETX",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/STM32/STM32_09_UART_CRC_Checksum",
+      "module": "Modul-03-Serial-UART",
+      "platform": "STM32",
+      "name": "STM32_09_UART_CRC_Checksum",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/STM32/STM32_10_UART_Timeout_Parser",
+      "module": "Modul-03-Serial-UART",
+      "platform": "STM32",
+      "name": "STM32_10_UART_Timeout_Parser",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/STM32/STM32_11_UART_Bridge_Multi",
+      "module": "Modul-03-Serial-UART",
+      "platform": "STM32",
+      "name": "STM32_11_UART_Bridge_Multi",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-03-Serial-UART/praktikum/STM32/STM32_12_UART_Error_Statistics",
+      "module": "Modul-03-Serial-UART",
+      "platform": "STM32",
+      "name": "STM32_12_UART_Error_Statistics",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_01_ADC_Single_Read",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_01_ADC_Single_Read",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_02_ADC_Voltage_Display",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_02_ADC_Voltage_Display",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_03_ADC_Moving_Average",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_03_ADC_Moving_Average",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_04_ADC_Multi_Channel",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_04_ADC_Multi_Channel",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_05_ADC_Calibration",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_05_ADC_Calibration",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_06_ADC_Continuous_DMA",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_06_ADC_Continuous_DMA",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_07_ADC_Threshold_Alert",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_07_ADC_Threshold_Alert",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_08_ADC_Battery_Monitor",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_08_ADC_Battery_Monitor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_09_ADC_Temperature_Internal",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_09_ADC_Temperature_Internal",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_10_ADC_Sampling_Rate",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_10_ADC_Sampling_Rate",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_11_ADC_Light_Sensor",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_11_ADC_Light_Sensor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_12_ADC_Statistical_Analysis",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_12_ADC_Statistical_Analysis",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/ESP32/ESP32_13_ADC_Attenuation_WiFi",
+      "module": "Modul-04-ADC",
+      "platform": "ESP32",
+      "name": "ESP32_13_ADC_Attenuation_WiFi",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_01_ADC_Single_Read",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_01_ADC_Single_Read",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_02_ADC_Voltage_Display",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_02_ADC_Voltage_Display",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_03_ADC_Moving_Average",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_03_ADC_Moving_Average",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_04_ADC_Multi_Channel",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_04_ADC_Multi_Channel",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_05_ADC_Calibration",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_05_ADC_Calibration",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_06_ADC_Continuous_DMA",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_06_ADC_Continuous_DMA",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_07_ADC_Threshold_Alert",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_07_ADC_Threshold_Alert",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_08_ADC_Battery_Monitor",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_08_ADC_Battery_Monitor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_09_ADC_Temperature_Internal",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_09_ADC_Temperature_Internal",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_10_ADC_Sampling_Rate",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_10_ADC_Sampling_Rate",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_11_ADC_Light_Sensor",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_11_ADC_Light_Sensor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_12_ADC_Statistical_Analysis",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_12_ADC_Statistical_Analysis",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-04-ADC/praktikum/STM32/STM32_13_ADC_Analog_Watchdog",
+      "module": "Modul-04-ADC",
+      "platform": "STM32",
+      "name": "STM32_13_ADC_Analog_Watchdog",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_01_DAC_Voltage_Output",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_01_DAC_Voltage_Output",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_02_DAC_Sine_Wave",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_02_DAC_Sine_Wave",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_03_DAC_Triangle_Wave",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_03_DAC_Triangle_Wave",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_04_DAC_Audio_Tone",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_04_DAC_Audio_Tone",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_05_PWM_LED_Breathing",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_05_PWM_LED_Breathing",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_06_PWM_LED_Brightness",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_06_PWM_LED_Brightness",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_07_PWM_Servo_Control",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_07_PWM_Servo_Control",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_08_PWM_Frequency_Sweep",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_08_PWM_Frequency_Sweep",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_09_PWM_Motor_Speed",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_09_PWM_Motor_Speed",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_10_PWM_RGB_LED",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_10_PWM_RGB_LED",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_11_PWM_Buzzer_Melody",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_11_PWM_Buzzer_Melody",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_12_DAC_vs_PWM_Compare",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_12_DAC_vs_PWM_Compare",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/ESP32/ESP32_13_PWM_LEDC_Fade",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "ESP32",
+      "name": "ESP32_13_PWM_LEDC_Fade",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_01_DAC_Voltage_Output",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_01_DAC_Voltage_Output",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_02_DAC_Sine_Wave",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_02_DAC_Sine_Wave",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_03_DAC_Triangle_Wave",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_03_DAC_Triangle_Wave",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_04_DAC_Audio_Tone",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_04_DAC_Audio_Tone",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_05_PWM_LED_Breathing",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_05_PWM_LED_Breathing",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_06_PWM_LED_Brightness",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_06_PWM_LED_Brightness",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_07_PWM_Servo_Control",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_07_PWM_Servo_Control",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_08_PWM_Frequency_Sweep",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_08_PWM_Frequency_Sweep",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_09_PWM_Motor_Speed",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_09_PWM_Motor_Speed",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_10_PWM_RGB_LED",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_10_PWM_RGB_LED",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_11_PWM_Buzzer_Melody",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_11_PWM_Buzzer_Melody",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_12_DAC_vs_PWM_Compare",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_12_DAC_vs_PWM_Compare",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-05-DAC-PWM/praktikum/STM32/STM32_13_DAC_Hardware_Waveform",
+      "module": "Modul-05-DAC-PWM",
+      "platform": "STM32",
+      "name": "STM32_13_DAC_Hardware_Waveform",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_01_I2C_Scanner",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_01_I2C_Scanner",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_02_I2C_OLED_SSD1306",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_02_I2C_OLED_SSD1306",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_03_I2C_Temp_BMP280",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_03_I2C_Temp_BMP280",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_04_I2C_Accel_MPU6050",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_04_I2C_Accel_MPU6050",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_05_I2C_EEPROM_AT24C32",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_05_I2C_EEPROM_AT24C32",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_06_I2C_RTC_DS3231",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_06_I2C_RTC_DS3231",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_07_I2C_Light_BH1750",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_07_I2C_Light_BH1750",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_08_I2C_LCD_PCF8574",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_08_I2C_LCD_PCF8574",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_09_I2C_Multi_Sensor",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_09_I2C_Multi_Sensor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_10_I2C_Write_Read_Raw",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_10_I2C_Write_Read_Raw",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_11_I2C_Clock_Speed_Test",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_11_I2C_Clock_Speed_Test",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_12_I2C_Error_Recovery",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_12_I2C_Error_Recovery",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/ESP32/ESP32_13_I2C_GPIO_Matrix",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "ESP32",
+      "name": "ESP32_13_I2C_GPIO_Matrix",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_01_I2C_Scanner",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_01_I2C_Scanner",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_02_I2C_OLED_SSD1306",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_02_I2C_OLED_SSD1306",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_03_I2C_Temp_BMP280",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_03_I2C_Temp_BMP280",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_04_I2C_Accel_MPU6050",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_04_I2C_Accel_MPU6050",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_05_I2C_EEPROM_AT24C32",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_05_I2C_EEPROM_AT24C32",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_06_I2C_RTC_DS3231",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_06_I2C_RTC_DS3231",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_07_I2C_Light_BH1750",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_07_I2C_Light_BH1750",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_08_I2C_LCD_PCF8574",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_08_I2C_LCD_PCF8574",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_09_I2C_Multi_Sensor",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_09_I2C_Multi_Sensor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_10_I2C_Write_Read_Raw",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_10_I2C_Write_Read_Raw",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_11_I2C_Clock_Speed_Test",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_11_I2C_Clock_Speed_Test",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_12_I2C_Error_Recovery",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_12_I2C_Error_Recovery",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-06-I2C-Sensor/praktikum/STM32/STM32_13_I2C_DMA_Transfer",
+      "module": "Modul-06-I2C-Sensor",
+      "platform": "STM32",
+      "name": "STM32_13_I2C_DMA_Transfer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/ESP32/ESP32_01_SPI_Loopback",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "ESP32",
+      "name": "ESP32_01_SPI_Loopback",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/ESP32/ESP32_02_SPI_OLED_SSD1306",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "ESP32",
+      "name": "ESP32_02_SPI_OLED_SSD1306",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/ESP32/ESP32_03_SPI_Flash_W25Q32",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "ESP32",
+      "name": "ESP32_03_SPI_Flash_W25Q32",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/ESP32/ESP32_04_SPI_SD_Card",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "ESP32",
+      "name": "ESP32_04_SPI_SD_Card",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/ESP32/ESP32_05_SPI_MCP3208_ADC",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "ESP32",
+      "name": "ESP32_05_SPI_MCP3208_ADC",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/ESP32/ESP32_06_SPI_DAC_MCP4921",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "ESP32",
+      "name": "ESP32_06_SPI_DAC_MCP4921",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/ESP32/ESP32_07_SPI_Multi_Slave",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "ESP32",
+      "name": "ESP32_07_SPI_Multi_Slave",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/ESP32/ESP32_08_NVS_Key_Value",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "ESP32",
+      "name": "ESP32_08_NVS_Key_Value",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/ESP32/ESP32_09_SPIFFS_File_System",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "ESP32",
+      "name": "ESP32_09_SPIFFS_File_System",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/ESP32/ESP32_10_SPI_Speed_Benchmark",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "ESP32",
+      "name": "ESP32_10_SPI_Speed_Benchmark",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/ESP32/ESP32_11_SPI_Interrupt_Mode",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "ESP32",
+      "name": "ESP32_11_SPI_Interrupt_Mode",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/ESP32/ESP32_12_Storage_Data_Logger",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "ESP32",
+      "name": "ESP32_12_Storage_Data_Logger",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/STM32/STM32_01_SPI_Loopback",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "STM32",
+      "name": "STM32_01_SPI_Loopback",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/STM32/STM32_02_SPI_OLED_SSD1306",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "STM32",
+      "name": "STM32_02_SPI_OLED_SSD1306",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/STM32/STM32_03_SPI_Flash_W25Q32",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "STM32",
+      "name": "STM32_03_SPI_Flash_W25Q32",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/STM32/STM32_04_SPI_SD_Card",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "STM32",
+      "name": "STM32_04_SPI_SD_Card",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/STM32/STM32_05_SPI_MCP3208_ADC",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "STM32",
+      "name": "STM32_05_SPI_MCP3208_ADC",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/STM32/STM32_06_SPI_DAC_MCP4921",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "STM32",
+      "name": "STM32_06_SPI_DAC_MCP4921",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/STM32/STM32_07_SPI_Multi_Slave",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "STM32",
+      "name": "STM32_07_SPI_Multi_Slave",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/STM32/STM32_08_Flash_Read_Write",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "STM32",
+      "name": "STM32_08_Flash_Read_Write",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/STM32/STM32_09_Flash_Key_Value",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "STM32",
+      "name": "STM32_09_Flash_Key_Value",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/STM32/STM32_10_SPI_Speed_Benchmark",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "STM32",
+      "name": "STM32_10_SPI_Speed_Benchmark",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/STM32/STM32_11_SPI_Interrupt_Mode",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "STM32",
+      "name": "STM32_11_SPI_Interrupt_Mode",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-07-SPI-Storage/praktikum/STM32/STM32_12_Storage_Data_Logger",
+      "module": "Modul-07-SPI-Storage",
+      "platform": "STM32",
+      "name": "STM32_12_Storage_Data_Logger",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/ESP32/ESP32_01_DMA_Memory_to_Memory",
+      "module": "Modul-08-DMA",
+      "platform": "ESP32",
+      "name": "ESP32_01_DMA_Memory_to_Memory",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/ESP32/ESP32_02_DMA_UART_TX",
+      "module": "Modul-08-DMA",
+      "platform": "ESP32",
+      "name": "ESP32_02_DMA_UART_TX",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/ESP32/ESP32_03_DMA_UART_RX",
+      "module": "Modul-08-DMA",
+      "platform": "ESP32",
+      "name": "ESP32_03_DMA_UART_RX",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/ESP32/ESP32_04_DMA_ADC_Continuous",
+      "module": "Modul-08-DMA",
+      "platform": "ESP32",
+      "name": "ESP32_04_DMA_ADC_Continuous",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/ESP32/ESP32_05_DMA_ADC_Multi_Channel",
+      "module": "Modul-08-DMA",
+      "platform": "ESP32",
+      "name": "ESP32_05_DMA_ADC_Multi_Channel",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/ESP32/ESP32_06_DMA_SPI_Transfer",
+      "module": "Modul-08-DMA",
+      "platform": "ESP32",
+      "name": "ESP32_06_DMA_SPI_Transfer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/ESP32/ESP32_07_DMA_Circular_Buffer",
+      "module": "Modul-08-DMA",
+      "platform": "ESP32",
+      "name": "ESP32_07_DMA_Circular_Buffer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/ESP32/ESP32_08_DMA_Double_Buffer",
+      "module": "Modul-08-DMA",
+      "platform": "ESP32",
+      "name": "ESP32_08_DMA_Double_Buffer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/ESP32/ESP32_09_DMA_I2C_Transfer",
+      "module": "Modul-08-DMA",
+      "platform": "ESP32",
+      "name": "ESP32_09_DMA_I2C_Transfer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/ESP32/ESP32_10_DMA_DAC_Waveform",
+      "module": "Modul-08-DMA",
+      "platform": "ESP32",
+      "name": "ESP32_10_DMA_DAC_Waveform",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/ESP32/ESP32_11_DMA_Benchmark",
+      "module": "Modul-08-DMA",
+      "platform": "ESP32",
+      "name": "ESP32_11_DMA_Benchmark",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/ESP32/ESP32_12_DMA_Linked_List",
+      "module": "Modul-08-DMA",
+      "platform": "ESP32",
+      "name": "ESP32_12_DMA_Linked_List",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/STM32/STM32_01_DMA_Memory_to_Memory",
+      "module": "Modul-08-DMA",
+      "platform": "STM32",
+      "name": "STM32_01_DMA_Memory_to_Memory",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/STM32/STM32_02_DMA_UART_TX",
+      "module": "Modul-08-DMA",
+      "platform": "STM32",
+      "name": "STM32_02_DMA_UART_TX",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/STM32/STM32_03_DMA_UART_RX",
+      "module": "Modul-08-DMA",
+      "platform": "STM32",
+      "name": "STM32_03_DMA_UART_RX",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/STM32/STM32_04_DMA_ADC_Continuous",
+      "module": "Modul-08-DMA",
+      "platform": "STM32",
+      "name": "STM32_04_DMA_ADC_Continuous",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/STM32/STM32_05_DMA_ADC_Multi_Channel",
+      "module": "Modul-08-DMA",
+      "platform": "STM32",
+      "name": "STM32_05_DMA_ADC_Multi_Channel",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/STM32/STM32_06_DMA_SPI_Transfer",
+      "module": "Modul-08-DMA",
+      "platform": "STM32",
+      "name": "STM32_06_DMA_SPI_Transfer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/STM32/STM32_07_DMA_Circular_Buffer",
+      "module": "Modul-08-DMA",
+      "platform": "STM32",
+      "name": "STM32_07_DMA_Circular_Buffer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/STM32/STM32_08_DMA_Double_Buffer",
+      "module": "Modul-08-DMA",
+      "platform": "STM32",
+      "name": "STM32_08_DMA_Double_Buffer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/STM32/STM32_09_DMA_I2C_Transfer",
+      "module": "Modul-08-DMA",
+      "platform": "STM32",
+      "name": "STM32_09_DMA_I2C_Transfer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/STM32/STM32_10_DMA_DAC_Waveform",
+      "module": "Modul-08-DMA",
+      "platform": "STM32",
+      "name": "STM32_10_DMA_DAC_Waveform",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/STM32/STM32_11_DMA_Benchmark",
+      "module": "Modul-08-DMA",
+      "platform": "STM32",
+      "name": "STM32_11_DMA_Benchmark",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-08-DMA/praktikum/STM32/STM32_12_DMA_Linked_List",
+      "module": "Modul-08-DMA",
+      "platform": "STM32",
+      "name": "STM32_12_DMA_Linked_List",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_01_Task_Create_Basic",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "ESP32",
+      "name": "ESP32_01_Task_Create_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_02_Task_Priority",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "ESP32",
+      "name": "ESP32_02_Task_Priority",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_03_Task_Delay_Periodic",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "ESP32",
+      "name": "ESP32_03_Task_Delay_Periodic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_04_Task_Suspend_Resume",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "ESP32",
+      "name": "ESP32_04_Task_Suspend_Resume",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_05_Task_Delete",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "ESP32",
+      "name": "ESP32_05_Task_Delete",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_06_Task_Stack_Monitor",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "ESP32",
+      "name": "ESP32_06_Task_Stack_Monitor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_07_Task_Core_Affinity",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "ESP32",
+      "name": "ESP32_07_Task_Core_Affinity",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_08_Task_Idle_Hook",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "ESP32",
+      "name": "ESP32_08_Task_Idle_Hook",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_09_Task_Watchdog",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "ESP32",
+      "name": "ESP32_09_Task_Watchdog",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_10_Task_Communication",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "ESP32",
+      "name": "ESP32_10_Task_Communication",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_11_Task_Scheduler_Info",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "ESP32",
+      "name": "ESP32_11_Task_Scheduler_Info",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_12_Task_Cooperative",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "ESP32",
+      "name": "ESP32_12_Task_Cooperative",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_01_Task_Create_Basic",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "STM32",
+      "name": "STM32_01_Task_Create_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_02_Task_Priority",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "STM32",
+      "name": "STM32_02_Task_Priority",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_03_Task_Delay_Periodic",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "STM32",
+      "name": "STM32_03_Task_Delay_Periodic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_04_Task_Suspend_Resume",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "STM32",
+      "name": "STM32_04_Task_Suspend_Resume",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_05_Task_Delete",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "STM32",
+      "name": "STM32_05_Task_Delete",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_06_Task_Stack_Monitor",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "STM32",
+      "name": "STM32_06_Task_Stack_Monitor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_07_Task_Priority_Inversion",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "STM32",
+      "name": "STM32_07_Task_Priority_Inversion",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_08_Task_Idle_Hook",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "STM32",
+      "name": "STM32_08_Task_Idle_Hook",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_09_Task_Watchdog",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "STM32",
+      "name": "STM32_09_Task_Watchdog",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_10_Task_Communication",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "STM32",
+      "name": "STM32_10_Task_Communication",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_11_Task_Scheduler_Info",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "STM32",
+      "name": "STM32_11_Task_Scheduler_Info",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_12_Task_Cooperative",
+      "module": "Modul-09-FreeRTOS-Task",
+      "platform": "STM32",
+      "name": "STM32_12_Task_Cooperative",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/ESP32/ESP32_01_Queue_Basic",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "ESP32",
+      "name": "ESP32_01_Queue_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/ESP32/ESP32_02_Queue_Struct",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "ESP32",
+      "name": "ESP32_02_Queue_Struct",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/ESP32/ESP32_03_Queue_Multiple",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "ESP32",
+      "name": "ESP32_03_Queue_Multiple",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/ESP32/ESP32_04_Queue_ISR",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "ESP32",
+      "name": "ESP32_04_Queue_ISR",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/ESP32/ESP32_05_Queue_Set",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "ESP32",
+      "name": "ESP32_05_Queue_Set",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/ESP32/ESP32_06_Binary_Semaphore",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "ESP32",
+      "name": "ESP32_06_Binary_Semaphore",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/ESP32/ESP32_07_Counting_Semaphore",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "ESP32",
+      "name": "ESP32_07_Counting_Semaphore",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/ESP32/ESP32_08_Mutex_Shared_Resource",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "ESP32",
+      "name": "ESP32_08_Mutex_Shared_Resource",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/ESP32/ESP32_09_Mutex_Priority_Inversion",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "ESP32",
+      "name": "ESP32_09_Mutex_Priority_Inversion",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/ESP32/ESP32_10_Recursive_Mutex",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "ESP32",
+      "name": "ESP32_10_Recursive_Mutex",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/ESP32/ESP32_11_Producer_Consumer",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "ESP32",
+      "name": "ESP32_11_Producer_Consumer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/ESP32/ESP32_12_Reader_Writer",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "ESP32",
+      "name": "ESP32_12_Reader_Writer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/STM32/STM32_01_Queue_Basic",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "STM32",
+      "name": "STM32_01_Queue_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/STM32/STM32_02_Queue_Struct",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "STM32",
+      "name": "STM32_02_Queue_Struct",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/STM32/STM32_03_Queue_Multiple",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "STM32",
+      "name": "STM32_03_Queue_Multiple",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/STM32/STM32_04_Queue_ISR",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "STM32",
+      "name": "STM32_04_Queue_ISR",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/STM32/STM32_05_Queue_Set",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "STM32",
+      "name": "STM32_05_Queue_Set",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/STM32/STM32_06_Binary_Semaphore",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "STM32",
+      "name": "STM32_06_Binary_Semaphore",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/STM32/STM32_07_Counting_Semaphore",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "STM32",
+      "name": "STM32_07_Counting_Semaphore",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/STM32/STM32_08_Mutex_Shared_Resource",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "STM32",
+      "name": "STM32_08_Mutex_Shared_Resource",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/STM32/STM32_09_Mutex_Priority_Inversion",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "STM32",
+      "name": "STM32_09_Mutex_Priority_Inversion",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/STM32/STM32_10_Recursive_Mutex",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "STM32",
+      "name": "STM32_10_Recursive_Mutex",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/STM32/STM32_11_Producer_Consumer",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "STM32",
+      "name": "STM32_11_Producer_Consumer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-10-FreeRTOS-Queue-Semaphore/praktikum/STM32/STM32_12_Reader_Writer",
+      "module": "Modul-10-FreeRTOS-Queue-Semaphore",
+      "platform": "STM32",
+      "name": "STM32_12_Reader_Writer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/ESP32/ESP32_01_Software_Timer_Basic",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "ESP32",
+      "name": "ESP32_01_Software_Timer_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/ESP32/ESP32_02_Timer_Period_Change",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "ESP32",
+      "name": "ESP32_02_Timer_Period_Change",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/ESP32/ESP32_03_Timer_ID_Multiple",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "ESP32",
+      "name": "ESP32_03_Timer_ID_Multiple",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/ESP32/ESP32_04_Timer_Debounce",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "ESP32",
+      "name": "ESP32_04_Timer_Debounce",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/ESP32/ESP32_05_Timer_Timeout_Monitor",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "ESP32",
+      "name": "ESP32_05_Timer_Timeout_Monitor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/ESP32/ESP32_06_Notification_Basic",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "ESP32",
+      "name": "ESP32_06_Notification_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/ESP32/ESP32_07_Notification_Value",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "ESP32",
+      "name": "ESP32_07_Notification_Value",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/ESP32/ESP32_08_Notification_Counting",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "ESP32",
+      "name": "ESP32_08_Notification_Counting",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/ESP32/ESP32_09_Notification_ISR",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "ESP32",
+      "name": "ESP32_09_Notification_ISR",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/ESP32/ESP32_10_Event_Group_Basic",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "ESP32",
+      "name": "ESP32_10_Event_Group_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/ESP32/ESP32_11_Event_Group_Sync",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "ESP32",
+      "name": "ESP32_11_Event_Group_Sync",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/ESP32/ESP32_12_Timer_vs_Notification_Benchmark",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "ESP32",
+      "name": "ESP32_12_Timer_vs_Notification_Benchmark",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/STM32/STM32_01_Software_Timer_Basic",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "STM32",
+      "name": "STM32_01_Software_Timer_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/STM32/STM32_02_Timer_Period_Change",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "STM32",
+      "name": "STM32_02_Timer_Period_Change",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/STM32/STM32_03_Timer_ID_Multiple",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "STM32",
+      "name": "STM32_03_Timer_ID_Multiple",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/STM32/STM32_04_Timer_Debounce",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "STM32",
+      "name": "STM32_04_Timer_Debounce",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/STM32/STM32_05_Timer_Timeout_Monitor",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "STM32",
+      "name": "STM32_05_Timer_Timeout_Monitor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/STM32/STM32_06_Notification_Basic",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "STM32",
+      "name": "STM32_06_Notification_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/STM32/STM32_07_Notification_Value",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "STM32",
+      "name": "STM32_07_Notification_Value",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/STM32/STM32_08_Notification_Counting",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "STM32",
+      "name": "STM32_08_Notification_Counting",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/STM32/STM32_09_Notification_ISR",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "STM32",
+      "name": "STM32_09_Notification_ISR",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/STM32/STM32_10_Event_Group_Basic",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "STM32",
+      "name": "STM32_10_Event_Group_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/STM32/STM32_11_Event_Group_Sync",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "STM32",
+      "name": "STM32_11_Event_Group_Sync",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-11-FreeRTOS-Timer-Notification/praktikum/STM32/STM32_12_Timer_vs_Notification_Benchmark",
+      "module": "Modul-11-FreeRTOS-Timer-Notification",
+      "platform": "STM32",
+      "name": "STM32_12_Timer_vs_Notification_Benchmark",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/ESP32/ESP32_01_Heap_Monitor",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "ESP32",
+      "name": "ESP32_01_Heap_Monitor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/ESP32/ESP32_02_Memory_Allocation",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "ESP32",
+      "name": "ESP32_02_Memory_Allocation",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/ESP32/ESP32_03_Stack_Overflow_Detect",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "ESP32",
+      "name": "ESP32_03_Stack_Overflow_Detect",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/ESP32/ESP32_04_Static_Allocation",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "ESP32",
+      "name": "ESP32_04_Static_Allocation",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/ESP32/ESP32_05_Memory_Pool",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "ESP32",
+      "name": "ESP32_05_Memory_Pool",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/ESP32/ESP32_06_Stream_Buffer",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "ESP32",
+      "name": "ESP32_06_Stream_Buffer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/ESP32/ESP32_07_Message_Buffer",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "ESP32",
+      "name": "ESP32_07_Message_Buffer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/ESP32/ESP32_08_Critical_Section",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "ESP32",
+      "name": "ESP32_08_Critical_Section",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/ESP32/ESP32_09_Heap_Fragmentation",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "ESP32",
+      "name": "ESP32_09_Heap_Fragmentation",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/ESP32/ESP32_10_PSRAM_External_RAM",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "ESP32",
+      "name": "ESP32_10_PSRAM_External_RAM",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/ESP32/ESP32_11_Memory_Leak_Detection",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "ESP32",
+      "name": "ESP32_11_Memory_Leak_Detection",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/ESP32/ESP32_12_System_Dashboard",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "ESP32",
+      "name": "ESP32_12_System_Dashboard",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/STM32/STM32_01_Heap_Monitor",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "STM32",
+      "name": "STM32_01_Heap_Monitor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/STM32/STM32_02_Memory_Allocation",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "STM32",
+      "name": "STM32_02_Memory_Allocation",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/STM32/STM32_03_Stack_Overflow_Detect",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "STM32",
+      "name": "STM32_03_Stack_Overflow_Detect",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/STM32/STM32_04_Static_Allocation",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "STM32",
+      "name": "STM32_04_Static_Allocation",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/STM32/STM32_05_Memory_Pool",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "STM32",
+      "name": "STM32_05_Memory_Pool",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/STM32/STM32_06_Stream_Buffer",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "STM32",
+      "name": "STM32_06_Stream_Buffer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/STM32/STM32_07_Message_Buffer",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "STM32",
+      "name": "STM32_07_Message_Buffer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/STM32/STM32_08_Critical_Section",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "STM32",
+      "name": "STM32_08_Critical_Section",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/STM32/STM32_09_Heap_Fragmentation",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "STM32",
+      "name": "STM32_09_Heap_Fragmentation",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/STM32/STM32_10_PSRAM_External_RAM",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "STM32",
+      "name": "STM32_10_PSRAM_External_RAM",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/STM32/STM32_11_Memory_Leak_Detection",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "STM32",
+      "name": "STM32_11_Memory_Leak_Detection",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-12-FreeRTOS-Memory-Advanced/praktikum/STM32/STM32_12_System_Dashboard",
+      "module": "Modul-12-FreeRTOS-Memory-Advanced",
+      "platform": "STM32",
+      "name": "STM32_12_System_Dashboard",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/ESP32/ESP32_01_WiFi_Scan",
+      "module": "Modul-13-Network",
+      "platform": "ESP32",
+      "name": "ESP32_01_WiFi_Scan",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/ESP32/ESP32_02_WiFi_Station",
+      "module": "Modul-13-Network",
+      "platform": "ESP32",
+      "name": "ESP32_02_WiFi_Station",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/ESP32/ESP32_03_WiFi_Access_Point",
+      "module": "Modul-13-Network",
+      "platform": "ESP32",
+      "name": "ESP32_03_WiFi_Access_Point",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/ESP32/ESP32_04_TCP_Client_Server",
+      "module": "Modul-13-Network",
+      "platform": "ESP32",
+      "name": "ESP32_04_TCP_Client_Server",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/ESP32/ESP32_05_UDP_Communication",
+      "module": "Modul-13-Network",
+      "platform": "ESP32",
+      "name": "ESP32_05_UDP_Communication",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/ESP32/ESP32_06_HTTP_Server",
+      "module": "Modul-13-Network",
+      "platform": "ESP32",
+      "name": "ESP32_06_HTTP_Server",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/ESP32/ESP32_07_HTTP_Client",
+      "module": "Modul-13-Network",
+      "platform": "ESP32",
+      "name": "ESP32_07_HTTP_Client",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/ESP32/ESP32_08_MQTT_Pub_Sub",
+      "module": "Modul-13-Network",
+      "platform": "ESP32",
+      "name": "ESP32_08_MQTT_Pub_Sub",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/ESP32/ESP32_09_BLE_Advertising",
+      "module": "Modul-13-Network",
+      "platform": "ESP32",
+      "name": "ESP32_09_BLE_Advertising",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/ESP32/ESP32_10_BLE_GATT_Server",
+      "module": "Modul-13-Network",
+      "platform": "ESP32",
+      "name": "ESP32_10_BLE_GATT_Server",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/ESP32/ESP32_11_WebSocket_Server",
+      "module": "Modul-13-Network",
+      "platform": "ESP32",
+      "name": "ESP32_11_WebSocket_Server",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/ESP32/ESP32_12_IoT_Dashboard",
+      "module": "Modul-13-Network",
+      "platform": "ESP32",
+      "name": "ESP32_12_IoT_Dashboard",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/STM32/STM32_01_UART_AT_Command",
+      "module": "Modul-13-Network",
+      "platform": "STM32",
+      "name": "STM32_01_UART_AT_Command",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/STM32/STM32_02_ESP01_WiFi_Connect",
+      "module": "Modul-13-Network",
+      "platform": "STM32",
+      "name": "STM32_02_ESP01_WiFi_Connect",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/STM32/STM32_03_ESP01_TCP_Client",
+      "module": "Modul-13-Network",
+      "platform": "STM32",
+      "name": "STM32_03_ESP01_TCP_Client",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/STM32/STM32_04_ESP01_HTTP_GET",
+      "module": "Modul-13-Network",
+      "platform": "STM32",
+      "name": "STM32_04_ESP01_HTTP_GET",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/STM32/STM32_05_W5500_Ethernet_Init",
+      "module": "Modul-13-Network",
+      "platform": "STM32",
+      "name": "STM32_05_W5500_Ethernet_Init",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/STM32/STM32_06_W5500_TCP_Server",
+      "module": "Modul-13-Network",
+      "platform": "STM32",
+      "name": "STM32_06_W5500_TCP_Server",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/STM32/STM32_07_W5500_UDP",
+      "module": "Modul-13-Network",
+      "platform": "STM32",
+      "name": "STM32_07_W5500_UDP",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/STM32/STM32_08_W5500_HTTP_Server",
+      "module": "Modul-13-Network",
+      "platform": "STM32",
+      "name": "STM32_08_W5500_HTTP_Server",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/STM32/STM32_09_UART_Bridge_ESP32",
+      "module": "Modul-13-Network",
+      "platform": "STM32",
+      "name": "STM32_09_UART_Bridge_ESP32",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/STM32/STM32_10_BLE_HM10",
+      "module": "Modul-13-Network",
+      "platform": "STM32",
+      "name": "STM32_10_BLE_HM10",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/STM32/STM32_11_ESP01_MQTT",
+      "module": "Modul-13-Network",
+      "platform": "STM32",
+      "name": "STM32_11_ESP01_MQTT",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-13-Network/praktikum/STM32/STM32_12_IoT_Sensor_Gateway",
+      "module": "Modul-13-Network",
+      "platform": "STM32",
+      "name": "STM32_12_IoT_Sensor_Gateway",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/ESP32/ESP32_01_Current_Measurement",
+      "module": "Modul-14-Power-Management",
+      "platform": "ESP32",
+      "name": "ESP32_01_Current_Measurement",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/ESP32/ESP32_02_Light_Sleep_Basic",
+      "module": "Modul-14-Power-Management",
+      "platform": "ESP32",
+      "name": "ESP32_02_Light_Sleep_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/ESP32/ESP32_03_Deep_Sleep_Timer",
+      "module": "Modul-14-Power-Management",
+      "platform": "ESP32",
+      "name": "ESP32_03_Deep_Sleep_Timer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/ESP32/ESP32_04_Deep_Sleep_GPIO",
+      "module": "Modul-14-Power-Management",
+      "platform": "ESP32",
+      "name": "ESP32_04_Deep_Sleep_GPIO",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/ESP32/ESP32_05_Deep_Sleep_RTC",
+      "module": "Modul-14-Power-Management",
+      "platform": "ESP32",
+      "name": "ESP32_05_Deep_Sleep_RTC",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/ESP32/ESP32_06_Sleep_Data_Retention",
+      "module": "Modul-14-Power-Management",
+      "platform": "ESP32",
+      "name": "ESP32_06_Sleep_Data_Retention",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/ESP32/ESP32_07_Touch_Wakeup",
+      "module": "Modul-14-Power-Management",
+      "platform": "ESP32",
+      "name": "ESP32_07_Touch_Wakeup",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/ESP32/ESP32_08_ULP_Coprocessor",
+      "module": "Modul-14-Power-Management",
+      "platform": "ESP32",
+      "name": "ESP32_08_ULP_Coprocessor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/ESP32/ESP32_09_Dynamic_Frequency",
+      "module": "Modul-14-Power-Management",
+      "platform": "ESP32",
+      "name": "ESP32_09_Dynamic_Frequency",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/ESP32/ESP32_10_Peripheral_Power_Gate",
+      "module": "Modul-14-Power-Management",
+      "platform": "ESP32",
+      "name": "ESP32_10_Peripheral_Power_Gate",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/ESP32/ESP32_11_Battery_Powered_Logger",
+      "module": "Modul-14-Power-Management",
+      "platform": "ESP32",
+      "name": "ESP32_11_Battery_Powered_Logger",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/ESP32/ESP32_12_Power_Budget_Analysis",
+      "module": "Modul-14-Power-Management",
+      "platform": "ESP32",
+      "name": "ESP32_12_Power_Budget_Analysis",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/STM32/STM32_01_Current_Measurement",
+      "module": "Modul-14-Power-Management",
+      "platform": "STM32",
+      "name": "STM32_01_Current_Measurement",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/STM32/STM32_02_Light_Sleep_Basic",
+      "module": "Modul-14-Power-Management",
+      "platform": "STM32",
+      "name": "STM32_02_Light_Sleep_Basic",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/STM32/STM32_03_Deep_Sleep_Timer",
+      "module": "Modul-14-Power-Management",
+      "platform": "STM32",
+      "name": "STM32_03_Deep_Sleep_Timer",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/STM32/STM32_04_Deep_Sleep_GPIO",
+      "module": "Modul-14-Power-Management",
+      "platform": "STM32",
+      "name": "STM32_04_Deep_Sleep_GPIO",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/STM32/STM32_05_Deep_Sleep_RTC",
+      "module": "Modul-14-Power-Management",
+      "platform": "STM32",
+      "name": "STM32_05_Deep_Sleep_RTC",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/STM32/STM32_06_Sleep_Data_Retention",
+      "module": "Modul-14-Power-Management",
+      "platform": "STM32",
+      "name": "STM32_06_Sleep_Data_Retention",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/STM32/STM32_07_Touch_Wakeup",
+      "module": "Modul-14-Power-Management",
+      "platform": "STM32",
+      "name": "STM32_07_Touch_Wakeup",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/STM32/STM32_08_ULP_Coprocessor",
+      "module": "Modul-14-Power-Management",
+      "platform": "STM32",
+      "name": "STM32_08_ULP_Coprocessor",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/STM32/STM32_09_Dynamic_Frequency",
+      "module": "Modul-14-Power-Management",
+      "platform": "STM32",
+      "name": "STM32_09_Dynamic_Frequency",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/STM32/STM32_10_Peripheral_Power_Gate",
+      "module": "Modul-14-Power-Management",
+      "platform": "STM32",
+      "name": "STM32_10_Peripheral_Power_Gate",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/STM32/STM32_11_Battery_Powered_Logger",
+      "module": "Modul-14-Power-Management",
+      "platform": "STM32",
+      "name": "STM32_11_Battery_Powered_Logger",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "Modul-14-Power-Management/praktikum/STM32/STM32_12_Power_Budget_Analysis",
+      "module": "Modul-14-Power-Management",
+      "platform": "STM32",
+      "name": "STM32_12_Power_Budget_Analysis",
+      "issues": [],
+      "warnings": []
+    },
+    {
+      "status": "passed",
+      "project": "f411ceu6",
+      "module": "work",
+      "platform": "Praktikum-Sistem-Embedded",
+      "name": "f411ceu6",
+      "issues": [],
+      "warnings": []
+    }
+  ],
+  "timestamp": "2026-02-10T05:36:02.143030"
+}

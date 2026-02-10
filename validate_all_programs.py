@@ -153,7 +153,7 @@ class ProgramValidator:
         status = 'passed'
         if len(issues) > 0:
             # Critical issues
-            critical = any('Missing' in issue or 'No' in issue and 'found' in issue for issue in issues)
+            critical = any('Missing' in issue or ('No' in issue and 'found' in issue) for issue in issues)
             if critical:
                 status = 'failed'
                 print(f"❌ FAILED: {len(issues)} critical issues")

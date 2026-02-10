@@ -9,8 +9,8 @@ echo "=============================================="
 SAMPLE_PROJECTS=(
     "Modul-01-GPIO-Digital-IO/praktikum/STM32/STM32_01_LED_Blink"
     "Modul-01-GPIO-Digital-IO/praktikum/ESP32/ESP32_01_LED_Blink"
-    "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_01_Task_Creation"
-    "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_01_Task_Creation"
+    "Modul-09-FreeRTOS-Task/praktikum/STM32/STM32_01_Task_Create_Basic"
+    "Modul-09-FreeRTOS-Task/praktikum/ESP32/ESP32_01_Task_Create_Basic"
 )
 
 PASSED=0

@@ -1,8 +1,21 @@
 """
-STM32 Schematic Generator — 12 Projects
-Libraries: matplotlib, Pillow (schemdraw for elements)
+GPIO Schematic Generator — 10 Praktikum (STM32F103 Blue Pill)
+Semua percobaan menyertakan LCD I2C 16x2 (SDA=PB7, SCL=PB6)
 
-Generates one PNG schematic per project in each project's folder.
+Judul Percobaan:
+  P01 — LED Parade        : Output Push-Pull & Pola Cahaya Digital
+  P02 — Shadow & Ghost    : Active-LOW, Open-Drain, dan Logika Terbalik
+  P03 — Sentinel Gate     : Tombol Pull-UP Eksternal (220Ω ke 3.3V)
+  P04 — Ground Guardian   : Tombol Pull-DOWN Eksternal (220Ω ke GND)
+  P05 — Phantom Touch     : Pull-UP Internal & Tombol Tanpa Resistor
+  P06 — Force Field       : Pull-DOWN Internal & Logika Active-HIGH
+  P07 — Clean Contact     : Debounce State Machine & Penghitung Akurat
+  P08 — Speed Racer       : Kecepatan GPIO & Pola LED Multi-Kecepatan
+  P09 — Twist & Count     : Rotary Encoder Kuadratur & Counter LCD
+  P10 — Matrix Commander  : Pemindaian Keypad 4×4 & Tampilan LCD
+
+Libraries: matplotlib
+Output: schematic.png per folder di BASE
 """
 
 import os
@@ -10,676 +23,939 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import matplotlib.lines as mlines
 
-BASE = r"D:\PROGRAM\PCB\STM32"
+BASE = r"D:\Praktikum-Sistem-Embedded\Modul-01-GPIO-Digital-IO\praktikum\STM32"
 
 # ─────────────────────────────────────────────────────────────────
-#  Low-level drawing primitives (shared)
+#  Warna & konstanta
 # ─────────────────────────────────────────────────────────────────
-RED   = '#CC0000'
-GREEN = '#006600'
-BLUE  = '#0000BB'
-BLACK = '#111111'
-GRAY  = '#888888'
-ORANGE= '#CC6600'
-LW    = 1.4
+RED    = '#CC0000'
+GREEN  = '#006600'
+BLUE   = '#0000BB'
+BLACK  = '#111111'
+GRAY   = '#888888'
+ORANGE = '#CC6600'
+PURPLE = '#660099'
+TEAL   = '#007777'
+LW     = 1.4
 
-def setup(w=14, h=9, title=''):
+# ─────────────────────────────────────────────────────────────────
+#  Primitif gambar bersama
+# ─────────────────────────────────────────────────────────────────
+def setup(w=16, h=10, title=''):
     fig, ax = plt.subplots(figsize=(w, h))
     ax.set_xlim(0, w); ax.set_ylim(0, h)
     ax.set_aspect('equal'); ax.axis('off')
     fig.patch.set_facecolor('white')
     if title:
-        ax.set_title(title, fontsize=11, fontweight='bold', color=BLUE, pad=6)
+        ax.set_title(title, fontsize=10, fontweight='bold', color=BLUE, pad=8)
     return fig, ax
 
 def wire(ax, x1, y1, x2, y2, color=GREEN, lw=LW):
-    ax.plot([x1,x2],[y1,y2], color=color, linewidth=lw, solid_capstyle='round')
+    ax.plot([x1, x2], [y1, y2], color=color, linewidth=lw, solid_capstyle='round')
 
 def dot(ax, x, y, color=GREEN, r=0.07):
-    ax.add_patch(plt.Circle((x,y), r, color=color, zorder=5))
+    ax.add_patch(plt.Circle((x, y), r, color=color, zorder=5))
 
-def gnd(ax, x, y, color=GREEN):
-    wire(ax, x, y, x, y-0.3, color)
-    for i,hw in enumerate([0.28,0.18,0.08]):
-        yy = y - 0.3 - i*0.13
-        wire(ax, x-hw, yy, x+hw, yy, color)
-    ax.text(x, y-0.3-3*0.13-0.08, 'GND', ha='center', va='top',
-            fontsize=7, color=color)
+def gnd(ax, x, y, color=BLACK):
+    wire(ax, x, y, x, y - 0.3, color)
+    for i, hw in enumerate([0.28, 0.18, 0.08]):
+        yy = y - 0.3 - i * 0.13
+        wire(ax, x - hw, yy, x + hw, yy, color)
+    ax.text(x, y - 0.3 - 3 * 0.13 - 0.10, 'GND', ha='center', va='top',
+            fontsize=6.5, color=color)
 
-def vcc(ax, x, y, label='VCC', color=RED):
-    wire(ax, x, y, x, y+0.3, color)
-    ax.plot([x-0.2, x+0.2],[y+0.3,y+0.3], color=color, linewidth=2)
-    ax.text(x, y+0.38, label, ha='center', va='bottom', fontsize=7, color=color)
+def vcc(ax, x, y, label='3V3', color=RED):
+    wire(ax, x, y, x, y + 0.3, color)
+    ax.plot([x - 0.22, x + 0.22], [y + 0.3, y + 0.3], color=color, linewidth=2)
+    ax.text(x, y + 0.40, label, ha='center', va='bottom', fontsize=7, color=color)
 
 def resistor(ax, x, y, horiz=True, label='220Ω', color=BLACK):
-    """Draw a small rectangle resistor."""
     if horiz:
         rw, rh = 0.55, 0.20
         ax.add_patch(mpatches.FancyBboxPatch(
-            (x-rw/2, y-rh/2), rw, rh, boxstyle="square,pad=0",
+            (x - rw / 2, y - rh / 2), rw, rh, boxstyle="square,pad=0",
             linewidth=1.2, edgecolor=color, facecolor='#FFFCE0'))
-        ax.text(x, y+rh/2+0.06, label, ha='center', va='bottom', fontsize=6.5, color=color)
+        ax.text(x, y + rh / 2 + 0.07, label, ha='center', va='bottom',
+                fontsize=6.5, color=color)
     else:
         rw, rh = 0.20, 0.55
         ax.add_patch(mpatches.FancyBboxPatch(
-            (x-rw/2, y-rh/2), rw, rh, boxstyle="square,pad=0",
+            (x - rw / 2, y - rh / 2), rw, rh, boxstyle="square,pad=0",
             linewidth=1.2, edgecolor=color, facecolor='#FFFCE0'))
-        ax.text(x+rw/2+0.08, y, label, ha='left', va='center', fontsize=6.5, color=color)
+        ax.text(x + rw / 2 + 0.09, y, label, ha='left', va='center',
+                fontsize=6.5, color=color)
 
-def led_sym(ax, x, y, label='LED', color='red', horiz=True):
-    """Simple LED triangle symbol."""
-    if horiz:
-        # anode left, cathode right
-        tri = mpatches.Polygon(
-            [(x,y+0.18),(x,y-0.18),(x+0.36,y)], closed=True,
-            facecolor=color, edgecolor=BLACK, linewidth=1, alpha=0.8)
-        ax.add_patch(tri)
-        wire(ax, x+0.36, y+0.18, x+0.36, y-0.18, BLACK)  # cathode bar
-        # light rays
-        for dy in [0.08, -0.08]:
-            ax.annotate('', xy=(x+0.55+0.15, y+dy+0.18),
-                        xytext=(x+0.45, y+dy+0.08),
-                        arrowprops=dict(arrowstyle='->', color=ORANGE, lw=0.8))
-        ax.text(x+0.18, y-0.28, label, ha='center', va='top', fontsize=6.5, color=color)
-    else:
-        tri = mpatches.Polygon(
-            [(x-0.18,y),(x+0.18,y),(x,y-0.36)], closed=True,
-            facecolor=color, edgecolor=BLACK, linewidth=1, alpha=0.8)
-        ax.add_patch(tri)
-        wire(ax, x-0.18, y-0.36, x+0.18, y-0.36, BLACK)
-        ax.text(x+0.28, y-0.18, label, ha='left', va='center', fontsize=6.5, color=color)
+def led_sym(ax, x, y, label='LED', color='red'):
+    """LED: anode kiri, cathode kanan (horizontal)."""
+    tri = mpatches.Polygon(
+        [(x, y + 0.18), (x, y - 0.18), (x + 0.36, y)], closed=True,
+        facecolor=color, edgecolor=BLACK, linewidth=1, alpha=0.85)
+    ax.add_patch(tri)
+    wire(ax, x + 0.36, y + 0.20, x + 0.36, y - 0.20, BLACK)
+    # sinar cahaya
+    for dy in [0.09, -0.04]:
+        ax.annotate('', xy=(x + 0.56, y + dy + 0.16),
+                    xytext=(x + 0.45, y + dy + 0.06),
+                    arrowprops=dict(arrowstyle='->', color=ORANGE, lw=0.8))
+    ax.text(x + 0.18, y - 0.30, label, ha='center', va='top',
+            fontsize=6.5, color=BLACK)
+    return x + 0.36   # ujung cathode
 
 def button_sym(ax, x, y, label='BTN'):
-    """SPST momentary push button."""
-    # left terminal
-    wire(ax, x-0.5, y, x-0.15, y)
-    # right terminal
-    wire(ax, x+0.15, y, x+0.5, y)
-    # contact dots
-    dot(ax, x-0.15, y)
-    dot(ax, x+0.15, y)
-    # movable contact (tilted line)
-    ax.plot([x-0.15, x+0.15],[y+0.28, y+0.28], color=GREEN, linewidth=LW)
-    wire(ax, x-0.15, y, x-0.15, y+0.28)
-    ax.text(x, y-0.15, label, ha='center', va='top', fontsize=7, color=RED)
+    """SPST push button momentary."""
+    wire(ax, x - 0.5, y, x - 0.15, y)
+    wire(ax, x + 0.15, y, x + 0.5, y)
+    dot(ax, x - 0.15, y, GREEN)
+    dot(ax, x + 0.15, y, GREEN)
+    ax.plot([x - 0.15, x + 0.15], [y + 0.28, y + 0.28], color=GREEN, linewidth=LW)
+    wire(ax, x - 0.15, y, x - 0.15, y + 0.28)
+    ax.text(x, y - 0.18, label, ha='center', va='top', fontsize=7, color=RED)
 
-def nc_button_sym(ax, x, y, label='E-STOP NC'):
-    """Normally Closed push button."""
-    wire(ax, x-0.5, y, x-0.15, y)
-    wire(ax, x+0.15, y, x+0.5, y)
-    dot(ax, x-0.15, y); dot(ax, x+0.15, y)
-    # NC = contact line drawn (closed)
-    wire(ax, x-0.15, y+0.25, x+0.15, y+0.25)
-    wire(ax, x-0.15, y, x-0.15, y+0.25)
-    # slash for NC
-    ax.plot([x-0.05, x+0.18],[y+0.18, y+0.36], color=RED, linewidth=1)
-    ax.text(x, y-0.15, label, ha='center', va='top', fontsize=7, color=RED)
-
-def buzzer_sym(ax, x, y, label='BUZZER'):
-    """Simple buzzer symbol."""
-    arc = mpatches.Arc((x,y), 0.5, 0.5, angle=0, theta1=0, theta2=180,
-                       color=ORANGE, linewidth=1.5)
-    ax.add_patch(arc)
-    wire(ax, x-0.25, y, x-0.25, y-0.3)
-    wire(ax, x+0.25, y, x+0.25, y-0.3)
-    wire(ax, x-0.25, y-0.3, x+0.25, y-0.3)
-    ax.text(x, y-0.42, label, ha='center', va='top', fontsize=7, color=ORANGE)
-
-def dip_switch(ax, x, y, n=4, labels=None):
-    """DIP switch package."""
-    bw = 1.2; bh = 0.5 * n + 0.2
-    ax.add_patch(mpatches.FancyBboxPatch(
-        (x, y-bh/2), bw, bh, boxstyle="square,pad=0",
-        linewidth=1.5, edgecolor=BLACK, facecolor='#ADD8E6'))
-    ax.text(x+bw/2, y+bh/2+0.1, 'DIP SW', ha='center', va='bottom',
-            fontsize=7, color=BLACK)
-    for i in range(n):
-        yy = y + (n/2 - 0.5 - i) * 0.5
-        lbl = labels[i] if labels else f'SW{i+1}'
-        ax.text(x+bw/2, yy, lbl, ha='center', va='center', fontsize=6.5, color=BLACK)
-        # left pin
-        wire(ax, x-0.5, yy, x, yy)
-        dot(ax, x-0.5, yy)
-        # right pin
-        wire(ax, x+bw, yy, x+bw+0.5, yy)
-        dot(ax, x+bw+0.5, yy)
-    return bw, bh
-
-def keypad_4x4(ax, x, y, bw=3.2, bh=3.2):
-    """4x4 membrane keypad block."""
-    ax.add_patch(mpatches.FancyBboxPatch(
-        (x, y), bw, bh, boxstyle="square,pad=0.05",
-        linewidth=2, edgecolor=BLACK, facecolor='#E0E0FF'))
-    keys = [['1','2','3','A'],['4','5','6','B'],
-            ['7','8','9','C'],['*','0','#','D']]
-    cw = bw/4; ch = bh/4
-    for r in range(4):
-        for c in range(4):
-            kx = x + c*cw + cw/2
-            ky = y + bh - r*ch - ch/2
-            ax.add_patch(mpatches.FancyBboxPatch(
-                (kx-cw*0.38, ky-ch*0.38), cw*0.76, ch*0.76,
-                boxstyle="round,pad=0.02",
-                linewidth=1, edgecolor=GRAY, facecolor='white'))
-            ax.text(kx, ky, keys[r][c], ha='center', va='center',
-                    fontsize=8, fontweight='bold', color=BLACK)
-    ax.text(x+bw/2, y+bh+0.15, '4×4 Matrix Keypad', ha='center', va='bottom',
-            fontsize=8, color=BLACK)
-
-def stm32_chip(ax, x, y, w=2.8, h=5.5, label='STM32F411CEU6',
-               left_pins=None, right_pins=None, stub=1.2, fs=7):
-    """
-    Draw an STM32 IC with arbitrary left/right pin lists.
-    left_pins / right_pins: list of (pin_label, net_label) tuples top→bottom.
-    Returns dict: net_label → (wire_end_x, y)
-    """
+def stm32_chip(ax, x, y, w=2.8, h=6.0, label='STM32F103C8T6',
+               left_pins=None, right_pins=None, stub=1.1, fs=7):
+    """IC box dengan pin list kiri/kanan. Kembalikan dict net→(x,y) ujung stub."""
     ax.add_patch(mpatches.FancyBboxPatch(
         (x, y), w, h, boxstyle="square,pad=0",
-        linewidth=2, edgecolor=RED, facecolor='white'))
-    ax.text(x+w/2, y-0.22, label, ha='center', va='top',
+        linewidth=2, edgecolor=RED, facecolor='#FFF8F8'))
+    ax.text(x + w / 2, y - 0.25, label, ha='center', va='top',
             fontsize=7.5, color=BLUE, style='italic', fontweight='bold')
-    ax.text(x+w/2, y+h+0.1, 'U1', ha='center', va='bottom', fontsize=8, color=BLUE)
+    ax.text(x + w / 2, y + h + 0.12, 'U1', ha='center', va='bottom',
+            fontsize=8, color=BLUE)
 
     coords = {}
 
     def draw_pins(pins, side):
         n = len(pins)
-        if n == 0: return
+        if not n:
+            return
         step = h / (n + 1)
         for i, (pname, net) in enumerate(pins):
-            py = y + h - (i+1)*step
+            py = y + h - (i + 1) * step
             if side == 'left':
                 ex = x - stub
                 wire(ax, ex, py, x, py)
-                ax.text(x-0.08, py, pname, ha='right', va='center',
+                ax.text(x - 0.10, py, pname, ha='right', va='center',
                         fontsize=fs, color=BLACK)
             else:
                 ex = x + w + stub
-                wire(ax, x+w, py, ex, py)
-                ax.text(x+w+0.08, py, pname, ha='left', va='center',
+                wire(ax, x + w, py, ex, py)
+                ax.text(x + w + 0.10, py, pname, ha='left', va='center',
                         fontsize=fs, color=BLACK)
             if net:
                 coords[net] = (ex, py)
 
-    if left_pins:  draw_pins(left_pins,  'left')
+    if left_pins:  draw_pins(left_pins, 'left')
     if right_pins: draw_pins(right_pins, 'right')
     return coords
+
+def lcd_i2c(ax, x, y, bw=2.8, bh=1.6, scl_net_y=None, sda_net_y=None,
+            scl_x_end=None, sda_x_end=None, label='LCD I2C 16×2'):
+    """Gambar blok LCD I2C dengan pin VCC/GND/SCL/SDA di sisi kiri."""
+    ax.add_patch(mpatches.FancyBboxPatch(
+        (x, y), bw, bh, boxstyle="round,pad=0.05",
+        linewidth=1.8, edgecolor=TEAL, facecolor='#E0F4FF'))
+    # layar LCD biru
+    ax.add_patch(mpatches.FancyBboxPatch(
+        (x + 0.15, y + 0.35), bw - 0.30, bh - 0.55, boxstyle="square,pad=0",
+        linewidth=1, edgecolor=BLUE, facecolor='#003366'))
+    ax.text(x + bw / 2, y + bh - 0.20, label, ha='center', va='center',
+            fontsize=7, fontweight='bold', color=TEAL)
+    ax.text(x + bw / 2, y + 0.62, 'Line 1: ████████████████', ha='center',
+            va='center', fontsize=5.5, color='#00FF88', family='monospace')
+    ax.text(x + bw / 2, y + 0.47, 'Line 2: ████████████████', ha='center',
+            va='center', fontsize=5.5, color='#00FF88', family='monospace')
+
+    # pin stubs kiri (VCC GND SCL SDA)
+    pins = [('VCC', RED), ('GND', BLACK), ('SCL', TEAL), ('SDA', PURPLE)]
+    pin_coords = {}
+    step = bh / (len(pins) + 1)
+    for i, (pname, col) in enumerate(pins):
+        py = y + bh - (i + 1) * step
+        ex = x - 0.9
+        wire(ax, ex, py, x, py, col)
+        ax.text(x - 0.95, py, pname, ha='right', va='center',
+                fontsize=6.5, color=col)
+        pin_coords[pname] = (ex, py)
+
+    ax.text(x + bw / 2, y - 0.22, 'I²C addr: 0x27 (PCF8574)',
+            ha='center', va='top', fontsize=6, color=GRAY)
+    return pin_coords
+
+def encoder_sym(ax, x, y, bw=1.8, bh=2.0):
+    """Blok rotary encoder 5-pin."""
+    ax.add_patch(mpatches.FancyBboxPatch(
+        (x, y), bw, bh, boxstyle="round,pad=0.08",
+        linewidth=1.8, edgecolor=ORANGE, facecolor='#FFF3E0'))
+    # shaft bulat
+    ax.add_patch(plt.Circle((x + bw / 2, y + bh / 2), 0.30,
+                             facecolor='#CCCCCC', edgecolor=BLACK, linewidth=1.5))
+    ax.add_patch(plt.Circle((x + bw / 2, y + bh / 2), 0.08,
+                             facecolor=BLACK, edgecolor=BLACK))
+    ax.text(x + bw / 2, y + bh + 0.12, 'ENCODER\n5-pin', ha='center',
+            va='bottom', fontsize=6.5, color=ORANGE, fontweight='bold')
+    pins = ['GND', '+', 'SW', 'DT', 'CLK']
+    for i, p in enumerate(pins):
+        px = x + bw * (i + 0.5) / 5
+        wire(ax, px, y, px, y - 0.4, ORANGE)
+        ax.text(px, y - 0.45, p, ha='center', va='top', fontsize=6, color=ORANGE)
+    return {
+        'GND': (x + bw * 0.5 / 5, y - 0.4),
+        '+':   (x + bw * 1.5 / 5, y - 0.4),
+        'SW':  (x + bw * 2.5 / 5, y - 0.4),
+        'DT':  (x + bw * 3.5 / 5, y - 0.4),
+        'CLK': (x + bw * 4.5 / 5, y - 0.4),
+    }
+
+def keypad_4x4_block(ax, x, y, bw=3.0, bh=3.0):
+    """Blok keypad 4×4 dengan label tombol."""
+    ax.add_patch(mpatches.FancyBboxPatch(
+        (x, y), bw, bh, boxstyle="square,pad=0.05",
+        linewidth=2, edgecolor=BLACK, facecolor='#E8E8FF'))
+    keys = [['1', '2', '3', 'A'], ['4', '5', '6', 'B'],
+            ['7', '8', '9', 'C'], ['*', '0', '#', 'D']]
+    cw = bw / 4; ch = bh / 4
+    for r in range(4):
+        for c in range(4):
+            kx = x + c * cw + cw / 2
+            ky = y + bh - r * ch - ch / 2
+            ax.add_patch(mpatches.FancyBboxPatch(
+                (kx - cw * 0.38, ky - ch * 0.38), cw * 0.76, ch * 0.76,
+                boxstyle="round,pad=0.02", linewidth=1,
+                edgecolor=GRAY, facecolor='white'))
+            ax.text(kx, ky, keys[r][c], ha='center', va='center',
+                    fontsize=8, fontweight='bold', color=BLACK)
+    ax.text(x + bw / 2, y + bh + 0.15, '4×4 Matrix Keypad (8-pin)',
+            ha='center', va='bottom', fontsize=7.5, color=BLACK, fontweight='bold')
+
+    # 8 pin stubs: 4 bawah (row), 4 atas (col) — sesuai skematik kabel
+    row_coords = {}
+    col_coords = {}
+    for i in range(4):
+        px = x + bw * (i + 0.5) / 4
+        wire(ax, px, y, px, y - 0.5, RED)
+        ax.text(px, y - 0.55, f'R{i+1}', ha='center', va='top', fontsize=6, color=RED)
+        row_coords[f'R{i+1}'] = (px, y - 0.5)
+
+        cpx = x + bw * (i + 0.5) / 4
+        wire(ax, cpx, y + bh, cpx, y + bh + 0.5, BLUE)
+        ax.text(cpx, y + bh + 0.52, f'C{i+1}', ha='center', va='bottom',
+                fontsize=6, color=BLUE)
+        col_coords[f'C{i+1}'] = (cpx, y + bh + 0.5)
+
+    return row_coords, col_coords
+
+def annotation(ax, x, y, text, w=5.5):
+    ax.text(x, y, text, fontsize=7.5, va='top', color='#333333',
+            bbox=dict(boxstyle='round,pad=0.4', facecolor='#FFFFF0',
+                      edgecolor=GRAY, alpha=0.9),
+            wrap=True)
 
 def save(fig, folder, fname):
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, fname)
-    fig.savefig(path, dpi=200, bbox_inches='tight', facecolor='white')
+    fig.savefig(path, dpi=180, bbox_inches='tight', facecolor='white')
     plt.close(fig)
     print(f"  ✓  {path}")
     return path
 
+# ─────────────────────────────────────────────────────────────────
+#  Helper: gambar LCD + koneksi I2C ke titik koordinat chip
+# ─────────────────────────────────────────────────────────────────
+def draw_lcd_connected(ax, lcd_x, lcd_y, scl_src, sda_src, vcc_src=None, gnd_src=None):
+    """
+    Gambar LCD I2C dan tarik kabel dari koordinat sumber (ujung stub chip).
+    scl_src, sda_src: (x,y) ujung stub pin chip.
+    """
+    lpins = lcd_i2c(ax, lcd_x, lcd_y)
+    lscl = lpins['SCL']
+    lsda = lpins['SDA']
+    lvcc = lpins['VCC']
+    lgnd = lpins['GND']
+
+    # SCL
+    ax.annotate('', xy=lscl, xytext=scl_src,
+                arrowprops=dict(arrowstyle='-', color=TEAL, lw=1.3,
+                                connectionstyle='arc3,rad=0'))
+    ax.plot([scl_src[0], scl_src[0]], [scl_src[1], lscl[1]], color=TEAL, lw=1.1, ls='--')
+    ax.plot([scl_src[0], lscl[0]], [lscl[1], lscl[1]], color=TEAL, lw=1.1, ls='--')
+
+    # SDA
+    ax.plot([sda_src[0], sda_src[0]], [sda_src[1], lsda[1]], color=PURPLE, lw=1.1, ls='--')
+    ax.plot([sda_src[0], lsda[0]], [lsda[1], lsda[1]], color=PURPLE, lw=1.1, ls='--')
+
+    # VCC dan GND LCD
+    vcc(ax, lvcc[0] - 0.4, lvcc[1], '3V3', RED)
+    gnd(ax, lgnd[0] - 0.4, lgnd[1], BLACK)
+
 
 # ═══════════════════════════════════════════════════════════════════
-#  Project 01 — LED Blink  (PC13)
+#  P01 — LED Parade: Output Push-Pull & Pola Cahaya Digital
 # ═══════════════════════════════════════════════════════════════════
 def proj01():
-    fig, ax = setup(10, 7, 'STM32_01 — LED Blink  (PC13, Active-Low)')
-    coords = stm32_chip(ax, 3, 1.5, h=4,
-        left_pins =[('3V3','VCC'),('GND','GND1')],
-        right_pins=[('PC13','PC13')])
+    fig, ax = setup(17, 11,
+        'P01 — LED Parade: GPIO Output Push-Pull & Pola Cahaya Digital')
 
-    # PC13 → resistor → LED → GND
-    x, y = coords['PC13']
-    wire(ax, x, y, x+0.8, y)
-    resistor(ax, x+1.1, y, horiz=True, label='220Ω')
-    wire(ax, x+1.38, y, x+1.9, y)
-    # LED anode
-    led_sym(ax, x+1.9, y, label='LED\nPC13', color='red')
-    wire(ax, x+2.28, y, x+2.7, y)
-    gnd(ax, x+2.7, y)
+    coords = stm32_chip(ax, 3.5, 2.0, h=7.0,
+        left_pins=[('3V3', 'VCC'), ('GND', 'GND'),
+                   ('PB6 (SCL)', 'SCL'), ('PB7 (SDA)', 'SDA')],
+        right_pins=[('PA0', 'PA0'), ('PA1', 'PA1'), ('PA2', 'PA2'), ('PA3', 'PA3'),
+                    ('PA4', 'PA4'), ('PA5', 'PA5'), ('PA6', 'PA6'), ('PA7', 'PA7'),
+                    ('PC13', 'PC13')])
 
-    # VCC / GND on left
-    xv, yv = coords['VCC']
-    vcc(ax, xv, yv, '3V3')
-    xg, yg = coords['GND1']
-    gnd(ax, xg, yg)
+    # 8 LED PA0-PA7
+    colors = ['red', '#FF5500', '#FF9900', 'yellow', 'green', 'cyan', 'blue', '#AA00FF']
+    labels = ['LED1', 'LED2', 'LED3', 'LED4', 'LED5', 'LED6', 'LED7', 'LED8']
+    for i in range(8):
+        x, y = coords[f'PA{i}']
+        wire(ax, x, y, x + 0.6, y)
+        resistor(ax, x + 0.9, y, horiz=True, label='220Ω')
+        wire(ax, x + 1.18, y, x + 1.65, y)
+        led_sym(ax, x + 1.65, y, label=labels[i], color=colors[i])
+        wire(ax, x + 2.05, y, x + 2.4, y)
+        gnd(ax, x + 2.4, y)
 
-    ax.text(1.0, 6.5,
-        'PC13 → 220Ω → LED → GND\nActive-Low: output LOW = LED ON',
-        fontsize=8, va='top', color=GRAY,
-        bbox=dict(boxstyle='round', facecolor='#FFFFF0', edgecolor=GRAY, alpha=0.8))
-    save(fig, os.path.join(BASE,'STM32_01_LED_Blink'), 'schematic.png')
+    # PC13 (Active-LOW builtin)
+    xp, yp = coords['PC13']
+    wire(ax, xp, yp, xp + 0.6, yp)
+    resistor(ax, xp + 0.9, yp, horiz=True, label='220Ω')
+    wire(ax, xp + 1.18, yp, xp + 1.65, yp)
+    led_sym(ax, xp + 1.65, yp, label='LED\nPC13\n(builtin)', color='red')
+    wire(ax, xp + 2.05, yp, xp + 2.4, yp)
+    gnd(ax, xp + 2.4, yp)
+
+    vcc(ax, *coords['VCC'])
+    gnd(ax, *coords['GND'])
+
+    # LCD I2C
+    draw_lcd_connected(ax, lcd_x=0.3, lcd_y=7.5,
+                       scl_src=coords['SCL'], sda_src=coords['SDA'])
+
+    annotation(ax, 0.3, 11.0 - 0.3,
+        'PA0–PA7 → 220Ω → LED+ → LED- → GND  (Active-HIGH)\n'
+        'PC13 → 220Ω → LED → GND  (Active-LOW, built-in Blue Pill)\n'
+        '4 pola: ALL ON, ALL OFF, Running Light, Binary Counter\n'
+        'LCD baris 1: nama pola | baris 2: delay saat ini')
+
+    save(fig, os.path.join(BASE, 'STM32_P01_LED_Output_High'), 'schematic.png')
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Project 02 — Multi LED Running (PA0–PA3)
+#  P02 — Shadow & Ghost: Active-LOW, Open-Drain & Logika Terbalik
 # ═══════════════════════════════════════════════════════════════════
 def proj02():
-    fig, ax = setup(13, 9, 'STM32_02 — Multi LED Running  (PA0–PA3)')
-    coords = stm32_chip(ax, 3, 2, h=5,
-        left_pins=[('3V3','VCC'),('GND','GNDC')],
-        right_pins=[('PA0','PA0'),('PA1','PA1'),
-                    ('PA2','PA2'),('PA3','PA3')])
+    fig, ax = setup(17, 10,
+        'P02 — Shadow & Ghost: Active-LOW, Open-Drain & Logika Terbalik')
 
-    colors = ['red','#FF9900','green','blue']
-    for i, pin in enumerate(['PA0','PA1','PA2','PA3']):
-        x, y = coords[pin]
-        wire(ax, x, y, x+0.7, y)
-        resistor(ax, x+1.0, y, horiz=True, label='220Ω')
-        wire(ax, x+1.28, y, x+1.8, y)
-        led_sym(ax, x+1.8, y, label=f'LED{i+1}', color=colors[i])
-        wire(ax, x+2.2, y, x+2.6, y)
-        gnd(ax, x+2.6, y)
+    coords = stm32_chip(ax, 4.0, 1.5, h=7.0,
+        left_pins=[('3V3', 'VCC'), ('GND', 'GND'),
+                   ('PB6 (SCL)', 'SCL'), ('PB7 (SDA)', 'SDA')],
+        right_pins=[('PA0 (PP)', 'PA0'), ('PA1 (OD)', 'PA1'),
+                    ('PA2 (PP)', 'PA2'), ('PA3 (OD)', 'PA3'),
+                    ('PC13 (AL)', 'PC13')])
 
-    vcc(ax, *coords['VCC'], '3V3')
-    gnd(ax, *coords['GNDC'])
+    # PA0 Push-Pull
+    x0, y0 = coords['PA0']
+    wire(ax, x0, y0, x0 + 0.6, y0)
+    resistor(ax, x0 + 0.9, y0, horiz=True, label='220Ω')
+    wire(ax, x0 + 1.18, y0, x0 + 1.65, y0)
+    led_sym(ax, x0 + 1.65, y0, label='LED-PP\n(terang)', color='green')
+    wire(ax, x0 + 2.05, y0, x0 + 2.4, y0)
+    gnd(ax, x0 + 2.4, y0)
+    ax.text(x0 + 0.9, y0 + 0.55, 'OUTPUT_PP', ha='center', fontsize=6.5, color=GREEN,
+            style='italic')
 
-    ax.text(0.3, 8.5,
-        'Running-light: LEDs lit one at a time in sequence\n'
-        'Each: PA_n → 220Ω → LED → GND',
-        fontsize=8, va='top', color=GRAY,
-        bbox=dict(boxstyle='round', facecolor='#FFFFF0', edgecolor=GRAY, alpha=0.8))
-    save(fig, os.path.join(BASE,'STM32_02_Multi_LED_Running'), 'schematic.png')
+    # PA1 Open-Drain + internal pull-up 40kΩ
+    x1, y1 = coords['PA1']
+    wire(ax, x1, y1, x1 + 0.5, y1)
+    # pull-up internal
+    resistor(ax, x1 + 0.5, y1 + 0.6, horiz=False, label='40kΩ\n(internal)')
+    wire(ax, x1 + 0.5, y1 + 0.88, x1 + 0.5, y1 + 1.15)
+    vcc(ax, x1 + 0.5, y1 + 1.15, '3V3 (internal)')
+    wire(ax, x1 + 0.5, y1 + 0.32, x1 + 0.5, y1)
+    wire(ax, x1 + 0.5, y1, x1 + 1.0, y1)
+    resistor(ax, x1 + 1.3, y1, horiz=True, label='220Ω')
+    wire(ax, x1 + 1.58, y1, x1 + 2.05, y1)
+    led_sym(ax, x1 + 2.05, y1, label='LED-OD\n(redup)', color='#FF6600')
+    wire(ax, x1 + 2.45, y1, x1 + 2.8, y1)
+    gnd(ax, x1 + 2.8, y1)
+    ax.text(x1 + 1.3, y1 + 0.55, 'OUTPUT_OD+PULLUP', ha='center',
+            fontsize=6.5, color=ORANGE, style='italic')
+
+    # PA2 Push-Pull demo ke-2
+    x2, y2 = coords['PA2']
+    wire(ax, x2, y2, x2 + 0.6, y2)
+    resistor(ax, x2 + 0.9, y2, horiz=True, label='220Ω')
+    wire(ax, x2 + 1.18, y2, x2 + 1.65, y2)
+    led_sym(ax, x2 + 1.65, y2, label='LED-PP2\n(blink)', color='cyan')
+    wire(ax, x2 + 2.05, y2, x2 + 2.4, y2)
+    gnd(ax, x2 + 2.4, y2)
+
+    # PA3 Open-Drain tanpa pull-up → Hi-Z saat HIGH
+    x3, y3 = coords['PA3']
+    wire(ax, x3, y3, x3 + 0.5, y3)
+    resistor(ax, x3 + 0.8, y3, horiz=True, label='220Ω')
+    wire(ax, x3 + 1.08, y3, x3 + 1.55, y3)
+    led_sym(ax, x3 + 1.55, y3, label='LED-OD2\n(mati saat Hi-Z)', color='#AA00FF')
+    wire(ax, x3 + 1.95, y3, x3 + 2.3, y3)
+    gnd(ax, x3 + 2.3, y3)
+    ax.text(x3 + 0.8, y3 + 0.55, 'OD tanpa pull-up → Hi-Z=LED MATI',
+            ha='center', fontsize=6, color=PURPLE, style='italic')
+
+    # PC13 Active-LOW
+    xc, yc = coords['PC13']
+    wire(ax, xc, yc, xc + 0.6, yc)
+    resistor(ax, xc + 0.9, yc, horiz=True, label='220Ω')
+    wire(ax, xc + 1.18, yc, xc + 1.65, yc)
+    led_sym(ax, xc + 1.65, yc, label='LED Active-LOW\n(ON saat output=0)', color='red')
+    wire(ax, xc + 2.05, yc, xc + 2.4, yc)
+    gnd(ax, xc + 2.4, yc)
+
+    vcc(ax, *coords['VCC'])
+    gnd(ax, *coords['GND'])
+
+    draw_lcd_connected(ax, lcd_x=0.3, lcd_y=7.0,
+                       scl_src=coords['SCL'], sda_src=coords['SDA'])
+
+    annotation(ax, 0.3, 9.7,
+        'PA0 OUTPUT_PP: maju & mundur → LED terang penuh\n'
+        'PA1 OUTPUT_OD+PULLUP: Hi-Z saat HIGH → arus kecil (~0.03mA) → LED redup\n'
+        'PA3 OUTPUT_OD tanpa pull-up: Hi-Z → LED MATI sepenuhnya\n'
+        'PC13 Active-LOW: output LOW → LED ON (logika terbalik!)\n'
+        'LCD: menampilkan mode aktif & logika HIGH/LOW tiap fase')
+
+    save(fig, os.path.join(BASE, 'STM32_P02_LED_Output_Low'), 'schematic.png')
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Project 03 — LED Binary Counter (PA0–PA3)
+#  P03 — Sentinel Gate: Tombol Pull-UP Eksternal 220Ω
 # ═══════════════════════════════════════════════════════════════════
 def proj03():
-    fig, ax = setup(13, 9, 'STM32_03 — LED Binary Counter  (PA0–PA3, 0–15)')
-    coords = stm32_chip(ax, 3, 2, h=5,
-        left_pins=[('3V3','VCC'),('GND','GNDC')],
-        right_pins=[('PA0 (bit0)','PA0'),('PA1 (bit1)','PA1'),
-                    ('PA2 (bit2)','PA2'),('PA3 (bit3)','PA3')])
+    fig, ax = setup(16, 10,
+        'P03 — Sentinel Gate: Tombol Pull-UP Eksternal (220Ω ke 3.3V)')
 
-    bits  = ['bit0\n(LSB)','bit1','bit2','bit3\n(MSB)']
-    colors= ['red','#FF9900','green','blue']
-    for i, pin in enumerate(['PA0','PA1','PA2','PA3']):
-        x, y = coords[pin]
-        wire(ax, x, y, x+0.7, y)
-        resistor(ax, x+1.0, y, horiz=True, label='220Ω')
-        wire(ax, x+1.28, y, x+1.8, y)
-        led_sym(ax, x+1.8, y, label=bits[i], color=colors[i])
-        wire(ax, x+2.2, y, x+2.6, y)
-        gnd(ax, x+2.6, y)
+    coords = stm32_chip(ax, 4.5, 1.8, h=6.5,
+        left_pins=[('PB0 (INPUT)', 'PB0'), ('3V3', 'VCC'), ('GND', 'GND'),
+                   ('PB6 (SCL)', 'SCL'), ('PB7 (SDA)', 'SDA')],
+        right_pins=[('PA0', 'PA0'), ('PA1', 'PA1'), ('PA2', 'PA2'), ('PA3', 'PA3')])
 
-    vcc(ax, *coords['VCC'], '3V3')
-    gnd(ax, *coords['GNDC'])
+    # Rangkaian tombol P03: 3.3V─[220Ω]─PB0─[BTN]─GND (Active-LOW)
+    xb, yb = coords['PB0']
+    # kabel ke node T
+    tx = xb - 0.8
+    wire(ax, xb, yb, tx, yb)
+    dot(ax, tx, yb)
+    # pull-up dari 3.3V via 220Ω ke node T
+    resistor(ax, tx, yb + 0.6, horiz=False, label='220Ω\n(pull-up)')
+    wire(ax, tx, yb + 0.88, tx, yb + 1.2)
+    vcc(ax, tx, yb + 1.2)
+    # tombol dari node T ke GND
+    wire(ax, tx, yb, tx - 0.6, yb)
+    button_sym(ax, tx - 0.9, yb, 'BTN1\n(Active-LOW)')
+    wire(ax, tx - 1.4, yb, tx - 1.4, yb - 0.5)
+    gnd(ax, tx - 1.4, yb - 0.5)
 
-    ax.text(0.3, 8.5,
-        'Binary counter 0–15: 4 LEDs show binary value\n'
-        'PA0=LSB(1) PA1(2) PA2(4) PA3=MSB(8)',
-        fontsize=8, va='top', color=GRAY,
-        bbox=dict(boxstyle='round', facecolor='#FFFFF0', edgecolor=GRAY, alpha=0.8))
-    save(fig, os.path.join(BASE,'STM32_03_LED_Binary_Counter'), 'schematic.png')
+    ax.text(tx, yb + 1.8,
+        '★ PB0 = INPUT NOPULL\n  (tanpa pull internal)',
+        ha='center', va='bottom', fontsize=7, color=BLUE,
+        bbox=dict(boxstyle='round', facecolor='#EEF', edgecolor=BLUE, alpha=0.7))
+
+    # 4 LED output
+    led_colors = ['red', '#FF9900', 'green', 'blue']
+    for i in range(4):
+        x, y = coords[f'PA{i}']
+        wire(ax, x, y, x + 0.6, y)
+        resistor(ax, x + 0.9, y, horiz=True, label='220Ω')
+        wire(ax, x + 1.18, y, x + 1.65, y)
+        led_sym(ax, x + 1.65, y, label=f'LED{i+1}', color=led_colors[i])
+        wire(ax, x + 2.05, y, x + 2.4, y)
+        gnd(ax, x + 2.4, y)
+
+    vcc(ax, *coords['VCC'])
+    gnd(ax, *coords['GND'])
+
+    draw_lcd_connected(ax, lcd_x=0.3, lcd_y=6.5,
+                       scl_src=coords['SCL'], sda_src=coords['SDA'])
+
+    annotation(ax, 0.3, 9.7,
+        'Wiring: 3.3V ─[220Ω]─ NODE ─ PB0     NODE ─[BTN]─ GND\n'
+        'Saat BTN LEPAS: PB0 = HIGH (ditarik ke 3.3V via 220Ω)\n'
+        'Saat BTN TEKAN: PB0 = LOW  (NodeGND via BTN)\n'
+        'Deteksi falling edge (1→0) → toggle LED → tampil di LCD\n'
+        'GPIO mode: INPUT + NOPULL (external resistor sepenuhnya menentukan level)')
+
+    save(fig, os.path.join(BASE, 'STM32_P03_Button_PullUp_Ext'), 'schematic.png')
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Project 04 — Button Debounce (PB0 + PC13 LED)
+#  P04 — Ground Guardian: Tombol Pull-DOWN Eksternal 220Ω
 # ═══════════════════════════════════════════════════════════════════
 def proj04():
-    fig, ax = setup(13, 8, 'STM32_04 — Button Debounce  (PB0 input, PC13 LED)')
-    coords = stm32_chip(ax, 4, 1.5, h=5,
-        left_pins=[('PB0','PB0'),('3V3','VCC'),('GND','GNDC')],
-        right_pins=[('PC13','PC13')])
+    fig, ax = setup(16, 10,
+        'P04 — Ground Guardian: Tombol Pull-DOWN Eksternal (220Ω ke GND)')
 
-    # Button circuit: PB0 active-low pull-up
-    xb, yb = coords['PB0']
-    wire(ax, xb-0.8, yb, xb, yb)
-    button_sym(ax, xb-1.1, yb, 'BTN1')
-    wire(ax, xb-1.6, yb, xb-1.6, yb-0.6)
-    gnd(ax, xb-1.6, yb-0.6)
-    # pull-up to 3V3
-    wire(ax, xb-1.1, yb, xb-1.1, yb+0.8)
-    resistor(ax, xb-1.1, yb+1.1, horiz=False, label='10kΩ')
-    wire(ax, xb-1.1, yb+1.4, xb-1.1, yb+1.7)
-    vcc(ax, xb-1.1, yb+1.7, '3V3')
+    coords = stm32_chip(ax, 4.5, 1.8, h=6.5,
+        left_pins=[('PB1 (INPUT)', 'PB1'), ('3V3', 'VCC'), ('GND', 'GND'),
+                   ('PB6 (SCL)', 'SCL'), ('PB7 (SDA)', 'SDA')],
+        right_pins=[('PA0', 'PA0'), ('PA1', 'PA1'), ('PA2', 'PA2'), ('PA3', 'PA3')])
 
-    # LED on PC13 (active-low)
-    x, y = coords['PC13']
-    wire(ax, x, y, x+0.8, y)
-    resistor(ax, x+1.1, y, horiz=True, label='220Ω')
-    wire(ax, x+1.38, y, x+1.9, y)
-    led_sym(ax, x+1.9, y, label='LED\nPC13', color='red')
-    wire(ax, x+2.28, y, x+2.7, y)
-    gnd(ax, x+2.7, y)
+    # Wiring P04: VCC─[BTN]─PB1─[220Ω]─GND (Active-HIGH)
+    xb, yb = coords['PB1']
+    tx = xb - 0.8
+    wire(ax, xb, yb, tx, yb)
+    dot(ax, tx, yb)
+    # pull-down 220Ω ke GND
+    resistor(ax, tx, yb - 0.65, horiz=False, label='220Ω\n(pull-dn)')
+    wire(ax, tx, yb - 0.93, tx, yb - 1.2)
+    gnd(ax, tx, yb - 1.2)
+    # tombol dari 3.3V ke node
+    wire(ax, tx, yb, tx - 0.5, yb)
+    button_sym(ax, tx - 0.85, yb, 'BTN2\n(Active-HIGH)')
+    wire(ax, tx - 1.35, yb, tx - 1.35, yb + 0.6)
+    vcc(ax, tx - 1.35, yb + 0.6)
 
-    vcc(ax, *coords['VCC'], '3V3')
-    gnd(ax, *coords['GNDC'])
+    ax.text(tx, yb - 1.9,
+        '★ PB1 = INPUT NOPULL\n  (tanpa pull internal)',
+        ha='center', va='top', fontsize=7, color=BLUE,
+        bbox=dict(boxstyle='round', facecolor='#EEF', edgecolor=BLUE, alpha=0.7))
 
-    ax.text(0.2, 7.6,
-        'Debounce state machine: IDLE → PRESS_DETECTED → CONFIRMED\n'
-        'PB0: Active-low with 10kΩ pull-up | PC13: Active-low LED',
-        fontsize=8, va='top', color=GRAY,
-        bbox=dict(boxstyle='round', facecolor='#FFFFF0', edgecolor=GRAY, alpha=0.8))
-    save(fig, os.path.join(BASE,'STM32_04_Button_Debounce'), 'schematic.png')
+    led_colors = ['red', '#FF9900', 'green', 'blue']
+    for i in range(4):
+        x, y = coords[f'PA{i}']
+        wire(ax, x, y, x + 0.6, y)
+        resistor(ax, x + 0.9, y, horiz=True, label='220Ω')
+        wire(ax, x + 1.18, y, x + 1.65, y)
+        led_sym(ax, x + 1.65, y, label=f'LED{i+1}', color=led_colors[i])
+        wire(ax, x + 2.05, y, x + 2.4, y)
+        gnd(ax, x + 2.4, y)
+
+    vcc(ax, *coords['VCC'])
+    gnd(ax, *coords['GND'])
+
+    draw_lcd_connected(ax, lcd_x=0.3, lcd_y=6.5,
+                       scl_src=coords['SCL'], sda_src=coords['SDA'])
+
+    annotation(ax, 0.3, 9.7,
+        'Wiring: 3.3V ─[BTN]─ NODE ─ PB1     NODE ─[220Ω]─ GND\n'
+        'Saat BTN LEPAS: PB1 = LOW  (ditarik ke GND via 220Ω)\n'
+        'Saat BTN TEKAN: PB1 = HIGH (3.3V masuk langsung)\n'
+        'Deteksi rising edge (0→1) → toggle LED → tampil di LCD\n'
+        'JANGAN hubungkan 5V ke PB1 — STM32 max 3.3V on GPIO (kecuali pin 5V-tolerant)')
+
+    save(fig, os.path.join(BASE, 'STM32_P04_Button_PullDown_Ext'), 'schematic.png')
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Project 05 — Long/Short Press (PB0 + PA0 + PA1)
+#  P05 — Phantom Touch: Pull-UP Internal & Tombol Tanpa Resistor
 # ═══════════════════════════════════════════════════════════════════
 def proj05():
-    fig, ax = setup(14, 8, 'STM32_05 — Long/Short Press  (PB0, PA0 short, PA1 long)')
-    coords = stm32_chip(ax, 4, 1.5, h=5.5,
-        left_pins=[('PB0','PB0'),('3V3','VCC'),('GND','GNDC')],
-        right_pins=[('PA0','PA0'),('PA1','PA1')])
+    fig, ax = setup(16, 10,
+        'P05 — Phantom Touch: Pull-UP Internal ~40kΩ (Tanpa Resistor Eksternal)')
 
-    # Button
-    xb, yb = coords['PB0']
-    wire(ax, xb-0.8, yb, xb, yb)
-    button_sym(ax, xb-1.1, yb, 'BTN')
-    wire(ax, xb-1.6, yb, xb-1.6, yb-0.6)
-    gnd(ax, xb-1.6, yb-0.6)
-    wire(ax, xb-1.1, yb, xb-1.1, yb+0.8)
-    resistor(ax, xb-1.1, yb+1.1, horiz=False, label='10kΩ')
-    wire(ax, xb-1.1, yb+1.4, xb-1.1, yb+1.7)
-    vcc(ax, xb-1.1, yb+1.7, '3V3')
+    coords = stm32_chip(ax, 4.2, 1.8, h=7.0,
+        left_pins=[('PB0 (PULLUP)', 'PB0'), ('PB1 (PULLUP)', 'PB1'),
+                   ('3V3', 'VCC'), ('GND', 'GND'),
+                   ('PB6 (SCL)', 'SCL'), ('PB7 (SDA)', 'SDA')],
+        right_pins=[('PA0', 'PA0'), ('PA1', 'PA1'), ('PA2', 'PA2'), ('PA3', 'PA3')])
 
-    leds = [('PA0','LED_SHORT','<1s','orange'),
-            ('PA1','LED_LONG', '>1s','blue')]
-    for pin, lname, note, col in leds:
-        x, y = coords[pin]
-        wire(ax, x, y, x+0.7, y)
-        resistor(ax, x+1.0, y, horiz=True, label='220Ω')
-        wire(ax, x+1.28, y, x+1.8, y)
-        led_sym(ax, x+1.8, y, label=f'{lname}\n{note}', color=col)
-        wire(ax, x+2.2, y, x+2.6, y)
-        gnd(ax, x+2.6, y)
+    # internal pull-up annotation pada chip
+    ax.text(4.2 + 2.8 / 2, 1.8 + 7.0 / 2, 'PULLUP\n~40kΩ\n(internal)', ha='center',
+            va='center', fontsize=7, color=TEAL, style='italic',
+            bbox=dict(boxstyle='round', facecolor='#E0FFE0', edgecolor=TEAL, alpha=0.6))
 
-    vcc(ax, *coords['VCC'], '3V3')
-    gnd(ax, *coords['GNDC'])
+    # BTN1 langsung ke GND (tanpa resistor)
+    xb0, yb0 = coords['PB0']
+    wire(ax, xb0, yb0, xb0 - 0.6, yb0)
+    button_sym(ax, xb0 - 0.9, yb0, 'BTN1')
+    wire(ax, xb0 - 1.4, yb0, xb0 - 1.4, yb0 - 0.5)
+    gnd(ax, xb0 - 1.4, yb0 - 0.5)
+    ax.text(xb0 - 0.9, yb0 + 0.6, 'Langsung ke GND\n(NO resistor!)',
+            ha='center', fontsize=6.5, color=RED,
+            bbox=dict(boxstyle='round', facecolor='#FFE0E0', edgecolor=RED, alpha=0.7))
 
-    ax.text(0.2, 7.6,
-        'Short press (<1 s): toggles LED_SHORT (PA0)\n'
-        'Long press  (>1 s): toggles LED_LONG  (PA1)',
-        fontsize=8, va='top', color=GRAY,
-        bbox=dict(boxstyle='round', facecolor='#FFFFF0', edgecolor=GRAY, alpha=0.8))
-    save(fig, os.path.join(BASE,'STM32_05_Long_Short_Press'), 'schematic.png')
+    # BTN2 langsung ke GND
+    xb1, yb1 = coords['PB1']
+    wire(ax, xb1, yb1, xb1 - 0.6, yb1)
+    button_sym(ax, xb1 - 0.9, yb1, 'BTN2')
+    wire(ax, xb1 - 1.4, yb1, xb1 - 1.4, yb1 - 0.5)
+    gnd(ax, xb1 - 1.4, yb1 - 0.5)
+
+    led_colors = ['red', '#FF9900', 'green', 'blue']
+    for i in range(4):
+        x, y = coords[f'PA{i}']
+        wire(ax, x, y, x + 0.6, y)
+        resistor(ax, x + 0.9, y, horiz=True, label='220Ω')
+        wire(ax, x + 1.18, y, x + 1.65, y)
+        led_sym(ax, x + 1.65, y, label=f'LED{i+1}', color=led_colors[i])
+        wire(ax, x + 2.05, y, x + 2.4, y)
+        gnd(ax, x + 2.4, y)
+
+    vcc(ax, *coords['VCC'])
+    gnd(ax, *coords['GND'])
+
+    draw_lcd_connected(ax, lcd_x=0.3, lcd_y=7.2,
+                       scl_src=coords['SCL'], sda_src=coords['SDA'])
+
+    annotation(ax, 0.3, 9.7,
+        'PB0 & PB1: GPIO_MODE_INPUT + GPIO_PULLUP (~40kΩ ke VCC secara internal)\n'
+        'Wiring BTN: satu kaki ke PB0, kaki lain langsung ke GND — TANPA resistor\n'
+        'Saat lepas → HIGH (ditarik internal); Saat tekan → LOW (GND masuk)\n'
+        'Hemat komponen vs P03, namun pull-up lebih lemah (40kΩ vs 220Ω)\n'
+        'LCD: tampilkan status BTN1/BTN2, jumlah press, toggle state LED')
+
+    save(fig, os.path.join(BASE, 'STM32_P05_Button_PullUp_Internal'), 'schematic.png')
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Project 06 — Toggle Latch (PB0 + PC13)
+#  P06 — Force Field: Pull-DOWN Internal & Logika Active-HIGH
 # ═══════════════════════════════════════════════════════════════════
 def proj06():
-    fig, ax = setup(13, 8, 'STM32_06 — Toggle Latch  (PB0 edge detect, PC13 LED)')
-    coords = stm32_chip(ax, 4, 1.5, h=5,
-        left_pins=[('PB0','PB0'),('3V3','VCC'),('GND','GNDC')],
-        right_pins=[('PC13','PC13')])
+    fig, ax = setup(16, 10,
+        'P06 — Force Field: Pull-DOWN Internal ~40kΩ (Active-HIGH)')
 
-    xb, yb = coords['PB0']
-    wire(ax, xb-0.8, yb, xb, yb)
-    button_sym(ax, xb-1.1, yb, 'BTN')
-    wire(ax, xb-1.6, yb, xb-1.6, yb-0.6)
-    gnd(ax, xb-1.6, yb-0.6)
-    wire(ax, xb-1.1, yb, xb-1.1, yb+0.8)
-    resistor(ax, xb-1.1, yb+1.1, horiz=False, label='10kΩ')
-    wire(ax, xb-1.1, yb+1.4, xb-1.1, yb+1.7)
-    vcc(ax, xb-1.1, yb+1.7, '3V3')
+    coords = stm32_chip(ax, 4.2, 1.8, h=7.0,
+        left_pins=[('PB1 (PULLDOWN)', 'PB1'), ('PB3 (PULLDOWN)', 'PB3'),
+                   ('3V3', 'VCC'), ('GND', 'GND'),
+                   ('PB6 (SCL)', 'SCL'), ('PB7 (SDA)', 'SDA')],
+        right_pins=[('PA0', 'PA0'), ('PA1', 'PA1'), ('PA2', 'PA2'), ('PA3', 'PA3')])
 
-    x, y = coords['PC13']
-    wire(ax, x, y, x+0.8, y)
-    resistor(ax, x+1.1, y, horiz=True, label='220Ω')
-    wire(ax, x+1.38, y, x+1.9, y)
-    led_sym(ax, x+1.9, y, label='LED\nPC13', color='red')
-    wire(ax, x+2.28, y, x+2.7, y)
-    gnd(ax, x+2.7, y)
+    ax.text(4.2 + 2.8 / 2, 1.8 + 7.0 / 2, 'PULLDOWN\n~40kΩ\n(internal)', ha='center',
+            va='center', fontsize=7, color=ORANGE, style='italic',
+            bbox=dict(boxstyle='round', facecolor='#FFF3E0', edgecolor=ORANGE, alpha=0.6))
 
-    vcc(ax, *coords['VCC'], '3V3')
-    gnd(ax, *coords['GNDC'])
+    for pin_name, btn_label in [('PB1', 'BTN1'), ('PB3', 'BTN3')]:
+        xb, yb = coords[pin_name]
+        wire(ax, xb, yb, xb - 0.6, yb)
+        button_sym(ax, xb - 0.9, yb, btn_label)
+        wire(ax, xb - 1.4, yb, xb - 1.4, yb + 0.6)
+        vcc(ax, xb - 1.4, yb + 0.6)
+        ax.text(xb - 0.9, yb - 0.55, '3.3V saat tekan\n(Active-HIGH)',
+                ha='center', fontsize=6.5, color=GREEN,
+                bbox=dict(boxstyle='round', facecolor='#E0FFE0', edgecolor=GREEN, alpha=0.7))
 
-    ax.text(0.2, 7.6,
-        'Edge detection: falling edge on PB0 toggles PC13 LED\n'
-        'prev_state != curr_state → toggle (software debounce 50ms)',
-        fontsize=8, va='top', color=GRAY,
-        bbox=dict(boxstyle='round', facecolor='#FFFFF0', edgecolor=GRAY, alpha=0.8))
-    save(fig, os.path.join(BASE,'STM32_06_Toggle_Latch'), 'schematic.png')
+    led_colors = ['red', '#FF9900', 'green', 'blue']
+    for i in range(4):
+        x, y = coords[f'PA{i}']
+        wire(ax, x, y, x + 0.6, y)
+        resistor(ax, x + 0.9, y, horiz=True, label='220Ω')
+        wire(ax, x + 1.18, y, x + 1.65, y)
+        led_sym(ax, x + 1.65, y, label=f'LED{i+1}', color=led_colors[i])
+        wire(ax, x + 2.05, y, x + 2.4, y)
+        gnd(ax, x + 2.4, y)
+
+    vcc(ax, *coords['VCC'])
+    gnd(ax, *coords['GND'])
+
+    draw_lcd_connected(ax, lcd_x=0.3, lcd_y=7.2,
+                       scl_src=coords['SCL'], sda_src=coords['SDA'])
+
+    annotation(ax, 0.3, 9.7,
+        'PB1 & PB3: GPIO_MODE_INPUT + GPIO_PULLDOWN (~40kΩ ke GND secara internal)\n'
+        'SKIP PB2 = BOOT1 pada Blue Pill (jangan gunakan!)\n'
+        'Wiring BTN: satu kaki ke PBx, kaki lain ke 3.3V — TANPA resistor\n'
+        'Saat lepas → LOW; Saat tekan → HIGH (3.3V) → rising edge → toggle LED\n'
+        'LCD: tampilkan status BTN, jumlah press, perbandingan dengan P05 (pull-up)')
+
+    save(fig, os.path.join(BASE, 'STM32_P06_Button_PullDown_Internal'), 'schematic.png')
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Project 07 — GPIO Drive Strength (PA0 + oscilloscope)
+#  P07 — Clean Contact: Debounce State Machine & Penghitung Akurat
 # ═══════════════════════════════════════════════════════════════════
 def proj07():
-    fig, ax = setup(13, 7, 'STM32_07 — GPIO Drive Strength  (PA0, slew-rate demo)')
-    coords = stm32_chip(ax, 4, 1.5, h=4,
-        left_pins=[('3V3','VCC'),('GND','GNDC')],
-        right_pins=[('PA0','PA0')])
+    fig, ax = setup(17, 11,
+        'P07 — Clean Contact: Debounce State Machine & Penghitung Akurat')
 
-    x, y = coords['PA0']
-    wire(ax, x, y, x+0.7, y)
-    dot(ax, x+0.7, y)
-    # to resistor + LED
-    wire(ax, x+0.7, y, x+0.7+0.3, y)
-    resistor(ax, x+1.3, y, horiz=True, label='220Ω')
-    wire(ax, x+1.58, y, x+2.1, y)
-    led_sym(ax, x+2.1, y, label='LED\nPA0', color='red')
-    wire(ax, x+2.5, y, x+2.9, y)
-    gnd(ax, x+2.9, y)
+    coords = stm32_chip(ax, 4.5, 1.5, h=8.0,
+        left_pins=[('PB0 (PULLUP)', 'PB0'), ('PB1 (PULLUP)', 'PB1'),
+                   ('PB3 (PULLUP)', 'PB3'), ('PB4 (PULLUP)', 'PB4'),
+                   ('3V3', 'VCC'), ('GND', 'GND'),
+                   ('PB6 (SCL)', 'SCL'), ('PB7 (SDA)', 'SDA')],
+        right_pins=[('PA0', 'PA0'), ('PA1', 'PA1'),
+                    ('PA2', 'PA2'), ('PA3', 'PA3')])
 
-    # Oscilloscope probe branch
-    wire(ax, x+0.7, y, x+0.7, y+1.0)
-    ax.add_patch(mpatches.FancyBboxPatch(
-        (x+0.3, y+1.0), 1.0, 0.55, boxstyle="square,pad=0.05",
-        linewidth=1.5, edgecolor=ORANGE, facecolor='#FFF3E0'))
-    ax.text(x+0.8, y+1.28, '⚡ Probe\n(Oscilloscope)', ha='center', va='center',
-            fontsize=7, color=ORANGE)
-    wire(ax, x+0.8, y+1.0, x+0.8, y+0.7)
-    wire(ax, x+0.7, y+0.7, x+0.9, y+0.7)
+    btn_labels = ['BTN1', 'BTN2', 'BTN3', 'BTN4']
+    btn_pins   = ['PB0', 'PB1', 'PB3', 'PB4']
+    for j, (pname, blabel) in enumerate(zip(btn_pins, btn_labels)):
+        xb, yb = coords[pname]
+        wire(ax, xb, yb, xb - 0.6, yb)
+        button_sym(ax, xb - 0.9, yb, blabel)
+        wire(ax, xb - 1.4, yb, xb - 1.4, yb - 0.5)
+        gnd(ax, xb - 1.4, yb - 0.5)
 
-    vcc(ax, *coords['VCC'], '3V3')
-    gnd(ax, *coords['GNDC'])
+    led_colors = ['red', '#FF9900', 'green', 'blue']
+    for i in range(4):
+        x, y = coords[f'PA{i}']
+        wire(ax, x, y, x + 0.6, y)
+        resistor(ax, x + 0.9, y, horiz=True, label='220Ω')
+        wire(ax, x + 1.18, y, x + 1.65, y)
+        led_sym(ax, x + 1.65, y, label=f'LED{i+1}', color=led_colors[i])
+        wire(ax, x + 2.05, y, x + 2.4, y)
+        gnd(ax, x + 2.4, y)
 
-    ax.text(0.2, 6.6,
-        'Drive strength changes: LOW(2MHz) → MEDIUM(25MHz) → HIGH(50MHz) → VHIGH(100MHz)\n'
-        'Observe slew-rate on oscilloscope at PA0. LED toggles at each level.',
-        fontsize=8, va='top', color=GRAY,
-        bbox=dict(boxstyle='round', facecolor='#FFFFF0', edgecolor=GRAY, alpha=0.8))
-    save(fig, os.path.join(BASE,'STM32_07_GPIO_Drive_Strength'), 'schematic.png')
+    # State machine diagram
+    sm_x, sm_y = 0.3, 4.5
+    states = [('RELEASED', 0.5), ('DEBOUNCING', 2.5), ('PRESSED', 4.5)]
+    for sname, sx in states:
+        ax.add_patch(mpatches.FancyBboxPatch(
+            (sm_x + sx, sm_y), 1.6, 0.55, boxstyle="round,pad=0.06",
+            linewidth=1.2, edgecolor=BLUE, facecolor='#EEF'))
+        ax.text(sm_x + sx + 0.8, sm_y + 0.275, sname, ha='center', va='center',
+                fontsize=6.5, color=BLUE, fontweight='bold')
+    for sx_from, sx_to in [(0.5 + 1.6, 2.5), (2.5 + 1.6, 4.5)]:
+        ax.annotate('', xy=(sm_x + sx_to, sm_y + 0.275),
+                    xytext=(sm_x + sx_from, sm_y + 0.275),
+                    arrowprops=dict(arrowstyle='->', color=ORANGE, lw=1.2))
+    ax.text(sm_x + 3.0, sm_y + 0.7, '50ms ok', ha='center', fontsize=6, color=ORANGE)
+    ax.text(sm_x + 1.6, sm_y + 0.7, 'tekan terdeteksi', ha='center', fontsize=6, color=ORANGE)
+    ax.text(sm_x + 2.0, sm_y - 0.2, 'State Machine Debounce (DEBOUNCE_MS=50)',
+            fontsize=7, color=BLUE)
+
+    vcc(ax, *coords['VCC'])
+    gnd(ax, *coords['GND'])
+
+    draw_lcd_connected(ax, lcd_x=0.3, lcd_y=8.0,
+                       scl_src=coords['SCL'], sda_src=coords['SDA'])
+
+    annotation(ax, 0.3, 10.7,
+        '4 tombol (PB0,PB1,PB3,PB4) masing-masing independen state machine\n'
+        'RELEASED → tekan terdeteksi → DEBOUNCING (50ms) → PRESSED\n'
+        'HAL_GetTick() digunakan untuk timing — bukan delay blocking\n'
+        'Setiap BTN toggle LEDnya masing-masing + increment counter\n'
+        'LCD baris 1: C1:xx C2:xx  |  baris 2: C3:xx C4:xx  (press count)')
+
+    save(fig, os.path.join(BASE, 'STM32_P07_Button_Debounce'), 'schematic.png')
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Project 08 — DIP Switch Reader (PB0, PB1, PB3, PB4)
+#  P08 — Speed Racer: Kecepatan GPIO & Pola LED Multi-Kecepatan
 # ═══════════════════════════════════════════════════════════════════
 def proj08():
-    fig, ax = setup(14, 9, 'STM32_08 — DIP Switch Reader  (PB0,PB1,PB3,PB4 input pull-up)')
-    coords = stm32_chip(ax, 5, 2, h=5,
-        left_pins=[('PB0 (bit0)','PB0'),('PB1 (bit1)','PB1'),
-                   ('PB3 (bit2)','PB3'),('PB4 (bit3)','PB4'),
-                   ('3V3','VCC'),('GND','GNDC')],
-        right_pins=[])
+    fig, ax = setup(17, 11,
+        'P08 — Speed Racer: Kecepatan GPIO Slew Rate & Pola LED Multi-Speed')
 
-    dip_w, dip_h = dip_switch(ax, 1.5, 5, n=4,
-                               labels=['DIP1\nPB0','DIP2\nPB1','DIP3\nPB3','DIP4\nPB4'])
-    dip_pins_y = [5 + (4/2-0.5-i)*0.5 for i in range(4)]
-    stm_pins   = ['PB0','PB1','PB3','PB4']
+    coords = stm32_chip(ax, 4.0, 1.5, h=8.5,
+        left_pins=[('PB0 (PULLUP)', 'PB0'), ('PB1 (PULLUP)', 'PB1'),
+                   ('PB3 (PULLUP)', 'PB3'), ('PB4 (PULLUP)', 'PB4'),
+                   ('3V3', 'VCC'), ('GND', 'GND'),
+                   ('PB6 (SCL)', 'SCL'), ('PB7 (SDA)', 'SDA')],
+        right_pins=[('PA0', 'PA0'), ('PA1', 'PA1'), ('PA2', 'PA2'), ('PA3', 'PA3'),
+                    ('PA4', 'PA4'), ('PA5', 'PA5'), ('PA6', 'PA6'), ('PA7', 'PA7')])
 
-    for i, pin in enumerate(stm_pins):
-        xs, ys = coords[pin]
-        xd_r   = 1.5 + dip_w + 0.5   # right side of DIP switch
-        yd     = dip_pins_y[i]
-        # wire from STM32 left stub to DIP right output
-        wire(ax, xs, ys, xd_r, ys)
-        if abs(ys - yd) > 0.05:
-            dot(ax, xd_r, ys)
-            wire(ax, xd_r, ys, xd_r, yd)
-        # DIP left output to GND
-        xd_l = 1.5 - 0.5
-        wire(ax, xd_l, yd, xd_l-0.3, yd)
-        gnd(ax, xd_l-0.3, yd)
+    btn_labels = ['BTN1\n(SLOW 2MHz)', 'BTN2\n(MED 10MHz)',
+                  'BTN3\n(FAST 50MHz)', 'BTN4\n(BinCount)']
+    for j, (pname, blabel) in enumerate(zip(['PB0','PB1','PB3','PB4'], btn_labels)):
+        xb, yb = coords[pname]
+        wire(ax, xb, yb, xb - 0.6, yb)
+        button_sym(ax, xb - 0.9, yb, blabel)
+        wire(ax, xb - 1.4, yb, xb - 1.4, yb - 0.5)
+        gnd(ax, xb - 1.4, yb - 0.5)
 
-    vcc(ax, *coords['VCC'], '3V3')
-    gnd(ax, *coords['GNDC'])
+    colors_8 = ['red','#FF5500','#FF9900','yellow','green','cyan','blue','#AA00FF']
+    for i in range(8):
+        x, y = coords[f'PA{i}']
+        wire(ax, x, y, x + 0.55, y)
+        resistor(ax, x + 0.85, y, horiz=True, label='220Ω')
+        wire(ax, x + 1.13, y, x + 1.58, y)
+        led_sym(ax, x + 1.58, y, label=f'L{i}', color=colors_8[i])
+        wire(ax, x + 1.98, y, x + 2.3, y)
+        gnd(ax, x + 2.3, y)
 
-    ax.text(0.2, 8.6,
-        'SW ON = pin connected to GND (reads LOW) = logic 1\n'
-        'SW OFF = internal pull-up HIGH = logic 0 | PB2 skipped (BOOT1)',
-        fontsize=8, va='top', color=GRAY,
-        bbox=dict(boxstyle='round', facecolor='#FFFFF0', edgecolor=GRAY, alpha=0.8))
-    save(fig, os.path.join(BASE,'STM32_08_DIP_Switch_Reader'), 'schematic.png')
+    # speed table
+    tbl_x, tbl_y = 0.3, 4.5
+    hdrs = ['GPIO Speed', 'Slew Rate', 'Pola', 'Tombol']
+    rows = [['FREQ_LOW', '2 MHz', 'Running Light', 'BTN1'],
+            ['FREQ_MEDIUM', '10 MHz', 'Knight Rider', 'BTN2'],
+            ['FREQ_HIGH', '50 MHz', 'Alternating', 'BTN3'],
+            ['FREQ_MEDIUM', '10 MHz', 'Binary Counter', 'BTN4']]
+    col_w = [1.4, 1.1, 1.5, 1.0]
+    for ci, h in enumerate(hdrs):
+        ax.text(tbl_x + sum(col_w[:ci]) + col_w[ci]/2, tbl_y + 0.7, h,
+                ha='center', va='center', fontsize=6.5, fontweight='bold', color=BLUE)
+    for ri, row in enumerate(rows):
+        for ci, cell in enumerate(row):
+            ax.text(tbl_x + sum(col_w[:ci]) + col_w[ci]/2, tbl_y + 0.3 - ri*0.3, cell,
+                    ha='center', va='center', fontsize=6)
+    ax.add_patch(mpatches.FancyBboxPatch(
+        (tbl_x, tbl_y - rows.__len__()*0.3 + 0.1), sum(col_w), 0.85,
+        boxstyle="square,pad=0", linewidth=1, edgecolor=GRAY, facecolor='#FAFAF0'))
+
+    vcc(ax, *coords['VCC'])
+    gnd(ax, *coords['GND'])
+
+    draw_lcd_connected(ax, lcd_x=0.3, lcd_y=8.8,
+                       scl_src=coords['SCL'], sda_src=coords['SDA'])
+
+    annotation(ax, 0.3, 10.8,
+        'BTN1 → SLOW (2MHz slew): Running Light [PA0→PA7 bergiliran]\n'
+        'BTN2 → MED  (10MHz):    Knight Rider  [ping-pong PA0↔PA7]\n'
+        'BTN3 → FAST (50MHz):    Alternating   [PA0,2,4,6 vs PA1,3,5,7]\n'
+        'BTN4 → MED  (10MHz):    Binary Counter [ODR++]\n'
+        'GPIO Speed adalah SLEW RATE, BUKAN frekuensi toggle — ubah via HAL_GPIO_Init runtime\n'
+        'LCD: tampilkan speed aktif, nama pola, nilai ODR saat Binary Counter')
+
+    save(fig, os.path.join(BASE, 'STM32_P08_LED_Patterns'), 'schematic.png')
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Project 09 — GPIO Port Register (PA0–PA3, 4 LEDs)
+#  P09 — Twist & Count: Rotary Encoder Kuadratur & Counter LCD
 # ═══════════════════════════════════════════════════════════════════
 def proj09():
-    fig, ax = setup(13, 9, 'STM32_09 — GPIO Port Register  (Direct BSRR/ODR, PA0–PA3)')
-    coords = stm32_chip(ax, 3, 2, h=5,
-        left_pins=[('3V3','VCC'),('GND','GNDC')],
-        right_pins=[('PA0 (LED0)','PA0'),('PA1 (LED1)','PA1'),
-                    ('PA2 (LED2)','PA2'),('PA3 (LED3)','PA3')])
+    fig, ax = setup(17, 11,
+        'P09 — Twist & Count: Rotary Encoder Kuadratur & Counter LCD')
 
-    colors = ['red','#FF9900','green','blue']
-    names  = ['LED0','LED1','LED2','LED3']
-    for i, pin in enumerate(['PA0','PA1','PA2','PA3']):
-        x, y = coords[pin]
-        wire(ax, x, y, x+0.7, y)
-        resistor(ax, x+1.0, y, horiz=True, label='220Ω')
-        wire(ax, x+1.28, y, x+1.8, y)
-        led_sym(ax, x+1.8, y, label=names[i], color=colors[i])
-        wire(ax, x+2.2, y, x+2.6, y)
-        gnd(ax, x+2.6, y)
+    coords = stm32_chip(ax, 4.5, 1.5, h=8.5,
+        left_pins=[('3V3', 'VCC'), ('GND', 'GND'),
+                   ('PB6 (SCL)', 'SCL'), ('PB7 (SDA)', 'SDA')],
+        right_pins=[('PB12 (CLK)', 'CLK'), ('PB13 (DT)', 'DT'), ('PB14 (SW)', 'SW'),
+                    ('PA0', 'PA0'), ('PA1', 'PA1'), ('PA2', 'PA2'), ('PA3', 'PA3'),
+                    ('PA4', 'PA4'), ('PA5', 'PA5'), ('PA6', 'PA6'), ('PA7', 'PA7')])
 
-    vcc(ax, *coords['VCC'], '3V3')
-    gnd(ax, *coords['GNDC'])
+    # Encoder 5-pin
+    enc_coords = encoder_sym(ax, 8.2, 6.5, bw=2.2, bh=2.2)
 
-    ax.text(0.2, 8.6,
-        'Direct register: BSRR[15:0]=Set, BSRR[31:16]=Reset, ODR, IDR\n'
-        'Benchmark: BSRR > HAL_WritePin > TogglePin > ODR (RMW)',
-        fontsize=8, va='top', color=GRAY,
-        bbox=dict(boxstyle='round', facecolor='#FFFFF0', edgecolor=GRAY, alpha=0.8))
-    save(fig, os.path.join(BASE,'STM32_09_GPIO_Port_Register'), 'schematic.png')
+    # Koneksi CLK, DT, SW dari chip ke encoder
+    for sig, pin, col in [('CLK', 'CLK', ORANGE), ('DT', 'DT', GREEN), ('SW', 'SW', RED)]:
+        xc, yc = coords[pin]
+        ex, ey = enc_coords[sig]
+        # horizontal ke kanan lalu vertikal ke encoder
+        mid_x = (xc + ex) / 2 + 0.3
+        wire(ax, xc, yc, mid_x, yc, col)
+        wire(ax, mid_x, yc, mid_x, ey, col)
+        wire(ax, mid_x, ey, ex, ey, col)
+        ax.text(xc + 0.3, yc + 0.12, sig, fontsize=6.5, color=col)
+
+    # GND dan VCC encoder
+    eg, yg = enc_coords['GND']
+    ev, yvp = enc_coords['+']
+    gnd(ax, eg, yg)
+    vcc(ax, ev, yvp, '3V3')
+
+    # timing diagram sederhana
+    td_x, td_y = 0.3, 5.5
+    ax.text(td_x, td_y + 0.9, 'Timing Kuadratur:', fontsize=7, color=BLUE, fontweight='bold')
+    for i, (sig, off, col) in enumerate([('CLK', 0, ORANGE), ('DT', 0.5, GREEN)]):
+        ty = td_y + 0.6 - i * 0.45
+        ax.text(td_x, ty, sig, fontsize=6.5, color=col, va='center')
+        # dummy waveform CW
+        xs = [td_x+0.4, td_x+0.4, td_x+0.8, td_x+0.8, td_x+1.2, td_x+1.2, td_x+1.6,
+              td_x+1.6+off*0.1]
+        ys_hi = [ty-0.1, ty+0.08, ty+0.08, ty-0.1, ty-0.1, ty+0.08, ty+0.08, ty-0.1]
+        if i == 1:
+            # DT versetzt
+            xs = [td_x+0.4, td_x+0.6, td_x+0.6, td_x+1.0, td_x+1.0,
+                  td_x+1.4, td_x+1.4, td_x+1.8]
+            ys_hi = [ty+0.08,ty+0.08,ty-0.1,ty-0.1,ty+0.08,ty+0.08,ty-0.1,ty-0.1]
+        ax.plot(xs, ys_hi, color=col, lw=1.2)
+    ax.text(td_x + 0.9, td_y - 0.05, 'CW: CLK↓ & DT=HIGH → +1\nCCW: CLK↓ & DT=LOW → -1',
+            fontsize=6.5, color=GRAY)
+
+    # 8 LED
+    colors_8 = ['red','#FF5500','#FF9900','yellow','green','cyan','blue','#AA00FF']
+    for i in range(8):
+        x, y = coords[f'PA{i}']
+        wire(ax, x, y, x + 0.55, y)
+        resistor(ax, x + 0.85, y, horiz=True, label='220Ω')
+        wire(ax, x + 1.13, y, x + 1.58, y)
+        led_sym(ax, x + 1.58, y, label=f'b{i}', color=colors_8[i])
+        wire(ax, x + 1.98, y, x + 2.28, y)
+        gnd(ax, x + 2.28, y)
+
+    vcc(ax, *coords['VCC'])
+    gnd(ax, *coords['GND'])
+
+    draw_lcd_connected(ax, lcd_x=0.3, lcd_y=8.5,
+                       scl_src=coords['SCL'], sda_src=coords['SDA'])
+
+    annotation(ax, 0.3, 10.8,
+        'Encoder: CLK=PB12, DT=PB13, SW=PB14 — semua INPUT PULLUP\n'
+        'Algoritma: CLK falling edge → baca DT: HIGH→CW(+1), LOW→CCW(-1)\n'
+        'Putar CW: count naik 0–255 | Putar CCW: count turun | Tekan SW: reset ke 128\n'
+        'LED PA0-PA7: tampilkan count dalam biner (8-bit) via GPIOA→BSRR atomik\n'
+        'LCD baris 1: Count=xxx [CW/CCW] | baris 2: BAR ========    ')
+
+    save(fig, os.path.join(BASE, 'STM32_P09_Encoder_5Pin'), 'schematic.png')
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Project 10 — Matrix Keypad 4×4 (PA0–PA3 rows, PB0,1,3,4 cols)
+#  P10 — Matrix Commander: Pemindaian Keypad 4×4 & Tampilan LCD
 # ═══════════════════════════════════════════════════════════════════
 def proj10():
-    fig, ax = setup(16, 10, 'STM32_10 — 4×4 Matrix Keypad  (PA0-3 Rows, PB0,1,3,4 Cols)')
-    coords = stm32_chip(ax, 5, 2, h=6,
-        left_pins=[('PA0 ROW0','ROW0'),('PA1 ROW1','ROW1'),
-                   ('PA2 ROW2','ROW2'),('PA3 ROW3','ROW3'),
-                   ('3V3','VCC'),('GND','GNDC')],
-        right_pins=[('PB0 COL0','COL0'),('PB1 COL1','COL1'),
-                    ('PB3 COL2','COL2'),('PB4 COL3','COL3')])
+    fig, ax = setup(18, 12,
+        'P10 — Matrix Commander: Pemindaian Keypad 4×4 & Tampilan LCD')
+
+    coords = stm32_chip(ax, 4.0, 1.5, h=9.5,
+        left_pins=[('3V3', 'VCC'), ('GND', 'GND'),
+                   ('PB6 (SCL)', 'SCL'), ('PB7 (SDA)', 'SDA')],
+        right_pins=[('PB8 (ROW1)', 'R1'), ('PB9 (ROW2)', 'R2'),
+                    ('PB10 (ROW3)', 'R3'), ('PB11 (ROW4)', 'R4'),
+                    ('PB12 (COL1)', 'C1'), ('PB13 (COL2)', 'C2'),
+                    ('PB14 (COL3)', 'C3'), ('PB15 (COL4)', 'C4'),
+                    ('PA0', 'PA0'), ('PA1', 'PA1'), ('PA2', 'PA3'),
+                    ('PA4', 'PA4'), ('PA5', 'PA5'), ('PA6', 'PA6'), ('PA7', 'PA7')])
 
     # Keypad block
-    keypad_4x4(ax, 8, 3, bw=3.6, bh=3.6)
-    kx_l = 8; kx_r = 11.6
-    ky_top = 6.6
+    row_c, col_c = keypad_4x4_block(ax, 9.5, 4.5, bw=3.2, bh=3.2)
 
-    # Row wires: left side of STM → left side of keypad
-    row_net = ['ROW0','ROW1','ROW2','ROW3']
-    for i, net in enumerate(row_net):
-        xs, ys = coords[net]
-        ky = ky_top - i * 3.6/4 - 3.6/8
-        wire(ax, xs, ys, kx_l-0.5, ys)
-        wire(ax, kx_l-0.5, ys, kx_l-0.5, ky)
-        wire(ax, kx_l-0.5, ky, kx_l, ky)
-        ax.text(kx_l-0.7, ky, f'R{i}', ha='right', va='center', fontsize=6.5, color=GREEN)
+    # Koneksi Row (PB8-PB11 → Row1-Row4 keypad)
+    row_colors = [RED, '#FF5500', '#FF9900', 'green']
+    for i, (rpin, rkey, col) in enumerate(zip(['R1','R2','R3','R4'],
+                                               ['R1','R2','R3','R4'], row_colors)):
+        if rpin not in coords: continue
+        xc, yc = coords[rpin]
+        kx, ky = row_c[rkey]
+        # route ke kanan lalu ke bawah ke keypad
+        wire(ax, xc, yc, kx, yc, col)
+        wire(ax, kx, yc, kx, ky, col)
 
-    # Col wires: right side of keypad → right side of STM
-    col_net = ['COL0','COL1','COL2','COL3']
-    for i, net in enumerate(col_net):
-        xs, ys = coords[net]
-        kx = kx_l + i * 3.6/4 + 3.6/8
-        wire(ax, kx_r, ky_top+0.2-i*0.1, xs, ys)   # rough routing
-        ax.text(kx_r+0.1, ky_top-i*0.3, f'C{i}', ha='left', va='center',
-                fontsize=6.5, color=GREEN)
+    # Koneksi Col (PB12-PB15 → Col1-Col4 keypad, INPUT PULLUP)
+    col_colors = [BLUE, TEAL, PURPLE, ORANGE]
+    for i, (cpin, ckey, col) in enumerate(zip(['C1','C2','C3','C4'],
+                                               ['C1','C2','C3','C4'], col_colors)):
+        if cpin not in coords: continue
+        xc, yc = coords[cpin]
+        kx, ky = col_c[ckey]
+        wire(ax, xc, yc, kx, yc, col)
+        wire(ax, kx, yc, kx, ky, col)
 
-    vcc(ax, *coords['VCC'], '3V3')
-    gnd(ax, *coords['GNDC'])
+    # Label Row/Col
+    ax.text(7.5, 7.0, 'ROW: OUTPUT_PP\n(set LOW satu per satu)', ha='center',
+            fontsize=6.5, color=RED,
+            bbox=dict(boxstyle='round', facecolor='#FFE0E0', edgecolor=RED, alpha=0.7))
+    ax.text(7.5, 5.0, 'COL: INPUT PULLUP\n(baca; LOW = tertekan)', ha='center',
+            fontsize=6.5, color=BLUE,
+            bbox=dict(boxstyle='round', facecolor='#E0E0FF', edgecolor=BLUE, alpha=0.7))
 
-    ax.text(0.2, 9.6,
-        'Row-column scanning: drive each row LOW, read columns\n'
-        'Cols use internal pull-up | Debounce 50ms | PB2 skipped (BOOT1)',
-        fontsize=8, va='top', color=GRAY,
-        bbox=dict(boxstyle='round', facecolor='#FFFFF0', edgecolor=GRAY, alpha=0.8))
-    save(fig, os.path.join(BASE,'STM32_10_GPIO_Matrix_Keypad'), 'schematic.png')
-
-
-# ═══════════════════════════════════════════════════════════════════
-#  Project 11 — Emergency Stop (PB0 NC, PC13 LED, PA1 Buzzer)
-# ═══════════════════════════════════════════════════════════════════
-def proj11():
-    fig, ax = setup(15, 9, 'STM32_11 — Emergency Stop  (PB0 NC, PC13 LED, PA1 Buzzer)')
-    coords = stm32_chip(ax, 5, 1.5, h=6,
-        left_pins=[('PB0 ESTOP','PB0'),('3V3','VCC'),('GND','GNDC')],
-        right_pins=[('PC13 LED','PC13'),('PA1 BZR','PA1')])
-
-    # NC Emergency button on PB0
-    xb, yb = coords['PB0']
-    wire(ax, xb-0.8, yb, xb, yb)
-    nc_button_sym(ax, xb-1.1, yb, 'E-STOP\n(NC)')
-    wire(ax, xb-1.6, yb, xb-1.6, yb-0.6)
-    gnd(ax, xb-1.6, yb-0.6)
-    # external pull-up
-    wire(ax, xb-1.1, yb, xb-1.1, yb+1.0)
-    resistor(ax, xb-1.1, yb+1.3, horiz=False, label='10kΩ')
-    wire(ax, xb-1.1, yb+1.6, xb-1.1, yb+2.0)
-    vcc(ax, xb-1.1, yb+2.0, '3V3')
-
-    # Status LED PC13 (active-low)
-    x, y = coords['PC13']
-    wire(ax, x, y, x+0.7, y)
-    resistor(ax, x+1.0, y, horiz=True, label='220Ω')
-    wire(ax, x+1.28, y, x+1.8, y)
-    led_sym(ax, x+1.8, y, label='STATUS\nLED', color='red')
-    wire(ax, x+2.2, y, x+2.6, y)
-    gnd(ax, x+2.6, y)
-
-    # Buzzer PA1
-    xz, yz = coords['PA1']
-    wire(ax, xz, yz, xz+0.7, yz)
-    # NPN transistor symbol (simple)
-    ax.add_patch(plt.Circle((xz+0.9, yz), 0.25, fill=False,
-                             edgecolor=BLACK, linewidth=1.2))
-    ax.text(xz+0.9, yz, 'NPN', ha='center', va='center', fontsize=6, color=BLACK)
-    wire(ax, xz+1.15, yz, xz+1.5, yz)
-    buzzer_sym(ax, xz+1.8, yz)
-    wire(ax, xz+1.8, yz-0.3, xz+1.8, yz-0.6)
-    vcc(ax, xz+1.8, yz+0.28, '5V')
-    wire(ax, xz+0.9, yz-0.25, xz+0.9, yz-0.6)
-    gnd(ax, xz+0.9, yz-0.6)
-
-    vcc(ax, *coords['VCC'], '3V3')
-    gnd(ax, *coords['GNDC'])
-
-    ax.text(0.2, 8.7,
-        'NC button: OPEN contact or wire-break → PB0 LOW → EMERGENCY\n'
-        'PC13 blinks fast + PA1 buzzer ON | Reset: PB0 HIGH for 2s',
-        fontsize=8, va='top', color=GRAY,
-        bbox=dict(boxstyle='round', facecolor='#FFFFF0', edgecolor=GRAY, alpha=0.8))
-    save(fig, os.path.join(BASE,'STM32_11_Emergency_Stop'), 'schematic.png')
-
-
-# ═══════════════════════════════════════════════════════════════════
-#  Project 12 — 8-LED Test Pattern (PA0–PA7)
-# ═══════════════════════════════════════════════════════════════════
-def proj12():
-    fig, ax = setup(16, 11, 'STM32_12 — 8-LED Test Pattern  (PA0–PA7, direct ODR)')
-    coords = stm32_chip(ax, 3, 1.5, h=7.5,
-        left_pins=[('3V3','VCC'),('GND','GNDC')],
-        right_pins=[('PA0 (bit0)','PA0'),('PA1 (bit1)','PA1'),
-                    ('PA2 (bit2)','PA2'),('PA3 (bit3)','PA3'),
-                    ('PA4 (bit4)','PA4'),('PA5 (bit5)','PA5'),
-                    ('PA6 (bit6)','PA6'),('PA7 (bit7)','PA7')])
-
-    colors = ['red','#FF5500','#FF9900','yellow','green','cyan','blue','#AA00FF']
+    # LED PA0-PA7 (tampilkan kode key)
+    colors_8 = ['red','#FF5500','#FF9900','yellow','green','cyan','blue','#AA00FF']
     for i in range(8):
-        pin  = f'PA{i}'
-        x, y = coords[pin]
-        wire(ax, x, y, x+0.6, y)
-        resistor(ax, x+0.9, y, horiz=True, label='220Ω')
-        wire(ax, x+1.18, y, x+1.7, y)
-        led_sym(ax, x+1.7, y, label=f'LED{i}', color=colors[i])
-        wire(ax, x+2.1, y, x+2.5, y)
-        gnd(ax, x+2.5, y)
+        pin = f'PA{i}' if i != 2 else 'PA0'   # PA2 dan PA3 share slot liat coord
+        pkey = ['PA0','PA1','PA2','PA3','PA4','PA5','PA6','PA7'][i]
+        if pkey not in coords:
+            continue
+        x, y = coords[pkey]
+        wire(ax, x, y, x + 0.5, y)
+        resistor(ax, x + 0.8, y, horiz=True, label='220Ω')
+        wire(ax, x + 1.08, y, x + 1.53, y)
+        led_sym(ax, x + 1.53, y, label=f'b{i}', color=colors_8[i])
+        wire(ax, x + 1.93, y, x + 2.2, y)
+        gnd(ax, x + 2.2, y)
 
-    vcc(ax, *coords['VCC'], '3V3')
-    gnd(ax, *coords['GNDC'])
+    vcc(ax, *coords['VCC'])
+    gnd(ax, *coords['GND'])
 
-    ax.text(0.2, 10.5,
-        '8 LEDs display patterns via GPIOA→ODR (8-bit write)\n'
-        'Patterns: all-on, all-off, walk-1, march, binary-cnt, strobe…',
-        fontsize=8, va='top', color=GRAY,
-        bbox=dict(boxstyle='round', facecolor='#FFFFF0', edgecolor=GRAY, alpha=0.8))
-    save(fig, os.path.join(BASE,'STM32_12_LED_Test_Pattern'), 'schematic.png')
+    draw_lcd_connected(ax, lcd_x=0.3, lcd_y=9.5,
+                       scl_src=coords['SCL'], sda_src=coords['SDA'])
+
+    annotation(ax, 0.3, 11.7,
+        'ROW PB8-PB11: OUTPUT_PP — set semua HIGH, lalu LOW per baris\n'
+        'COL PB12-PB15: INPUT_PULLUP — jika LOW saat ROW=LOW → tombol tertekan\n'
+        'Scanning: for row in 0..3: set_row_LOW → read cols → if col=LOW → key found\n'
+        'KEYMAP[4][4]: row×col → karakter / angka (1-16)\n'
+        'LED PA0-PA7: tampilkan kode biner key (0-15) via BSRR\n'
+        'LCD baris 1: KEY PRESSED: [karakter] | baris 2: Total press: xxx')
+
+    save(fig, os.path.join(BASE, 'STM32_P10_Keypad_8Pin'), 'schematic.png')
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -687,28 +963,26 @@ def proj12():
 # ═══════════════════════════════════════════════════════════════════
 if __name__ == '__main__':
     print('=' * 65)
-    print('  STM32 Schematic Generator — 12 Projects')
-    print('  Libraries: matplotlib, Pillow')
+    print('  GPIO Schematic Generator — 10 Praktikum')
+    print('  STM32F103 Blue Pill + LCD I2C 16x2')
     print('=' * 65)
 
     tasks = [
-        ('01 LED_Blink',          proj01),
-        ('02 Multi_LED_Running',  proj02),
-        ('03 LED_Binary_Counter', proj03),
-        ('04 Button_Debounce',    proj04),
-        ('05 Long_Short_Press',   proj05),
-        ('06 Toggle_Latch',       proj06),
-        ('07 GPIO_Drive_Strength',proj07),
-        ('08 DIP_Switch_Reader',  proj08),
-        ('09 GPIO_Port_Register', proj09),
-        ('10 GPIO_Matrix_Keypad', proj10),
-        ('11 Emergency_Stop',     proj11),
-        ('12 LED_Test_Pattern',   proj12),
+        ('P01 LED_Parade',         proj01),
+        ('P02 Shadow_Ghost',       proj02),
+        ('P03 Sentinel_Gate',      proj03),
+        ('P04 Ground_Guardian',    proj04),
+        ('P05 Phantom_Touch',      proj05),
+        ('P06 Force_Field',        proj06),
+        ('P07 Clean_Contact',      proj07),
+        ('P08 Speed_Racer',        proj08),
+        ('P09 Twist_Count',        proj09),
+        ('P10 Matrix_Commander',   proj10),
     ]
 
     ok = 0
     for name, fn in tasks:
-        print(f'\n── STM32_{name}')
+        print(f'\n── {name}')
         try:
             fn()
             ok += 1
@@ -717,6 +991,6 @@ if __name__ == '__main__':
             import traceback; traceback.print_exc()
 
     print(f'\n{"=" * 65}')
-    print(f'  Done: {ok}/{len(tasks)} schematics generated')
-    print(f'  Each saved as  <project_folder>/schematic.png')
+    print(f'  Selesai: {ok}/{len(tasks)} schematic dibuat')
+    print(f'  Tersimpan di: .../praktikum/STM32/STM32_Pxx_.../schematic.png')
     print('=' * 65)

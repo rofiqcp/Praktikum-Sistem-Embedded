@@ -1,1234 +1,868 @@
 # Modul 01: GPIO dan Digital I/O
+## *Dari Push Button hingga Keypad — Menguasai Antarmuka Digital*
 
+**Program Studi:** Teknologi Rekayasa Otomasi  
+**Platform:** STM32F103C8T6 Blue Pill | ESP32 DevKit V1  
+**Framework:** STM32Cube HAL | ESP-IDF  
+**Durasi:** 3 × 50 menit
+
+---
 
 ## Daftar Isi
 
-## Capaian Pembelajaran
-
-Setelah menyelesaikan bab ini, mahasiswa diharapkan mampu:
-
-1. **Memahami** arsitektur dan fungsi GPIO pada mikrokontroler STM32 dan ESP32
-2. **Mengkonfigurasi** pin GPIO sebagai input maupun output digital dengan berbagai mode (push-pull, open-drain, pull-up/pull-down)
-3. **Mengimplementasikan** teknik debouncing untuk input dari push button
-4. **Menerapkan** akses register langsung (BSRR, GPIO_OUT_REG) untuk operasi GPIO atomik
-5. **Menganalisis** perbedaan karakteristik GPIO antara STM32 (HAL) dan ESP32 (ESP-IDF)
-6. **Merancang** sistem digital I/O termasuk binary counter, matrix keypad, dan emergency stop
+1. [Pendahuluan & Motivasi](#1-pendahuluan)
+2. [Arsitektur GPIO Mikrokontroler](#2-arsitektur-gpio)
+3. [Mode Output: Push-Pull & Open-Drain](#3-mode-output)
+4. [Logika Active-HIGH dan Active-LOW](#4-logika-aktif)
+5. [Mode Input: Pull-UP dan Pull-DOWN](#5-mode-input)
+6. [Pull-UP & Pull-DOWN Eksternal vs Internal](#6-pullup-pulldown)
+7. [Debounce: Menangani Noise Tombol](#7-debounce)
+8. [Kecepatan GPIO dan Slew Rate](#8-gpio-speed)
+9. [Akses Register Langsung (BSRR, ODR, IDR)](#9-register)
+10. [Rotary Encoder Kuadratur](#10-encoder)
+11. [Matrix Keypad Scanning](#11-keypad)
+12. [LCD I2C 16×2 — Antarmuka Tampilan](#12-lcd-i2c)
+13. [GPIO pada ESP32 — Perbandingan & Perbedaan](#13-esp32-gpio)
+14. [Best Practices & Tips Debugging](#14-best-practices)
+15. [Ringkasan Percobaan 1–10](#15-ringkasan)
 
 ---
 
-## 📚 1. Pendahuluan
+## 1. Pendahuluan & Motivasi
 
 ### 1.1 Apa itu GPIO?
 
-**GPIO (General Purpose Input/Output)** adalah pin pada mikrokontroler yang dapat dikonfigurasi secara fleksibel sebagai input atau output digital. GPIO merupakan interface paling dasar dan fundamental dalam sistem embedded untuk berinteraksi dengan dunia luar.
+**GPIO (General Purpose Input/Output)** adalah pin pada mikrokontroler yang dapat dikonfigurasi secara fleksibel sebagai **input** (membaca sinyal dari luar) atau **output** (mengeluarkan sinyal ke luar). GPIO adalah antarmuka paling fundamental antara mikrokontroler dan dunia fisik.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    MIKROKONTROLER                           │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                      CPU                             │   │
-│  │   ┌─────────┐    ┌─────────┐    ┌─────────┐        │   │
-│  │   │ Program │    │  Data   │    │  ALU    │        │   │
-│  │   │ Memory  │    │ Memory  │    │         │        │   │
-│  │   └─────────┘    └─────────┘    └─────────┘        │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                           │                                 │
-│                    ┌──────┴──────┐                         │
-│                    │ GPIO Block  │                         │
-│                    │  Registers  │                         │
-│                    └──────┬──────┘                         │
-│                           │                                 │
-└───────────────────────────┼─────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│              SISTEM EMBEDDED                │
+│                                             │
+│   ┌─────────┐    ┌──────────┐              │
+│   │   CPU   │◄──►│  GPIO    │◄────────────►│ Dunia Nyata
+│   │  @64MHz │    │  Regs    │  (LED, BTN,  │
+│   └─────────┘    └──────────┘   Motor, dsb)│
+└─────────────────────────────────────────────┘
+```
+
+### 1.2 Relevansi untuk Teknologi Rekayasa Otomasi
+
+Dalam konteks **otomasi industri**, GPIO digunakan untuk:
+
+| Aplikasi Industri | Komponen | GPIO Mode |
+|-------------------|----------|-----------|
+| Indikator status mesin | LED, Lampu Pilot | OUTPUT |
+| Sensor limit switch | Proximity switch | INPUT |
+| Tombol emergency stop | E-Stop button | INPUT (NC) |
+| Keypad HMI sederhana | Matrix keypad | INPUT + OUTPUT |
+| Encoder posisi | Rotary encoder | INPUT quadrature |
+| Relay kontrol | MOSFET driver | OUTPUT |
+
+### 1.3 Hardware yang Digunakan
+
+| No | Komponen | Jumlah | Fungsi |
+|----|----------|--------|--------|
+| 1 | STM32F103C8T6 (Blue Pill) | 1 | MCU utama (64 MHz, Cortex-M3) |
+| 2 | ESP32 DevKit V1 | 1 | MCU sekunder (240 MHz, dual-core) |
+| 3 | LED 5mm | 8 | Indikator output digital |
+| 4 | Resistor 220Ω | 16 | Current limiting LED + pull-resistor |
+| 5 | Push Button | 4 | Input diskrit |
+| 6 | Rotary Encoder 5-pin | 1 | Input kuadratur + push |
+| 7 | Keypad Matrix 4×4 (8-pin) | 1 | Input matriks |
+| 8 | LCD I²C 16×2 | 1 | Tampilan status (PCF8574, addr 0x27) |
+
+---
+
+## 2. Arsitektur GPIO Mikrokontroler
+
+### 2.1 Struktur Internal GPIO STM32F103
+
+Setiap pin GPIO pada STM32F103 terhubung ke sebuah sel I/O dengan komponen:
+
+```
+                         VDD (3.3V)
                             │
-            ┌───────────────┼───────────────┐
-            │               │               │
-         ┌──┴──┐         ┌──┴──┐         ┌──┴──┐
-         │PIN 0│         │PIN 1│         │PIN n│
-         └──┬──┘         └──┬──┘         └──┬──┘
-            │               │               │
-         ┌──┴──┐         ┌──┴──┐         ┌──┴──┐
-         │ LED │         │Button│        │Sensor│
-         └─────┘         └─────┘         └─────┘
+              ┌─────────────┤
+              │             │
+         ┌────┴────┐   ┌────┴────┐
+         │  PMOS   │   │ Pull-up │ ~40kΩ (software)
+         │ (output)│   │  Rpup   │
+         └────┬────┘   └────┬────┘
+              │             │
+              ├─────────────┼──────────── I/O PAD
+              │             │
+         ┌────┴────┐   ┌────┴────┐
+         │  NMOS   │   │Pull-dn  │ ~40kΩ (software)
+         │ (output)│   │  Rpdn   │
+         └────┬────┘   └────┬────┘
+              │             │
+           VSS (GND)      VSS
 ```
 
-### 1.2 Pentingnya GPIO dalam Embedded Systems
+**Komponen utama GPIO STM32:**
+- **PMOS + NMOS transistor:** membentuk output push-pull
+- **PMOS saja (NMOS open):** membentuk output open-drain
+- **Pull-up/Pull-down resistor:** ~40kΩ, diaktifkan via software
+- **Input buffer:** membaca nilai di pad
+- **Output latch (ODR):** menyimpan nilai keluaran
+- **BSRR register:** bit-set/reset atomik tanpa read-modify-write
 
-GPIO adalah **building block** fundamental untuk:
-
-| Aplikasi | Contoh Penggunaan |
-|----------|-------------------|
-| **Aktuator** | Mengendalikan LED, relay, motor driver |
-| **Sensor Digital** | Membaca push button, limit switch, PIR sensor |
-| **Komunikasi** | Bit-banging SPI, I2C, atau protokol custom |
-| **Debugging** | LED status, logic analyzer interface |
-| **User Interface** | Keypad matrix, DIP switch, seven segment |
-
-### 1.3 Perbandingan Singkat GPIO: STM32 vs ESP32
-
-| Fitur | STM32F103C8T6 | ESP32 |
-|-------|---------------|-------|
-| **Arsitektur** | ARM Cortex-M3 | Xtensa LX6 Dual Core |
-| **Tegangan I/O** | 3.3V (5V tolerant pada beberapa pin) | 3.3V (TIDAK 5V tolerant) |
-| **Jumlah GPIO** | 37 pin | 34 pin |
-| **Drive Current** | Max 25mA per pin | Max 40mA (20mA recommended) |
-| **Internal Pull-up/down** | Ya (40kΩ typical) | Ya (45kΩ typical) |
-| **Framework** | STM32Cube HAL | ESP-IDF |
-| **Built-in LED** | PC13 (Active LOW) | GPIO2 (Active HIGH) |
-| **Konfigurasi Mode** | 8 mode per pin | Input/Output/Input-Output/Disable |
-| **Atomic Bit Set/Reset** | BSRR register | GPIO_OUT_W1TS / GPIO_OUT_W1TC |
-
-### 1.4 Ruang Lingkup Modul
-
-Modul ini membahas **GPIO digital murni** — yaitu operasi input dan output yang hanya bernilai HIGH (1) atau LOW (0). Tidak membahas sinyal analog (ADC/DAC) maupun modulasi lebar pulsa (yang dicakup di modul terpisah).
-
----
-
-## 📚 2. Teori Dasar GPIO
-
-### 2.1 Struktur Internal GPIO
-
-#### 2.1.1 STM32F103 GPIO Structure
-
-```
-                          VDD (3.3V)
-                             │
-                         ┌───┴───┐
-                         │       │ Pull-up
-                         │  Rpu  │ Resistor
-                         │       │ (~40kΩ)
-                         └───┬───┘
-                             │
-        ┌────────────────────┼────────────────────┐
-        │                    │                    │
-        │    ┌───────────────┼───────────────┐   │
-        │    │               │               │   │
-    ┌───┴────┤          ┌────┴────┐          │   │
-    │        │          │         │          │   │
-    │  Input │          │  I/O    │          │   │  Output
-    │ Driver │◀─────────┤  Pad    ├──────────┤   │  Driver
-    │        │          │         │          │   │
-    └───┬────┘          └────┬────┘          │   │
-        │                    │               │   │
-        │    └───────────────┼───────────────┘   │
-        │                    │                    │
-        │                ┌───┴───┐               │
-        │                │       │ Pull-down     │
-        │                │  Rpd  │ Resistor      │
-        │                │       │ (~40kΩ)       │
-        │                └───┬───┘               │
-        │                    │                    │
-        │                   GND                   │
-        │                                         │
-        └─────────────────────────────────────────┘
-                     ↓
-              To Input Register (IDR)
-```
-
-#### 2.1.2 Mode GPIO pada STM32F103
-
-STM32F103 menyediakan 8 mode konfigurasi GPIO melalui register CRL/CRH:
-
-| Mode | Kode HAL | Deskripsi |
-|------|----------|-----------|
-| Input Floating | `GPIO_MODE_INPUT` | Tanpa pull resistor, sensitif noise |
-| Input Pull-Up | Dengan `GPIO_PULLUP` | Internal pull-up ~40kΩ aktif |
-| Input Pull-Down | Dengan `GPIO_PULLDOWN` | Internal pull-down ~40kΩ aktif |
-| Output Push-Pull | `GPIO_MODE_OUTPUT_PP` | Dapat drive HIGH dan LOW |
-| Output Open-Drain | `GPIO_MODE_OUTPUT_OD` | Hanya dapat pull LOW |
-| AF Push-Pull | `GPIO_MODE_AF_PP` | Alternate function push-pull |
-| AF Open-Drain | `GPIO_MODE_AF_OD` | Alternate function open-drain |
-| Analog | `GPIO_MODE_ANALOG` | Untuk koneksi ke ADC |
-
-**Konfigurasi Speed** pada STM32:
-
-| Speed Setting | Max Frequency | Use Case |
-|---------------|---------------|----------|
-| `GPIO_SPEED_FREQ_LOW` | 2 MHz | LED, relay, low-speed I/O |
-| `GPIO_SPEED_FREQ_MEDIUM` | 10 MHz | General purpose |
-| `GPIO_SPEED_FREQ_HIGH` | 50 MHz | SPI, komunikasi cepat |
-
-> **Tip:** Gunakan speed rendah jika tidak perlu kecepatan tinggi — mengurangi EMI (electromagnetic interference) dan konsumsi daya.
-
-#### 2.1.3 Mode GPIO pada ESP32 (ESP-IDF)
+### 2.2 Register GPIO STM32F103
 
 ```c
-// Mode GPIO pada ESP32 via gpio_config()
-typedef enum {
-    GPIO_MODE_DISABLE         = 0,    // Pin disabled
-    GPIO_MODE_INPUT           = 1,    // Input only
-    GPIO_MODE_OUTPUT          = 2,    // Output only (push-pull)
-    GPIO_MODE_OUTPUT_OD       = 6,    // Output open-drain
-    GPIO_MODE_INPUT_OUTPUT    = 3,    // Bidirectional push-pull
-    GPIO_MODE_INPUT_OUTPUT_OD = 7     // Bidirectional open-drain
-} gpio_mode_t;
-
-// Pull-up / Pull-down
-typedef enum {
-    GPIO_PULLUP_DISABLE   = 0,
-    GPIO_PULLUP_ENABLE    = 1
-} gpio_pullup_t;
-
-typedef enum {
-    GPIO_PULLDOWN_DISABLE = 0,
-    GPIO_PULLDOWN_ENABLE  = 1
-} gpio_pulldown_t;
-```
-
-### 2.2 Output Push-Pull vs Open-Drain
-
-```
-PUSH-PULL OUTPUT:                    OPEN-DRAIN OUTPUT:
-
-    VDD                                  VDD
-     │                                    │
-  ┌──┴──┐                              ┌──┴──┐
-  │ P-FET│ ◀ ON saat output HIGH       │ Ext │ External
-  └──┬──┘                              │Pull-│ Pull-up
-     │                                  │ up  │ (Opsional)
-     ├───── OUTPUT PIN                 └──┬──┘
-     │                                    │
-  ┌──┴──┐                                 ├───── OUTPUT PIN
-  │ N-FET│ ◀ ON saat output LOW          │
-  └──┬──┘                              ┌──┴──┐
-     │                                 │ N-FET│ ◀ ON saat LOW
-    GND                                └──┬──┘
-                                          │
-                                         GND
-
-Karakteristik:                     Karakteristik:
-- Dapat drive HIGH dan LOW         - Hanya dapat pull LOW
-- Sumber arus lebih tinggi         - Butuh external pull-up
-- Standar untuk LED drive          - Untuk I2C, level shifting
-- Tidak bisa wire-OR               - Mendukung wire-OR (bus sharing)
-```
-
-**Kapan menggunakan apa?**
-
-| Fitur | Push-Pull | Open-Drain |
-|-------|-----------|------------|
-| Drive LED | ✅ Ideal | ⚠️ Perlu ext. pull-up |
-| I2C Bus | ❌ | ✅ Wajib |
-| Level Shifting | ❌ | ✅ Dengan pull-up ke VDD target |
-| Wire-OR / Bus Sharing | ❌ | ✅ Multi-device pada 1 line |
-
-### 2.3 Pull-Up dan Pull-Down Resistor
-
-```
-PULL-UP (Default HIGH):              PULL-DOWN (Default LOW):
-
-    VDD (3.3V)                            VDD (3.3V)
-     │                                     │
-  ┌──┴──┐                              ┌──┴──┐
-  │     │ Internal atau                │     │ Button
-  │ Rpu │ External Pull-Up            │ BTN │
-  │     │ (~40-45kΩ internal)          │     │
-  └──┬──┘                              └──┬──┘
-     │                                     │
-     ├───── GPIO Input ──── MCU            ├───── GPIO Input ──── MCU
-     │                                     │
-  ┌──┴──┐                              ┌──┴──┐
-  │     │ Button                       │     │ Internal atau
-  │ BTN │                              │ Rpd │ External Pull-Down
-  │     │                              │     │
-  └──┬──┘                              └──┬──┘
-     │                                     │
-    GND                                   GND
-
-  Idle: HIGH (1)                       Idle: LOW (0)
-  Pressed: LOW (0)                     Pressed: HIGH (1)
-```
-
-> **Penting:** Jangan biarkan pin input **floating** (tidak terhubung ke apa pun). Pin floating akan membaca nilai acak karena noise. Selalu aktifkan pull-up atau pull-down.
-
-### 2.4 GPIO Drive Strength
-
-Drive strength menentukan seberapa besar arus yang dapat disuplai/diterima oleh pin GPIO.
-
-**ESP32 Drive Strength Levels:**
-
-| Level | Arus Approx | Konstanta ESP-IDF |
-|-------|-------------|-------------------|
-| 0 | ~5 mA | `GPIO_DRIVE_CAP_0` |
-| 1 | ~10 mA | `GPIO_DRIVE_CAP_1` |
-| 2 | ~20 mA (default) | `GPIO_DRIVE_CAP_2` |
-| 3 | ~40 mA | `GPIO_DRIVE_CAP_3` |
-
-**STM32 Drive Strength:**
-
-STM32F103 tidak memiliki drive strength register eksplisit, tetapi speed setting mempengaruhi slew rate dan drive capability. Max current per pin: 25 mA. Total current semua GPIO: max 150 mA.
-
-### 2.5 Konsep Debouncing
-
-Ketika tombol ditekan, terjadi **bouncing** — kontak mekanis yang menghasilkan pulsa tidak stabil selama 5-50ms:
-
-```
-TANPA DEBOUNCING:
-                 Bouncing period (~5-50ms)
-                 ├────────────┤
-    HIGH ────────┐   ┌┐  ┌┐  ┌┐
-                 │   ││  ││  ││
-                 │   ││  ││  ││
-    LOW          └───┘└──┘└──┘└────────────────
-                 │               │
-              Button           Button
-              Pressed          Stable
-
-DENGAN SOFTWARE DEBOUNCING:
-    HIGH ────────┐
-                 │
-                 │  ← Delay/timer menunggu stabil
-    LOW          └─────────────────────────────
-                 │             │
-              Button        Debounced
-              Pressed       Signal Valid
-```
-
-#### Teknik Debouncing:
-
-**1. Hardware Debouncing (RC Filter):**
-```
-            ┌─────┐
-  Button    │     │    MCU
-    │       │  R  │     │
-    ├───────┤     ├─────┼───── GPIO Input
-    │       │10kΩ │     │
-  ┌─┴─┐     └─────┘   ┌─┴─┐
-  │   │               │ C │ 100nF
-  │GND│               │   │
-  └───┘               └─┬─┘
-                        │
-                       GND
-```
-
-**2. Software Debouncing (ESP-IDF):**
-```c
-#include "driver/gpio.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_timer.h"
-
-#define BUTTON_PIN    GPIO_NUM_0
-#define DEBOUNCE_US   50000   // 50ms dalam microseconds
-
-static int64_t last_press_time = 0;
-
-// Dalam loop atau task:
-void button_task(void *pvParameters)
-{
-    while (1) {
-        int level = gpio_get_level(BUTTON_PIN);
-        if (level == 0) {  // Active LOW
-            int64_t now = esp_timer_get_time();
-            if ((now - last_press_time) > DEBOUNCE_US) {
-                last_press_time = now;
-                // Button benar-benar ditekan — lakukan aksi
-            }
-        }
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-```
-
-**3. Software Debouncing (STM32 HAL):**
-```c
-#include "stm32f1xx_hal.h"
-
-#define BUTTON_PIN    GPIO_PIN_0
-#define BUTTON_PORT   GPIOB
-#define DEBOUNCE_MS   50
-
-static uint32_t last_press_tick = 0;
-
-// Dalam main loop:
-void check_button(void)
-{
-    if (HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN) == GPIO_PIN_RESET) {
-        uint32_t now = HAL_GetTick();
-        if ((now - last_press_tick) > DEBOUNCE_MS) {
-            last_press_tick = now;
-            // Button benar-benar ditekan
-        }
-    }
-}
-```
-
-### 2.6 Current Sourcing dan Sinking
-
-```
-SOURCING (LED ke GND):              SINKING (LED ke VDD):
-
-    GPIO Pin (HIGH)                     VDD
-        │                                │
-        │ →→→ Arus mengalir             │
-        │                              ┌─┴─┐
-      ┌─┴─┐                            │LED│ Anode
-      │   │ Resistor                   │ ▼ │
-      │ R │ 220Ω                       └─┬─┘
-      │   │                              │
-      └─┬─┘                            ┌─┴─┐
-        │                              │   │ Resistor
-      ┌─┴─┐                            │ R │ 220Ω
-      │LED│ Anode                      │   │
-      │ ▼ │                            └─┬─┘
-      └─┬─┘ Cathode                      │ ◀◀◀ Arus mengalir
-        │                                │
-       GND                          GPIO Pin (LOW)
-
-Catatan STM32F103:
-- PC13 hanya dapat SINK ~3mA (gunakan external LED jika perlu lebih)
-- Pin lain dapat source/sink hingga 25mA
-
-Catatan ESP32:
-- Semua GPIO dapat source/sink hingga 40mA
-- Recommended: 20mA untuk lifetime lebih baik
-```
-
-### 2.7 Perhitungan Resistor LED
-
-```
-Formula: R = (Vcc - Vf) / If
-
-Dimana:
-- Vcc = Tegangan supply (3.3V)
-- Vf  = Forward voltage LED (merah~2V, biru/putih~3V)
-- If  = Forward current yang diinginkan (10-20mA typical)
-
-Contoh untuk LED merah @ 10mA:
-R = (3.3V - 2.0V) / 0.010A = 130Ω
-→ Gunakan 150Ω atau 220Ω (nilai standar terdekat)
-
-Contoh untuk LED biru @ 10mA:
-R = (3.3V - 3.0V) / 0.010A = 30Ω
-→ Gunakan 33Ω atau 47Ω
-```
-
----
-
-## 📚 3. GPIO pada STM32 — STM32Cube HAL API
-
-### 3.1 Pinout STM32F103C8T6 (Blue Pill)
-
-```
-                    USB
-                   ┌───┐
-            ┌──────┤   ├──────┐
-            │      └───┘      │
-      PB12 ─┤1              40├─ VBat
-      PB13 ─┤2              39├─ PC13 ◀── LED (Active LOW)
-      PB14 ─┤3              38├─ PC14
-      PB15 ─┤4              37├─ PC15
-       PA8 ─┤5              36├─ PA0
-       PA9 ─┤6  USART1_TX   35├─ PA1
-      PA10 ─┤7  USART1_RX   34├─ PA2
-      PA11 ─┤8  USB-        33├─ PA3
-      PA12 ─┤9  USB+        32├─ PA4
-      PA15 ─┤10             31├─ PA5
-       PB3 ─┤11             30├─ PA6
-       PB4 ─┤12             29├─ PA7
-       PB5 ─┤13             28├─ PB0
-       PB6 ─┤14 I2C1_SCL    27├─ PB1
-       PB7 ─┤15 I2C1_SDA    26├─ PB10
-       PB8 ─┤16             25├─ PB11
-       PB9 ─┤17             24├─ Reset
-      5V   ─┤18             23├─ 3.3V
-       GND ─┤19             22├─ GND
-       3V3 ─┤20             21├─ GND
-            │                  │
-            └──────────────────┘
-                  ↑    ↑
-               SWDIO SWCLK
-               (PA13)(PA14)
-```
-
-### 3.2 Inisialisasi GPIO dengan HAL
-
-```c
-#include "stm32f1xx_hal.h"
-
-// Aktifkan clock GPIO terlebih dahulu!
-__HAL_RCC_GPIOA_CLK_ENABLE();
-__HAL_RCC_GPIOB_CLK_ENABLE();
-__HAL_RCC_GPIOC_CLK_ENABLE();
-
-// Konfigurasi pin output: LED pada PC13
-GPIO_InitTypeDef gpio = {0};
-gpio.Pin   = GPIO_PIN_13;
-gpio.Mode  = GPIO_MODE_OUTPUT_PP;    // Push-Pull output
-gpio.Speed = GPIO_SPEED_FREQ_LOW;    // 2 MHz cukup untuk LED
-gpio.Pull  = GPIO_NOPULL;
-HAL_GPIO_Init(GPIOC, &gpio);
-
-// Konfigurasi pin input: Button pada PB0 dengan pull-up
-gpio.Pin   = GPIO_PIN_0;
-gpio.Mode  = GPIO_MODE_INPUT;
-gpio.Pull  = GPIO_PULLUP;            // Internal pull-up aktif
-HAL_GPIO_Init(GPIOB, &gpio);
-```
-
-### 3.3 Fungsi HAL GPIO Utama
-
-```c
-// ============================================================
-// MENULIS OUTPUT
-// ============================================================
-
-// Set pin HIGH
-HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
-
-// Set pin LOW
-HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-
-// Toggle pin
-HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-
-// ============================================================
-// MEMBACA INPUT
-// ============================================================
-
-// Baca level pin — return GPIO_PIN_SET atau GPIO_PIN_RESET
-GPIO_PinState state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0);
-
-if (state == GPIO_PIN_RESET) {
-    // Button ditekan (active LOW dengan pull-up)
-}
-
-// ============================================================
-// DE-INIT (reset pin ke default)
-// ============================================================
-HAL_GPIO_DeInit(GPIOC, GPIO_PIN_13);
-```
-
-### 3.4 Register GPIO STM32F103
-
-```c
-// Alamat Base GPIO
-#define GPIOA_BASE  0x40010800
-#define GPIOB_BASE  0x40010C00
-#define GPIOC_BASE  0x40011000
-
-// Struktur Register GPIO
 typedef struct {
-    volatile uint32_t CRL;   // Configuration Register Low  (pin 0-7)
-    volatile uint32_t CRH;   // Configuration Register High (pin 8-15)
-    volatile uint32_t IDR;   // Input Data Register  (read-only)
-    volatile uint32_t ODR;   // Output Data Register
-    volatile uint32_t BSRR;  // Bit Set/Reset Register (write-only)
-    volatile uint32_t BRR;   // Bit Reset Register    (write-only)
-    volatile uint32_t LCKR;  // Lock Register
+    __IO uint32_t CRL;   // Control register low  (pin 0-7)
+    __IO uint32_t CRH;   // Control register high (pin 8-15)
+    __IO uint32_t IDR;   // Input Data Register   (read-only hardware)
+    __IO uint32_t ODR;   // Output Data Register
+    __IO uint32_t BSRR;  // Bit Set/Reset Register (ATOMIK!)
+    __IO uint32_t BRR;   // Bit Reset Register
+    __IO uint32_t LCKR;  // Lock Register
 } GPIO_TypeDef;
 ```
 
-### 3.5 Operasi Atomik dengan BSRR
+| Register | Fungsi | Contoh Akses |
+|----------|--------|--------------|
+| `IDR` | Baca state input semua pin | `val = GPIOB->IDR & (1<<0)` |
+| `ODR` | Tulis/baca state output | `GPIOA->ODR = 0xFF` |
+| `BSRR` | Set [15:0] atau Reset [31:16] — ATOMIK | `GPIOA->BSRR = (1<<0)` → SET PA0 |
+| `CRL/CRH` | Konfigurasi mode (dikelola HAL) | — |
 
-Register **BSRR (Bit Set/Reset Register)** memungkinkan operasi atomik — set atau reset satu pin tanpa mempengaruhi pin lain, tanpa perlu read-modify-write:
+> **Mengapa BSRR lebih aman dari ODR?**  
+> `ODR` memerlukan read-modify-write: baca ODR → ubah bit → tulis kembali. Jika ada interrupt di tengah, bit lain bisa berubah. `BSRR` adalah operasi **atomik** — satu instruksi, tanpa risiko race condition.
+
+### 2.3 Konfigurasi GPIO via HAL
 
 ```c
-// ============================================================
-// BSRR: Bit 0-15 = SET, Bit 16-31 = RESET
-// ============================================================
+GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-// Set PC13 HIGH (LED OFF karena active low)
-GPIOC->BSRR = (1U << 13);         // Set bit 13
-
-// Reset PC13 LOW (LED ON)
-GPIOC->BSRR = (1U << (13 + 16));  // Reset bit 13
-// Alternatif:
-GPIOC->BRR  = (1U << 13);         // BRR khusus untuk reset
-
-// ============================================================
-// Mengapa BSRR lebih baik dari ODR?
-// ============================================================
-
-// ODR (TIDAK atomik — perlu read-modify-write):
-GPIOC->ODR |= (1U << 13);   // ⚠️ Bisa terganggu interrupt
-GPIOC->ODR &= ~(1U << 13);  // ⚠️ Bisa terganggu interrupt
-
-// BSRR (ATOMIK — satu instruksi write):
-GPIOC->BSRR = (1U << 13);   // ✅ Aman dari interrupt
-
-// ============================================================
-// Set BANYAK pin sekaligus
-// ============================================================
-// Set PA0, PA1, PA2, PA3 HIGH sekaligus:
-GPIOA->BSRR = (1U << 0) | (1U << 1) | (1U << 2) | (1U << 3);
-
-// Set PA0 HIGH dan PA3 LOW dalam satu operasi:
-GPIOA->BSRR = (1U << 0) | (1U << (3 + 16));
-
-// ============================================================
-// Toggle menggunakan ODR (XOR) — satu-satunya cara toggle via register
-// ============================================================
-GPIOC->ODR ^= (1U << 13);
+// PA0 sebagai output push-pull, speed rendah
+GPIO_InitStruct.Pin   = GPIO_PIN_0;
+GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+GPIO_InitStruct.Pull  = GPIO_NOPULL;
+GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 ```
 
-### 3.6 Membaca Register Input (IDR)
+**HAL Functions GPIO:**
+| Fungsi | Keterangan |
+|--------|-----------|
+| `HAL_GPIO_Init(GPIOx, &init)` | Inisialisasi pin |
+| `HAL_GPIO_WritePin(GPIOx, Pin, PinState)` | Tulis HIGH/LOW |
+| `HAL_GPIO_ReadPin(GPIOx, Pin)` | Baca state pin |
+| `HAL_GPIO_TogglePin(GPIOx, Pin)` | Toggle output |
+| `HAL_GPIO_DeInit(GPIOx, Pin)` | Reset ke default |
+
+---
+
+## 3. Mode Output: Push-Pull & Open-Drain
+
+### 3.1 Output Push-Pull (PP)
+
+Pada mode **Push-Pull**, driver output memiliki dua transistor aktif:
+- **Push:** PMOS aktif → pin ditarik ke VDD → output **HIGH**
+- **Pull:** NMOS aktif → pin ditarik ke GND → output **LOW**
+
+```
+VDD ─────────────────────
+              │
+         [PMOS]  ← aktif saat ODR=1
+              │
+              ├──── GPIO Pin (dapat drive HIGH & LOW dengan kuat)
+              │
+         [NMOS]  ← aktif saat ODR=0
+              │
+GND ─────────────────────
+```
+
+**Karakteristik PP:**
+- Mampu **source** (keluarkan) dan **sink** (tarik) arus
+- Drive strength: max 25mA per pin STM32
+- **Paling umum digunakan** untuk LED, relay driver, komunikasi UART
 
 ```c
-// Input Data Register — membaca semua 16 pin sekaligus
-uint32_t port_value = GPIOB->IDR;
+// Inisialisasi PA0 sebagai Output Push-Pull
+GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 
-// Cek pin tertentu
-if (GPIOB->IDR & (1U << 0)) {
-    // PB0 is HIGH
-} else {
-    // PB0 is LOW
+// LED ON:  PA0 = HIGH
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
+
+// LED OFF: PA0 = LOW
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+```
+
+### 3.2 Output Open-Drain (OD)
+
+Pada mode **Open-Drain**, hanya **NMOS** yang aktif; PMOS dinonaktifkan:
+- **ODR = 0:** NMOS aktif → pin ditarik ke GND → output **LOW**
+- **ODR = 1:** NMOS non-aktif → pin **Hi-Z** (impedansi tinggi, mengapung)
+
+```
+         PMOS  DINONAKTIFKAN ← tidak ada hubungan ke VDD
+              │
+              ├──── GPIO Pin ←─── HANYA bisa LOW atau Hi-Z
+              │
+         [NMOS]  ← aktif saat ODR=0
+              │
+GND ─────────────────────
+```
+
+> **PIN HI-Z TIDAK BISA MENJADI HIGH DENGAN SENDIRINYA!**  
+> Untuk bisa HIGH, diperlukan **resistor pull-up eksternal atau internal** ke VDD.
+
+**Perbandingan arus saat Hi-Z dengan pull-up internal 40kΩ:**
+
+$$I = \frac{V_{DD} - V_f}{R_{pull} + R_{serial}} = \frac{3.3 - 2.0}{40{,}000 + 220} \approx 0.032\ \text{mA}$$
+
+Hasilnya LED *sangat redup* — inilah demonstrasi utama Percobaan 2 (Shadow & Ghost).
+
+```c
+// PA1 Output Open-Drain + pull-up internal
+GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+GPIO_InitStruct.Pull = GPIO_PULLUP;
+
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET); // LOW  → LED ON (terang)
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);   // Hi-Z → LED redup (∵ 40kΩ)
+```
+
+**Kapan pakai Open-Drain?**
+- Bus I²C (wired-AND: banyak perangkat berbagi satu jalur)
+- Level shifting (pull-up ke 5V dari pin 3.3V OD)
+- Relay driver dengan dioda back-EMF
+
+---
+
+## 4. Logika Active-HIGH dan Active-LOW
+
+### 4.1 Definisi
+
+| Jenis | LED ON saat | LED OFF saat | Arah Arus |
+|-------|------------|--------------|-----------|
+| **Active-HIGH** | Output = HIGH (1) | Output = LOW (0) | Source: pin → 220Ω → LED → GND |
+| **Active-LOW** | Output = LOW (0) | Output = HIGH (1) | Sink: VDD → LED → 220Ω → pin |
+
+### 4.2 Contoh: PC13 Blue Pill (Active-LOW)
+
+Blue Pill memiliki LED bawaan di **PC13** dengan koneksi:
+```
+VDD ──────[LED]──[220Ω]────── PC13
+```
+
+- PC13 = **LOW** → ada beda potensial → arus mengalir → LED **ON**
+- PC13 = **HIGH** → tidak ada selisih potensial → LED **OFF**
+
+```c
+// LED bawaan PC13 ON:
+HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET); // LOW = ON
+
+// LED bawaan PC13 OFF:
+HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);   // HIGH = OFF
+```
+
+> **Tips Desain:** Active-LOW lebih umum dalam industri untuk **fail-safe** — jika kabel putus, sinyal jatuh ke LOW (via pull-up), sistem dapat mendeteksi kerusakan jalur sinyal.
+
+---
+
+## 5. Mode Input: Pull-UP dan Pull-DOWN
+
+### 5.1 Problem: Floating Input
+
+Jika pin dikonfigurasi sebagai INPUT tanpa pull resistor dan tidak ada sinyal terhubung, pin dalam kondisi **floating** (mengapung — nilai tidak pasti):
+
+```
+     Pin GPIO (Floating)
+          │
+          │  ← Nilai tidak pasti! Bisa HIGH, LOW, atau beralih acak
+          │     Sangat sensitif terhadap noise RF, interferensi
+```
+
+> **Floating pin dapat membaca nilai acak** — sistem tidak bisa diandalkan!
+
+### 5.2 Pull-UP: Default HIGH
+
+**Resistor Pull-UP** menghubungkan pin ke VDD sehingga nilai default adalah HIGH:
+
+```
+     VDD ────[R-PULLUP]────┬──── GPIO Pin
+                           │
+                       [Button]
+                           │
+                          GND
+```
+
+| Kondisi Tombol | Level pada Pin |
+|----------------|---------------|
+| Lepas | HIGH (ditarik Rpull ke VDD) |
+| Ditekan | LOW (terhubung ke GND via tombol) |
+
+Tombol "aktif" saat membaca LOW → disebut **Active-LOW**.
+
+### 5.3 Pull-DOWN: Default LOW
+
+**Resistor Pull-DOWN** menghubungkan pin ke GND sehingga nilai default adalah LOW:
+
+```
+     VDD ────[Button]────┬──── GPIO Pin
+                         │
+                     [R-PULLDOWN]
+                         │
+                        GND
+```
+
+| Kondisi Tombol | Level pada Pin |
+|----------------|---------------|
+| Lepas | LOW (ditarik Rpull ke GND) |
+| Ditekan | HIGH (terhubung ke VDD via tombol) |
+
+Tombol "aktif" saat membaca HIGH → disebut **Active-HIGH**.
+
+---
+
+## 6. Pull-UP & Pull-DOWN Eksternal vs Internal
+
+### 6.1 Pull-UP Eksternal (Percobaan 3 — Sentinel Gate)
+
+```
+     3.3V ──[220Ω]──┬── PB0 (INPUT, NOPULL)
+                    │
+               [BTN1]
+                    │
+                   GND
+```
+
+| Parameter | Nilai |
+|-----------|-------|
+| Resistansi | 220Ω |
+| Tegangan saat Lepas | ~3.3V (HIGH) |
+| Arus saat Tekan | 3.3V / 220Ω ≈ **15 mA** (habis ke GND) |
+| Noise immunity | ⭐⭐⭐⭐⭐ sangat baik |
+
+```c
+// P03: Pin tanpa pull internal — external menentukan level
+GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+GPIO_InitStruct.Pull = GPIO_NOPULL;
+```
+
+### 6.2 Pull-DOWN Eksternal (Percobaan 4 — Ground Guardian)
+
+```
+     3.3V ──[BTN2]──┬── PB1 (INPUT, NOPULL)
+                    │
+               [220Ω]
+                    │
+                   GND
+```
+
+```c
+// P04: Pin tanpa pull internal
+GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+GPIO_InitStruct.Pull = GPIO_NOPULL;
+```
+
+### 6.3 Pull-UP Internal (Percobaan 5 — Phantom Touch)
+
+MCU mengaktifkan **resistor internal ~40kΩ** ke VDD. **Tidak perlu resistor eksternal!**
+
+```c
+GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+GPIO_InitStruct.Pull = GPIO_PULLUP;   // ~40kΩ internal aktif
+```
+
+**Rangkaian ekivalen:**
+```
+     VDD ──[~40kΩ internal]──┬── PB0
+                             │
+                        [BTN1]   ← langsung ke GND, no resistor!
+                             │
+                            GND
+```
+
+### 6.4 Pull-DOWN Internal (Percobaan 6 — Force Field)
+
+```c
+GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+GPIO_InitStruct.Pull = GPIO_PULLDOWN; // ~40kΩ internal ke GND
+```
+
+Wiring: **pin → satu kaki tombol → kaki lain → 3.3V. No resistor!**
+
+> ⚠️ **Jangan hubungkan 5V ke GPIO STM32F103** (kecuali pin berlabel FT = 5V tolerant). Tegangan maksimum input adalah VDD+0.3V = 3.6V.
+
+### 6.5 Perbandingan Lengkap
+
+| Aspek | Ext 220Ω | Ext 10kΩ | Internal 40kΩ |
+|-------|----------|-----------|----------------|
+| **Komponen** | Butuh resistor | Butuh resistor | ✅ Tidak perlu |
+| **Kekuatan pull** | ⭐⭐⭐⭐⭐ (kuat) | ⭐⭐⭐ (sedang) | ⭐⭐ (lemah) |
+| **Arus terbuang** | ~15mA saat tekan | 0.33mA | 0.082mA |
+| **Noise immunity** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ |
+| **Kemudahan** | Perlu kabel ekstra | Perlu kabel ekstra | ✅ Sangat mudah |
+| **Kasus ideal** | Industri ber-EMI tinggi | Embedded umum | Prototyping, lab |
+
+---
+
+## 7. Debounce: Menangani Noise Tombol
+
+### 7.1 Fenomena Bounce
+
+Tombol mekanik tidak langsung stabil saat ditekan. Terjadi **bouncing** — serangkaian transisi HIGH↔LOW selama 1–50 ms:
+
+```
+Tanpa debounce:
+────────────────┐  ┌──┐  ┌────┐   ┌──────────────
+                └──┘  └──┘    └───┘
+                ^ MCU bisa membaca 5-10 press dari 1 tekan!
+
+Dengan debounce 50ms:
+────────────────┐                    ┌──────────────
+                └────────────────────┘
+                ^  tunggu 50ms stabil → baru valid
+```
+
+### 7.2 Metode Debounce Software
+
+#### Metode 1: Delay Sederhana (tidak dianjurkan)
+```c
+if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET) {
+    HAL_Delay(50);  // ❌ BLOCKING — program tidak bisa lakukan hal lain!
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET) {
+        /* valid press */
+    }
 }
+```
 
-// Baca multiple pin (contoh: DIP switch 4-bit pada PB0-PB3)
-uint8_t dip_value = (GPIOB->IDR & 0x0F);  // Mask bit 0-3
+#### Metode 2: State Machine Non-Blocking (Percobaan 7 — DIANJURKAN)
+
+```c
+typedef enum {
+    BTN_RELEASED,
+    BTN_DEBOUNCING,
+    BTN_PRESSED
+} BtnState;
+
+BtnState state[4]          = {BTN_RELEASED};
+uint32_t debounce_start[4] = {0};
+#define DEBOUNCE_MS 50
+
+void update_button(int idx, GPIO_TypeDef *port, uint16_t pin) {
+    uint8_t  raw = HAL_GPIO_ReadPin(port, pin);
+    uint32_t now = HAL_GetTick();
+
+    switch (state[idx]) {
+        case BTN_RELEASED:
+            if (raw == GPIO_PIN_RESET) {
+                state[idx]          = BTN_DEBOUNCING;
+                debounce_start[idx] = now;
+            }
+            break;
+
+        case BTN_DEBOUNCING:
+            if ((now - debounce_start[idx]) >= DEBOUNCE_MS) {
+                if (raw == GPIO_PIN_RESET) {
+                    state[idx] = BTN_PRESSED;
+                    on_button_press(idx);   // aksi valid!
+                } else {
+                    state[idx] = BTN_RELEASED; // false alarm (bounce)
+                }
+            }
+            break;
+
+        case BTN_PRESSED:
+            if (raw == GPIO_PIN_SET)
+                state[idx] = BTN_RELEASED;
+            break;
+    }
+}
+```
+
+**State Diagram:**
+```
+   ┌──────────┐  tekan terdeteksi  ┌─────────────┐  50ms stabil  ┌─────────┐
+   │ RELEASED │──────────────────►│ DEBOUNCING  │─────────────►│ PRESSED │
+   └──────────┘                   └─────────────┘              └─────────┘
+        ▲                                │                           │
+        │◄──── bounce (lepas sebelum 50ms)                          │
+        │◄──── lepas tombol ─────────────────────────────────────────┘
+```
+
+### 7.3 Debounce di ESP32
+
+```c
+// ESP32: gunakan esp_timer_get_time() (mikro detik, presisi tinggi)
+int64_t debounce_start_us = 0;
+#define DEBOUNCE_US 50000  // 50ms = 50000µs
+
+int64_t now_us = esp_timer_get_time();
+if ((now_us - debounce_start_us) >= DEBOUNCE_US) {
+    /* valid press */
+}
 ```
 
 ---
 
-## 📚 4. GPIO pada ESP32 — ESP-IDF API
+## 8. Kecepatan GPIO dan Slew Rate
 
-### 4.1 Pinout ESP32 DevKitC
+### 8.1 Apa itu Slew Rate?
+
+**Slew rate** (GPIO Speed) mengacu pada **kecuraman transisi** sinyal dari LOW→HIGH atau HIGH→LOW. Ini bukan frekuensi maksimum toggle, melainkan seberapa tajam tepi sinyal:
 
 ```
-                    ┌─────────────────┐
-                    │     USB-C       │
-                    │    ┌─────┐      │
-              EN ───┤    │     │    ├─── GPIO23 (MOSI)
-         GPIO36(VP)─┤    │     │    ├─── GPIO22 (SCL)
-         GPIO39(VN)─┤    └─────┘    ├─── GPIO1 (TX0)
-          GPIO34 ───┤               ├─── GPIO3 (RX0)
-          GPIO35 ───┤               ├─── GPIO21 (SDA)
-          GPIO32 ───┤               ├─── GND
-          GPIO33 ───┤               ├─── GPIO19 (MISO)
-          GPIO25 ───┤               ├─── GPIO18 (SCK)
-          GPIO26 ───┤     ESP32     ├─── GPIO5  (SS)
-          GPIO27 ───┤    DevKitC    ├─── GPIO17 (TX2)
-          GPIO14 ───┤               ├─── GPIO16 (RX2)
-          GPIO12 ───┤               ├─── GPIO4
-             GND ───┤               ├─── GPIO0 (BOOT)
-          GPIO13 ───┤               ├─── GPIO2 ◀── LED Built-in
-            3V3 ───┤               ├─── GPIO15
-          GPIO15 ───┤               ├─── GND
-            3V3 ───┤               ├─── 3V3
-                    │               │
-                    └───────────────┘
-
-Catatan Penting:
-- GPIO34-39: INPUT ONLY (tidak bisa output, tidak ada pull-up/down)
-- GPIO6-11:  Terhubung ke flash SPI internal (JANGAN GUNAKAN)
-- GPIO0:     Boot mode select (hati-hati saat desain)
-- GPIO2:     Built-in LED (bisa digunakan untuk output)
+HIGH ─── ─ ─ ─ ─ ─ ─ ─    ─ ─ ─ ─ ─ ─────────
+              ╱               ╱
+Slew:  ╱FAST╱            ╱SLOW╱
+     ╱    ╱             ╱    ╱
+LOW ─ ─ ─ ─ ─ ─ ─ ─   ─ ─ ─ ─ ─ ─ ─ ─ ─
 ```
 
-### 4.2 Inisialisasi GPIO dengan gpio_config()
+### 8.2 Tabel Konfigurasi Speed STM32
 
-Fungsi `gpio_config()` adalah cara utama mengkonfigurasi GPIO di ESP-IDF. Satu panggilan dapat mengkonfigurasi banyak pin sekaligus:
+| HAL Constant | Max Slew | Konsumsi | Gunakan Untuk |
+|-------------|----------|----------|----------------|
+| `GPIO_SPEED_FREQ_LOW` | 2 MHz | Rendah | LED, relay, tombol |
+| `GPIO_SPEED_FREQ_MEDIUM` | 10 MHz | Sedang | SPI, UART, I²C |
+| `GPIO_SPEED_FREQ_HIGH` | 50 MHz | Tinggi | USB, SDIO, EMMC |
+
+> **Tips:** LED tidak perlu slew rate tinggi. Gunakan `FREQ_LOW` untuk hemat daya & kurangi EMI.
+
+### 8.3 Mengubah Speed Runtime (Percobaan 8)
 
 ```c
-#include "driver/gpio.h"
-
-// ============================================================
-// Konfigurasi OUTPUT: LED pada GPIO2 dan GPIO4
-// ============================================================
-gpio_config_t io_conf_out = {
-    .pin_bit_mask = (1ULL << GPIO_NUM_2) | (1ULL << GPIO_NUM_4),
-    .mode         = GPIO_MODE_OUTPUT,        // Output push-pull
-    .pull_up_en   = GPIO_PULLUP_DISABLE,
-    .pull_down_en = GPIO_PULLDOWN_DISABLE,
-    .intr_type    = GPIO_INTR_DISABLE        // Tanpa interrupt
-};
-gpio_config(&io_conf_out);
-
-// ============================================================
-// Konfigurasi INPUT: Button pada GPIO0 dengan pull-up
-// ============================================================
-gpio_config_t io_conf_in = {
-    .pin_bit_mask = (1ULL << GPIO_NUM_0),
-    .mode         = GPIO_MODE_INPUT,
-    .pull_up_en   = GPIO_PULLUP_ENABLE,      // Internal pull-up
-    .pull_down_en = GPIO_PULLDOWN_DISABLE,
-    .intr_type    = GPIO_INTR_DISABLE
-};
-gpio_config(&io_conf_in);
-```
-
-### 4.3 Fungsi GPIO ESP-IDF Utama
-
-```c
-#include "driver/gpio.h"
-
-// ============================================================
-// MENULIS OUTPUT
-// ============================================================
-
-// Set pin HIGH
-gpio_set_level(GPIO_NUM_2, 1);
-
-// Set pin LOW
-gpio_set_level(GPIO_NUM_2, 0);
-
-// ============================================================
-// MEMBACA INPUT
-// ============================================================
-
-// Baca level pin — return 0 atau 1
-int level = gpio_get_level(GPIO_NUM_0);
-
-if (level == 0) {
-    // Button ditekan (active LOW dengan pull-up)
+void Set_GPIO_Speed(uint32_t speed) {
+    GPIO_InitTypeDef init = {0};
+    init.Pin   = 0xFF;  // PA0-PA7
+    init.Mode  = GPIO_MODE_OUTPUT_PP;
+    init.Pull  = GPIO_NOPULL;
+    init.Speed = speed;   // ubah slew rate saat runtime
+    HAL_GPIO_Init(GPIOA, &init);
 }
-
-// ============================================================
-// KONFIGURASI INDIVIDUAL (alternatif gpio_config)
-// ============================================================
-
-// Set direction
-gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
-
-// Set pull mode
-gpio_set_pull_mode(GPIO_NUM_0, GPIO_PULLUP_ONLY);
-
-// Set drive strength
-gpio_set_drive_capability(GPIO_NUM_2, GPIO_DRIVE_CAP_3);  // 40mA
-
-// Baca drive strength
-gpio_drive_cap_t cap;
-gpio_get_drive_capability(GPIO_NUM_2, &cap);
-
-// Reset pin ke default
-gpio_reset_pin(GPIO_NUM_2);
 ```
 
-### 4.4 GPIO Matrix — Fitur Unik ESP32
+Pemanggilan: `Set_GPIO_Speed(GPIO_SPEED_FREQ_HIGH);`
 
-ESP32 memiliki **GPIO Matrix** — mekanisme routing fleksibel yang memungkinkan sinyal peripheral diarahkan ke hampir semua pin GPIO:
+### 8.4 Drive Strength pada ESP32
 
-```
-┌─────────────────────────────────────────────────┐
-│                  ESP32 SoC                       │
-│                                                  │
-│  ┌──────────┐     ┌──────────┐     ┌──────────┐│
-│  │  UART0   │     │   GPIO   │     │  GPIO    ││
-│  │  UART1   │────▶│  Matrix  │────▶│  Pads    ││
-│  │  SPI     │     │ (Routing)│     │ (Fisik)  ││
-│  │  I2C     │     │          │     │          ││
-│  │  etc.    │     └──────────┘     └──────────┘│
-│  └──────────┘                                   │
-│   Peripheral         Flexible          Physical │
-│   Signals            Routing           Pins     │
-└─────────────────────────────────────────────────┘
-
-Contoh: SPI bisa di-route ke GPIO manapun (bukan hanya pin default)
-```
-
-> **Catatan:** Beberapa sinyal ("dedicated GPIO") memiliki jalur langsung ke pin tanpa melewati GPIO Matrix, memberikan timing yang lebih presisi.
-
-### 4.5 Register-Level Access ESP32
+ESP32 menggunakan **drive capability** — berapa mA yang bisa dikuarkan:
 
 ```c
-#include "soc/gpio_reg.h"
-
-// ============================================================
-// ESP32 GPIO Register — akses langsung untuk performa tinggi
-// ============================================================
-
-// GPIO_OUT_REG: Output register (GPIO 0-31)
-// Menulis 1 = HIGH, 0 = LOW
-REG_WRITE(GPIO_OUT_REG, value);  // Set semua 32 pin sekaligus
-
-// GPIO_OUT_W1TS_REG: Write 1 to Set (atomik)
-REG_WRITE(GPIO_OUT_W1TS_REG, (1U << 2));  // Set GPIO2 HIGH
-
-// GPIO_OUT_W1TC_REG: Write 1 to Clear (atomik)
-REG_WRITE(GPIO_OUT_W1TC_REG, (1U << 2));  // Set GPIO2 LOW
-
-// GPIO_IN_REG: Input register (GPIO 0-31)
-uint32_t input_val = REG_READ(GPIO_IN_REG);
-
-// Cek pin tertentu
-if (REG_READ(GPIO_IN_REG) & (1U << 0)) {
-    // GPIO0 is HIGH
-}
-
-// ============================================================
-// Perbandingan performa
-// ============================================================
-// gpio_set_level():       ~1 μs (dengan validasi parameter)
-// REG_WRITE(W1TS/W1TC):  ~0.1 μs (langsung ke register)
+gpio_set_drive_capability(GPIO_NUM_4, GPIO_DRIVE_CAP_0); // ~5mA
+gpio_set_drive_capability(GPIO_NUM_4, GPIO_DRIVE_CAP_1); // ~10mA
+gpio_set_drive_capability(GPIO_NUM_4, GPIO_DRIVE_CAP_2); // ~20mA (default)
+gpio_set_drive_capability(GPIO_NUM_4, GPIO_DRIVE_CAP_3); // ~40mA (max)
 ```
 
 ---
 
-## 📚 5. Perbandingan Lengkap ESP32 vs STM32 GPIO
+## 9. Akses Register Langsung (BSRR, ODR, IDR)
 
-### 5.1 Tabel Perbandingan API
+### 9.1 Mengapa Register Langsung?
 
-| Operasi | STM32 HAL | ESP-IDF |
-|---------|-----------|---------|
-| **Init clock** | `__HAL_RCC_GPIOx_CLK_ENABLE()` | Otomatis |
-| **Konfigurasi pin** | `HAL_GPIO_Init(&GPIO_InitStruct)` | `gpio_config(&io_conf)` |
-| **Set HIGH** | `HAL_GPIO_WritePin(GPIOx, pin, GPIO_PIN_SET)` | `gpio_set_level(pin, 1)` |
-| **Set LOW** | `HAL_GPIO_WritePin(GPIOx, pin, GPIO_PIN_RESET)` | `gpio_set_level(pin, 0)` |
-| **Toggle** | `HAL_GPIO_TogglePin(GPIOx, pin)` | Tidak ada — manual `gpio_set_level()` |
-| **Baca input** | `HAL_GPIO_ReadPin(GPIOx, pin)` | `gpio_get_level(pin)` |
-| **De-init** | `HAL_GPIO_DeInit(GPIOx, pin)` | `gpio_reset_pin(pin)` |
-| **Set drive** | Via GPIO_Speed | `gpio_set_drive_capability(pin, cap)` |
-| **Atomic set** | `GPIOx->BSRR = (1 << n)` | `REG_WRITE(GPIO_OUT_W1TS_REG, (1 << n))` |
-| **Atomic clear** | `GPIOx->BSRR = (1 << (n+16))` | `REG_WRITE(GPIO_OUT_W1TC_REG, (1 << n))` |
+| Situasi | HAL | Register Langsung |
+|---------|-----|-------------------|
+| Set 8 LED sekaligus | Butuh 8× `HAL_GPIO_WritePin()` | `GPIOA->ODR = value` — 1 instruksi |
+| Baca 4 tombol bersamaan | Butuh 4× `HAL_GPIO_ReadPin()` | `GPIOB->IDR & mask` — 1 instruksi |
+| Toggle bit tanpa race | ReadPin → modifikasi → WritePin | `GPIOA->BSRR = bit` — atomik |
 
-### 5.2 Tabel Perbandingan Hardware
+### 9.2 BSRR — Bit Set/Reset Register (Atomik)
 
-| Aspek | STM32F103C8T6 | ESP32 |
-|-------|---------------|-------|
-| **Total GPIO** | 37 pin | 34 pin (26 usable) |
-| **Input-only pins** | Tidak ada | GPIO34-39 |
-| **Max current/pin** | 25 mA | 40 mA (20 mA recommended) |
-| **5V Tolerant** | Sebagian besar pin | ❌ Tidak ada |
-| **Internal pull-up** | ~40 kΩ | ~45 kΩ |
-| **Internal pull-down** | ~40 kΩ | ~45 kΩ |
-| **Speed config** | 2/10/50 MHz | Tidak ada (via drive strength) |
-| **Drive strength levels** | Tidak eksplisit | 4 level (5/10/20/40 mA) |
-| **GPIO routing** | Fixed alternate function | Flexible GPIO Matrix |
-| **Port-wide access** | Ya (IDR/ODR 16-bit) | Ya (GPIO_OUT_REG 32-bit) |
-| **Atomic bit set/reset** | BSRR register | W1TS / W1TC register |
-| **Built-in LED** | PC13 (active LOW, 3mA max) | GPIO2 (active HIGH) |
-| **Clock gating** | Manual (`RCC_CLK_ENABLE`) | Otomatis |
+```
+BSRR bit layout:
+  [31:16] = BR (Bit Reset) — tulis 1 untuk RESET pin ke LOW
+  [15:0]  = BS (Bit Set)   — tulis 1 untuk SET pin ke HIGH
 
-### 5.3 Perbedaan Penting dalam Inisialisasi
+Contoh atomik: set PA0 HIGH, reset PA1 LOW dalam SATU instruksi:
+  GPIOA->BSRR = (1 << 0)         // set PA0
+              | (1 << (16 + 1)); // reset PA1
+```
 
 ```c
-// ============================================================
-// STM32 — Clock harus diaktifkan manual sebelum pakai GPIO
-// ============================================================
-__HAL_RCC_GPIOA_CLK_ENABLE();  // WAJIB! Tanpa ini GPIO tidak berfungsi
-__HAL_RCC_GPIOB_CLK_ENABLE();
-__HAL_RCC_GPIOC_CLK_ENABLE();
+// Percobaan 9: tampilkan 8-bit count secara atomik
+void display_count_leds(uint8_t count) {
+    uint32_t set_mask   = (uint32_t)(count);          // bit yang perlu HIGH
+    uint32_t reset_mask = (uint32_t)((~count) & 0xFF); // bit yang perlu LOW
+    GPIOA->BSRR = (reset_mask << 16) | set_mask;      // atomik!
+}
+```
 
-GPIO_InitTypeDef gpio = {0};
-gpio.Pin   = GPIO_PIN_0 | GPIO_PIN_1;  // Bisa multi-pin
-gpio.Mode  = GPIO_MODE_OUTPUT_PP;
-gpio.Speed = GPIO_SPEED_FREQ_LOW;
-HAL_GPIO_Init(GPIOA, &gpio);
+### 9.3 ODR dan IDR
 
-// ============================================================
-// ESP32 — Clock otomatis, konfigurasi via bitmask
-// ============================================================
-gpio_config_t conf = {
-    .pin_bit_mask = (1ULL << 2) | (1ULL << 4),  // Multi-pin
+```c
+// ODR — tulis 8 LED sekaligus (non-atomik, modify bit tertentu)
+GPIOA->ODR = (GPIOA->ODR & 0xFFFFFF00) | (led_value & 0xFF);
+
+// IDR — baca 4 tombol sekaligus
+uint16_t raw = GPIOB->IDR;
+uint8_t btn0 = (raw >> 0) & 1;   // PB0
+uint8_t btn1 = (raw >> 1) & 1;   // PB1
+uint8_t btn3 = (raw >> 3) & 1;   // PB3 (bukan PB2 = BOOT1!)
+uint8_t btn4 = (raw >> 4) & 1;   // PB4
+```
+
+---
+
+## 10. Rotary Encoder Kuadratur
+
+### 10.1 Prinsip Kerja Encoder 5-pin
+
+Encoder rotari menghasilkan **dua sinyal kuadratur A (CLK) dan B (DT)** yang bergeser fase 90°:
+
+```
+Putar CW (Clockwise):                Putar CCW (Counter-CW):
+CLK: ─┐ ┌─┐ ┌─                     CLK: ─┐ ┌─┐ ┌─
+      └─┘ └─┘                             └─┘ └─┘
+DT:  ──┐ ┌─┐                        DT:  ┐ ┌─┐ ┌─┐
+       └─┘ └                              └─┘ └─┘
+      CLK↓ & DT=HIGH → CW (+1)           CLK↓ & DT=LOW → CCW (-1)
+```
+
+**Pin Encoder 5-pin:**
+| Pin | Fungsi | Terhubung ke STM32 |
+|-----|--------|--------------------|
+| GND | Ground | GND |
+| + | VCC | 3.3V |
+| SW | Push switch | PB14 (INPUT PULLUP) |
+| DT | Data — sinyal B | PB13 (INPUT PULLUP) |
+| CLK | Clock — sinyal A | PB12 (INPUT PULLUP) |
+
+### 10.2 Algoritma Decoding
+
+```c
+uint8_t  last_clk = 1;
+int16_t  count    = 128;  // mulai tengah (range 0-255)
+
+void poll_encoder(void) {
+    uint8_t clk = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12);
+    uint8_t dt  = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13);
+    uint8_t sw  = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
+
+    // Deteksi falling edge CLK (1→0)
+    if (last_clk == 1 && clk == 0) {
+        if (dt == 1) { count++; if (count > 255) count = 255; }  // CW
+        else         { count--; if (count < 0)   count = 0;   }  // CCW
+    }
+    last_clk = clk;
+
+    // SW press: reset ke 128
+    if (sw == 0) { HAL_Delay(20); if (sw == 0) count = 128; }
+}
+```
+
+---
+
+## 11. Matrix Keypad Scanning
+
+### 11.1 Struktur Keypad 4×4
+
+16 tombol disusun dalam matriks 4×4. 8 pin = 4 Row + 4 Column:
+
+```
+         COL1  COL2  COL3  COL4
+          │     │     │     │
+ROW1 ──┬──●──┬──●──┬──●──┬──●──
+       [1]   [2]   [3]   [A]
+ROW2 ──┼──┬──●──┬──●──┬──●──┬──
+       [4]   [5]   [6]   [B]
+ROW3 ──┼──┬──●──┬──●──┬──●──┬──
+       [7]   [8]   [9]   [C]
+ROW4 ──┼──┬──●──┬──●──┬──●──┬──
+       [*]   [0]   [#]   [D]
+```
+
+**Pin Assignment STM32:**
+- ROW 1–4: PB8, PB9, PB10, PB11 → **OUTPUT_PP**
+- COL 1–4: PB12, PB13, PB14, PB15 → **INPUT PULLUP**
+
+### 11.2 Algoritma Scanning
+
+```c
+const uint16_t ROW_PINS[4] = {GPIO_PIN_8,  GPIO_PIN_9,  GPIO_PIN_10, GPIO_PIN_11};
+const uint16_t COL_PINS[4] = {GPIO_PIN_12, GPIO_PIN_13, GPIO_PIN_14, GPIO_PIN_15};
+
+const uint8_t KEYMAP[4][4] = {
+    { 1,  2,  3, 10},   // Row 1
+    { 4,  5,  6, 11},   // Row 2
+    { 7,  8,  9, 12},   // Row 3
+    {15,  0, 14, 13}    // Row 4 (* → 15,  # → 14)
+};
+
+int8_t scan_keypad(void) {
+    for (int r = 0; r < 4; r++) {
+        // Set semua baris HIGH (idle)
+        for (int j = 0; j < 4; j++)
+            HAL_GPIO_WritePin(GPIOB, ROW_PINS[j], GPIO_PIN_SET);
+
+        // Tarik baris ini ke LOW
+        HAL_GPIO_WritePin(GPIOB, ROW_PINS[r], GPIO_PIN_RESET);
+        HAL_Delay(1);  // settling time
+
+        // Baca kolom (PULLUP → LOW saat ditekan)
+        for (int c = 0; c < 4; c++) {
+            if (HAL_GPIO_ReadPin(GPIOB, COL_PINS[c]) == GPIO_PIN_RESET)
+                return KEYMAP[r][c];  // tombol ditemukan!
+        }
+    }
+    return -1;  // tidak ada tombol
+}
+```
+
+---
+
+## 12. LCD I²C 16×2 — Antarmuka Tampilan
+
+### 12.1 LCD I²C Module
+
+LCD I²C menggunakan **backpack PCF8574** yang mengkonversi antarmuka LCD paralel 4-bit menjadi **I²C 2-kawat** (SDA + SCL). Menghemat 6 pin GPIO menjadi hanya 2.
+
+```
+STM32 PB6 (SCL) ─────── SCL ─── [PCF8574] ─── [LCD 16×2]
+STM32 PB7 (SDA) ─────── SDA ─── (I2C Expander)
+            GND ──────── GND
+           3.3V ──────── VCC
+```
+
+| Parameter | Nilai |
+|-----------|-------|
+| Protokol | I²C |
+| Kecepatan | 100 kHz (Standard Mode) |
+| Alamat default | 0x27 atau 0x3F |
+| STM32: SCL | PB6 (I2C1) |
+| STM32: SDA | PB7 (I2C1) |
+| ESP32: SCL | GPIO22 |
+| ESP32: SDA | GPIO21 |
+
+### 12.2 Informasi yang Ditampilkan per Percobaan
+
+| Percobaan | LCD Baris 1 | LCD Baris 2 |
+|-----------|-------------|-------------|
+| P01 LED Parade | `Pola: Running    ` | `Delay: 200ms      ` |
+| P02 Shadow Ghost | `Mode: PP vs OD   ` | `PA0=ON PA1=dim    ` |
+| P03 Sentinel Gate | `BTN: LEPAS       ` | `Press Count: xx   ` |
+| P04 Ground Guard | `BTN: LEPAS       ` | `Press Count: xx   ` |
+| P05 Phantom Touch | `InternalPullUP   ` | `B1:OK B2:OK       ` |
+| P06 Force Field | `InternalPullDN   ` | `B1:OK B3:OK       ` |
+| P07 Clean Contact | `C1:xx C2:xx      ` | `C3:xx C4:xx       ` |
+| P08 Speed Racer | `Speed: SLOW 2MHz ` | `Pola: Running     ` |
+| P09 Twist & Count | `Count= 175  CW   ` | `▓▓▓▓▓▓░░░░░░░░░░  ` |
+| P10 Matrix Cmdr | `KEY: [5]         ` | `Total: 023         ` |
+
+---
+
+## 13. GPIO pada ESP32 — Perbandingan & Perbedaan
+
+### 13.1 Konfigurasi Dasar ESP-IDF
+
+```c
+#include "driver/gpio.h"
+
+// Metode batch (dianjurkan untuk inisialisasi banyak pin)
+gpio_config_t io_conf = {
+    .pin_bit_mask = (1ULL << GPIO_NUM_4) | (1ULL << GPIO_NUM_5),
     .mode         = GPIO_MODE_OUTPUT,
     .pull_up_en   = GPIO_PULLUP_DISABLE,
     .pull_down_en = GPIO_PULLDOWN_DISABLE,
-    .intr_type    = GPIO_INTR_DISABLE
+    .intr_type    = GPIO_INTR_DISABLE,
 };
-gpio_config(&conf);
+gpio_config(&io_conf);
+
+// Operasi individual
+gpio_set_level(GPIO_NUM_4, 1);            // HIGH
+uint32_t val = gpio_get_level(GPIO_NUM_32); // baca
 ```
+
+### 13.2 Perhatian Khusus ESP32
+
+| Perhatian | Detail |
+|-----------|--------|
+| **GPIO34–39 INPUT ONLY** | Tidak bisa output, tidak ada internal pull |
+| **GPIO6–11** | Flash SPI internal — JANGAN digunakan! |
+| **GPIO2** | LED built-in Active-HIGH (bukan Active-LOW seperti STM32!) |
+| **Tegangan max** | 3.3V — TIDAK 5V tolerant! |
+| **GPIO36, GPIO39** | Hanya input, tidak ada pull sama sekali |
+
+### 13.3 Perbandingan API
+
+| Fungsi | STM32 HAL | ESP32 ESP-IDF |
+|--------|-----------|---------------|
+| Init | `HAL_GPIO_Init()` | `gpio_config()` |
+| Tulis | `HAL_GPIO_WritePin()` | `gpio_set_level()` |
+| Baca | `HAL_GPIO_ReadPin()` | `gpio_get_level()` |
+| Pull-up | `GPIO_PULLUP` (dalam init) | `gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY)` |
+| Pull-dn | `GPIO_PULLDOWN` | `gpio_set_pull_mode(pin, GPIO_PULLDOWN_ONLY)` |
+| Floating | `GPIO_NOPULL` | `gpio_set_pull_mode(pin, GPIO_FLOATING)` |
+| Drive | `GPIO_SPEED_FREQ_xxx` | `gpio_set_drive_capability()` |
+| Atomik SET | `GPIOA->BSRR = bit` | `GPIO.out_w1ts = bit` |
+| Atomik CLR | `GPIOA->BSRR = (bit<<16)` | `GPIO.out_w1tc = bit` |
 
 ---
 
-## 📚 6. Binary Counter dan Bit Manipulation
+## 14. Best Practices & Tips Debugging
 
-### 6.1 Konsep Binary Counter
+### 14.1 Checklist Sebelum Upload
 
-Binary counter menggunakan LED untuk menampilkan nilai biner. Dengan 4 LED, kita bisa menampilkan angka 0–15 (4-bit):
+- [ ] Aktifkan clock GPIO: `__HAL_RCC_GPIOx_CLK_ENABLE()` (STM32)
+- [ ] Jangan gunakan **PB2** (BOOT1) untuk tombol pada Blue Pill
+- [ ] P09 dan P10 berbagi PB12–PB15 — tidak bisa bersamaan
+- [ ] GND STM32 dan ESP32 harus terhubung jika dipakai bersamaan
+- [ ] LED selalu butuh resistor seri (min. 100Ω, praktis 220Ω)
+- [ ] Cek alamat LCD I²C dengan scanner (0x27 atau 0x3F)
 
-```
-Nilai   LED3  LED2  LED1  LED0
-  0:     ○     ○     ○     ○     (0000)
-  1:     ○     ○     ○     ●     (0001)
-  2:     ○     ○     ●     ○     (0010)
-  3:     ○     ○     ●     ●     (0011)
-  4:     ○     ●     ○     ○     (0100)
-  ...
- 15:     ●     ●     ●     ●     (1111)
+### 14.2 Hitung Arus LED
 
-○ = LED OFF, ● = LED ON
-```
+$$I_{LED} = \frac{V_{CC} - V_f}{R_{serial}} = \frac{3.3 - 2.0}{220} \approx 5.9\ \text{mA}$$
 
-### 6.2 Operasi Bit yang Penting
+Di mana $V_f$ = forward voltage (merah ≈ 2.0V, hijau ≈ 2.2V, biru ≈ 3.0–3.4V)
 
-```c
-// ============================================================
-// Operasi bit dasar untuk GPIO
-// ============================================================
+> Untuk LED biru ($V_f$ ≈ 3.2V): $I = (3.3 - 3.2)/220 = 0.45\ \text{mA}$ → sangat redup!  
+> Gunakan LED merah/kuning/hijau untuk demonstrasi visual yang lebih jelas.
 
-uint8_t counter = 0;  // Nilai 0–255
-
-// Cek apakah bit ke-n aktif (1)
-if (counter & (1U << n)) { /* bit n = 1 */ }
-
-// Set bit ke-n menjadi 1
-counter |= (1U << n);
-
-// Clear bit ke-n menjadi 0
-counter &= ~(1U << n);
-
-// Toggle bit ke-n
-counter ^= (1U << n);
-
-// ============================================================
-// Contoh: Tulis 4-bit counter ke 4 LED
-// ============================================================
-
-// STM32 — LED pada PA0, PA1, PA2, PA3
-void display_binary_stm32(uint8_t value)
-{
-    for (int i = 0; i < 4; i++) {
-        if (value & (1U << i)) {
-            HAL_GPIO_WritePin(GPIOA, (1U << i), GPIO_PIN_SET);
-        } else {
-            HAL_GPIO_WritePin(GPIOA, (1U << i), GPIO_PIN_RESET);
-        }
-    }
-}
-
-// STM32 — Cara efisien dengan BSRR (set & clear dalam satu write)
-void display_binary_stm32_fast(uint8_t value)
-{
-    uint32_t bsrr = 0;
-    for (int i = 0; i < 4; i++) {
-        if (value & (1U << i)) {
-            bsrr |= (1U << i);          // Set bit (lower 16 bits)
-        } else {
-            bsrr |= (1U << (i + 16));   // Reset bit (upper 16 bits)
-        }
-    }
-    GPIOA->BSRR = bsrr;  // Semua LED update sekaligus, atomik!
-}
-
-// ESP32 — LED pada GPIO4, GPIO5, GPIO18, GPIO19
-static const gpio_num_t led_pins[] = {
-    GPIO_NUM_4, GPIO_NUM_5, GPIO_NUM_18, GPIO_NUM_19
-};
-
-void display_binary_esp32(uint8_t value)
-{
-    for (int i = 0; i < 4; i++) {
-        gpio_set_level(led_pins[i], (value >> i) & 1);
-    }
-}
-```
-
-### 6.3 Mengapa Bit Manipulation Penting?
-
-| Kegunaan | Contoh |
-|----------|--------|
-| **Efisiensi** | Satu operasi BSRR update banyak pin atomik |
-| **DIP Switch** | Baca 4-8 switch sebagai satu angka biner |
-| **Keypad Matrix** | Scan baris/kolom dengan bit shifting |
-| **Status Encoding** | Encode state machine dalam bit flags |
-| **Register Access** | Semua register MCU diakses via bit manipulation |
-
----
-
-## 📚 7. Implementasi Praktikum
-
-### 7.1 Daftar Program Praktikum
-
-| No | Program | STM32 | ESP32 | Deskripsi |
-|----|---------|-------|-------|-----------|
-| 01 | LED_Blink | ✅ | ✅ | Dasar GPIO output — toggle LED periodik |
-| 02 | Multi_LED_Running | ✅ | ✅ | Pattern sequencing — LED berjalan |
-| 03 | LED_Binary_Counter **(BARU)** | ✅ | ✅ | Counter biner 4-bit dengan bit manipulation |
-| 04 | Button_Debounce | ✅ | ✅ | Software debouncing — state machine |
-| 05 | Long_Short_Press | ✅ | ✅ | Deteksi durasi tekan (short/long press) |
-| 06 | Toggle_Latch | ✅ | ✅ | Latch behavior — tekan sekali toggle state |
-| 07 | GPIO_Drive_Strength | ✅ | ✅ | Konfigurasi drive strength / speed |
-| 08 | DIP_Switch_Reader | ✅ | ✅ | Baca multi-input sebagai nilai biner |
-| 09 | GPIO_Port_Register **(BARU)** | ✅ | ✅ | Akses register langsung (BSRR / GPIO_OUT_REG) |
-| 10 | GPIO_Matrix_Keypad | ✅ | ✅ | Scan keypad matrix 4×4 via GPIO |
-| 11 | Emergency_Stop | ✅ | ✅ | Safety interlock — emergency stop system |
-| 12 | LED_Test_Pattern | ✅ | ✅ | Diagnostic pattern — test semua LED |
-
-> **Catatan:** Program 03 (LED_Binary_Counter) dan 09 (GPIO_Port_Register) adalah program baru yang menekankan bit manipulation dan akses register langsung.
-
-### 7.2 Skema Koneksi Standar
-
-```
-KONEKSI PRAKTIKUM GPIO:
-
-STM32F103C8T6:                    ESP32 DevKitC:
-┌─────────────────┐               ┌─────────────────┐
-│                 │               │                 │
-│  PC13 ──[LED]── GND (Built-in)  │  GPIO2 ──[LED]── GND (Built-in)
-│                 │               │                 │
-│  PA0 ──[R]──[LED]── GND         │  GPIO4 ──[R]──[LED]── GND
-│  PA1 ──[R]──[LED]── GND         │  GPIO5 ──[R]──[LED]── GND
-│  PA2 ──[R]──[LED]── GND         │  GPIO18──[R]──[LED]── GND
-│  PA3 ──[R]──[LED]── GND         │  GPIO19──[R]──[LED]── GND
-│                 │               │                 │
-│  PB0 ──[BTN]── GND              │  GPIO21──[BTN]── GND
-│  PB1 ──[BTN]── GND              │  GPIO22──[BTN]── GND
-│                 │               │                 │
-└─────────────────┘               └─────────────────┘
-
-R = Resistor 220Ω
-BTN = Push Button dengan internal pull-up enabled
-```
-
-### 7.3 Contoh: LED Blink (ESP-IDF)
-
-```c
-#include <stdio.h>
-#include "driver/gpio.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
-#define LED_PIN  GPIO_NUM_2
-
-void app_main(void)
-{
-    // Konfigurasi GPIO output
-    gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << LED_PIN),
-        .mode         = GPIO_MODE_OUTPUT,
-        .pull_up_en   = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type    = GPIO_INTR_DISABLE
-    };
-    gpio_config(&io_conf);
-
-    int led_state = 0;
-    while (1) {
-        led_state = !led_state;
-        gpio_set_level(LED_PIN, led_state);
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }
-}
-```
-
-### 7.4 Contoh: LED Blink (STM32 HAL)
-
-```c
-#include "stm32f1xx_hal.h"
-
-// LED on PC13 (active LOW pada Blue Pill)
-#define LED_PIN    GPIO_PIN_13
-#define LED_PORT   GPIOC
-
-int main(void)
-{
-    HAL_Init();
-    SystemClock_Config();
-
-    // Enable clock
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-
-    // Konfigurasi output
-    GPIO_InitTypeDef gpio = {0};
-    gpio.Pin   = LED_PIN;
-    gpio.Mode  = GPIO_MODE_OUTPUT_PP;
-    gpio.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(LED_PORT, &gpio);
-
-    while (1) {
-        HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
-        HAL_Delay(500);
-    }
-}
-```
-
----
-
-## 📚 8. Best Practices GPIO
-
-### 8.1 Checklist Keamanan
-
-```
-✅ LAKUKAN:
-□ Gunakan resistor pembatas arus untuk LED (150–330Ω)
-□ Aktifkan pull-up/pull-down untuk input — jangan biarkan floating
-□ Implementasikan debouncing untuk mechanical switches
-□ Periksa voltage level compatibility sebelum koneksi
-□ Gunakan level shifter untuk interfacing 5V devices ke ESP32
-□ Aktifkan GPIO clock sebelum konfigurasi (STM32 wajib!)
-
-❌ HINDARI:
-□ Melebihi maximum current per pin (25mA STM32, 40mA ESP32)
-□ Menghubungkan 5V langsung ke GPIO ESP32
-□ Menggunakan GPIO6-11 pada ESP32 (flash SPI internal)
-□ Membiarkan input pin floating tanpa pull resistor
-□ Short circuit pada output pin
-□ Menggunakan GPIO0 ESP32 tanpa pertimbangan (boot pin)
-```
-
-### 8.2 Pola Pemrograman yang Baik
-
-```c
-// ============================================================
-// 1. Definisikan semua pin di satu tempat (header file)
-// ============================================================
-
-// config.h — ESP-IDF
-#define LED_PIN       GPIO_NUM_2
-#define BUTTON_PIN    GPIO_NUM_0
-#define LED_COUNT     4
-
-// config.h — STM32 HAL
-#define LED_PIN       GPIO_PIN_13
-#define LED_PORT      GPIOC
-#define BUTTON_PIN    GPIO_PIN_0
-#define BUTTON_PORT   GPIOB
-
-// ============================================================
-// 2. Gunakan fungsi wrapper — abstraksi platform
-// ============================================================
-
-// ESP-IDF version
-void led_on(void)  { gpio_set_level(LED_PIN, 1); }
-void led_off(void) { gpio_set_level(LED_PIN, 0); }
-
-// STM32 HAL version
-void led_on(void)  { HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_RESET); }  // Active LOW
-void led_off(void) { HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET); }
-
-// ============================================================
-// 3. Non-blocking timing dengan tick counter
-// ============================================================
-
-// ESP-IDF (FreeRTOS tick)
-TickType_t last_update = xTaskGetTickCount();
-if ((xTaskGetTickCount() - last_update) >= pdMS_TO_TICKS(1000)) {
-    last_update = xTaskGetTickCount();
-    // Aksi periodik
-}
-
-// STM32 HAL
-uint32_t last_update = HAL_GetTick();
-if ((HAL_GetTick() - last_update) >= 1000) {
-    last_update = HAL_GetTick();
-    // Aksi periodik
-}
-```
-
-### 8.3 Debugging GPIO
-
-```c
-// ============================================================
-// ESP-IDF: Gunakan ESP_LOG untuk debug
-// ============================================================
-#include "esp_log.h"
-static const char *TAG = "GPIO";
-
-ESP_LOGI(TAG, "GPIO%d state: %d", pin, gpio_get_level(pin));
-ESP_LOGW(TAG, "Button pressed!");
-ESP_LOGE(TAG, "GPIO config failed");
-
-// ============================================================
-// STM32 HAL: Gunakan UART printf (redirect ke USART)
-// ============================================================
-#include <stdio.h>
-// Setelah setup UART retarget:
-printf("PB0 state: %d\r\n",
-       HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0));
-
-// ============================================================
-// LED indicator untuk state (tanpa serial)
-// ============================================================
-typedef enum {
-    STATE_IDLE,
-    STATE_RUNNING,
-    STATE_ERROR
-} system_state_t;
-
-void indicate_state(system_state_t state)
-{
-    switch (state) {
-        case STATE_IDLE:    led_off(); break;
-        case STATE_RUNNING: led_on();  break;
-        case STATE_ERROR:   /* fast blink in timer */ break;
-    }
-}
-```
-
----
-
-## 📚 9. Troubleshooting
-
-### 9.1 Masalah Umum dan Solusi
+### 14.3 Tabel Troubleshooting
 
 | Masalah | Kemungkinan Penyebab | Solusi |
 |---------|---------------------|--------|
-| LED tidak menyala | Polaritas terbalik, resistor terlalu besar | Periksa anode/cathode, ukur dengan multimeter |
-| LED redup | Resistor terlalu besar, drive current rendah | Kurangi nilai resistor (min 100Ω), cek drive strength |
-| Button bouncing | Tidak ada debouncing | Implementasi software debounce (50ms delay) |
-| Input floating / acak | Tidak ada pull-up/down | Aktifkan internal pull-up atau tambah external |
-| GPIO tidak responsif (STM32) | Clock belum diaktifkan | Tambahkan `__HAL_RCC_GPIOx_CLK_ENABLE()` |
-| GPIO tidak responsif (ESP32) | Pin input-only atau flash pin | Periksa — GPIO34-39 input only, GPIO6-11 jangan dipakai |
-| ESP32 boot loop | GPIO0 tertarik LOW | Lepaskan koneksi ke GPIO0 saat upload/boot |
-| PC13 LED redup (STM32) | PC13 max ~3mA | Gunakan pin lain (PA0-PA7) untuk LED lebih terang |
-| Binary counter salah | Bit order terbalik | Periksa mapping pin ke bit position |
-
-### 9.2 Kode Diagnostik (ESP-IDF)
-
-```c
-#include "driver/gpio.h"
-#include "esp_log.h"
-
-static const char *TAG = "GPIO_DIAG";
-
-void test_output_pins(void)
-{
-    gpio_num_t test_pins[] = {GPIO_NUM_2, GPIO_NUM_4, GPIO_NUM_5,
-                               GPIO_NUM_18, GPIO_NUM_19};
-    int num_pins = sizeof(test_pins) / sizeof(test_pins[0]);
-
-    for (int i = 0; i < num_pins; i++) {
-        gpio_set_direction(test_pins[i], GPIO_MODE_OUTPUT);
-        gpio_set_level(test_pins[i], 1);
-        vTaskDelay(pdMS_TO_TICKS(200));
-        gpio_set_level(test_pins[i], 0);
-        ESP_LOGI(TAG, "GPIO%d: OUTPUT OK", test_pins[i]);
-    }
-}
-
-void test_input_pins(void)
-{
-    gpio_num_t test_pins[] = {GPIO_NUM_0, GPIO_NUM_21, GPIO_NUM_22};
-    int num_pins = sizeof(test_pins) / sizeof(test_pins[0]);
-
-    for (int i = 0; i < num_pins; i++) {
-        gpio_set_direction(test_pins[i], GPIO_MODE_INPUT);
-        gpio_set_pull_mode(test_pins[i], GPIO_PULLUP_ONLY);
-        int level = gpio_get_level(test_pins[i]);
-        ESP_LOGI(TAG, "GPIO%d: %s", test_pins[i],
-                 level ? "HIGH (idle)" : "LOW (pressed?)");
-    }
-}
-```
+| LED tidak menyala | Polaritas terbalik / tanpa resistor | Periksa arah LED, ukur tegangan |
+| LCD blank | Alamat I²C salah / SDA/SCL terbalik | I²C scanner, cek PB6=SCL PB7=SDA |
+| Tombol bouncing | DEBOUNCE_MS terlalu kecil | Naikkan ke 50ms |
+| Encoder loncat | CLK/DT tanpa pull-up | Gunakan PULLUP, tambah kapasitor 100nF |
+| Keypad tidak respons | ROW/COL terbalik | Cek wiring, test per baris |
+| Upload STM32 gagal | BOOT0 salah, ST-Link tidak terdeteksi | Cek jumper BOOT0=0 |
 
 ---
 
-## Referensi
+## 15. Ringkasan Percobaan 1–10
 
-### Dokumentasi Resmi
-1. **STM32F103C8T6 Reference Manual** (RM0008) — STMicroelectronics
-2. **STM32F103C8T6 Datasheet** — STMicroelectronics
-3. **ESP32 Technical Reference Manual** — Espressif Systems
-4. **ESP-IDF Programming Guide: GPIO** — [docs.espressif.com](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/gpio.html)
+| # | Judul | Konsep Utama | Hardware Utama |
+|---|-------|-------------|----------------|
+| **P01** | **LED Parade** | Push-Pull, Active-HIGH, ODR, 4 pola | 8 LED + LCD |
+| **P02** | **Shadow & Ghost** | Open-Drain, Active-LOW, Hi-Z, arus OD | 8 LED + LCD |
+| **P03** | **Sentinel Gate** | Input NOPULL, Pull-UP eksternal 220Ω | 1 BTN + 4 LED + LCD |
+| **P04** | **Ground Guardian** | Input NOPULL, Pull-DOWN eksternal 220Ω | 1 BTN + 4 LED + LCD |
+| **P05** | **Phantom Touch** | Pull-UP internal ~40kΩ, no external | 2 BTN + 4 LED + LCD |
+| **P06** | **Force Field** | Pull-DOWN internal ~40kΩ, Active-HIGH | 2 BTN + 4 LED + LCD |
+| **P07** | **Clean Contact** | State machine debounce, 4 BTN, non-blocking | 4 BTN + 4 LED + LCD |
+| **P08** | **Speed Racer** | GPIO Slew Rate, runtime config, 4 pola | 4 BTN + 8 LED + LCD |
+| **P09** | **Twist & Count** | Encoder kuadratur, CW/CCW, BSRR atomik | Encoder + 8 LED + LCD |
+| **P10** | **Matrix Commander** | Keypad 4×4 scanning, KEYMAP, INPUT PU | Keypad + 8 LED + LCD |
 
-### Buku Referensi
-1. Carmine Noviello, *Mastering STM32* 2nd Edition
-2. Neil Kolban, *Kolban's Book on ESP32*
+### Pin Assignment Cepat (STM32 Blue Pill)
 
-### Online Resources
-1. [ESP-IDF GPIO Driver API](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/gpio.html)
-2. [STM32 HAL GPIO Documentation](https://www.st.com/resource/en/user_manual/um1785-stm32cube-hal-driver.pdf)
-
----
-
-## 📝 Latihan Soal
-
-### Soal Teori
-
-1. Jelaskan perbedaan antara mode Push-Pull dan Open-Drain! Kapan masing-masing digunakan?
-2. Mengapa PC13 pada STM32 Blue Pill disebut "active LOW"? Apa implikasinya terhadap kode?
-3. Hitunglah resistor yang diperlukan untuk LED hijau (Vf=2.2V) dengan arus 15mA pada sistem 3.3V!
-4. Apa yang terjadi jika GPIO input dibiarkan floating? Bagaimana solusi di STM32 HAL dan ESP-IDF?
-5. Jelaskan mengapa register BSRR pada STM32 lebih aman dari ODR untuk operasi multi-pin!
-6. Apa itu GPIO Matrix pada ESP32? Apa keuntungannya dibanding STM32?
-
-### Soal Praktik
-
-1. Implementasikan binary counter 4-bit dengan 4 LED, increment saat button short press, reset saat long press!
-2. Buatlah program yang membaca DIP switch 4-bit dan menampilkan nilainya pada LED!
-3. Bandingkan kecepatan `gpio_set_level()` vs `REG_WRITE(GPIO_OUT_W1TS_REG)` — ukur dengan GPIO toggle dan logic analyzer!
+| GPIO | Fungsi | Dipakai di |
+|------|--------|-----------|
+| PA0–PA7 | LED 1–8 (Active-HIGH, 220Ω) | P01 – P10 |
+| PC13 | LED built-in (Active-LOW) | P01, P02 |
+| PB0 | Push Button 1 | P03, P05, P07, P08 |
+| PB1 | Push Button 2 | P04, P06, P07, P08 |
+| PB3, PB4 | Push Button 3, 4 | P07, P08 |
+| PB6, PB7 | SCL, SDA — LCD I²C | P01 – P10 |
+| PB8–PB11 | Keypad ROW 1–4 (OUTPUT) | P10 |
+| PB12–PB15 | Keypad COL 1–4 (INPUT PU) | P10 |
+| PB12, PB13, PB14 | Encoder CLK, DT, SW | P09 |
 
 ---
 
-*Modul ini adalah bagian dari Praktikum Sistem Embedded*
-*Versi 2.0 — Februari 2026*
+## Daftar Pustaka
+
+1. Ferretti, C. (2020). *Mastering STM32, 2nd Edition*, Chapter 6: GPIO Management. Leanpub.
+2. Kolban, N. (2018). *Kolban's Book on ESP32*, Chapter: GPIO. Self-published.
+3. STMicroelectronics. (2021). *STM32F103x8/xB Reference Manual (RM0008)*. ST, Rev 21.
+4. Espressif Systems. (2024). *ESP32 Technical Reference Manual v5.3*, Chapter 4: GPIO & RTC GPIO.
+5. Williams, J. (1990). "Signal Sources, Conditioners, and Power Circuitry." *Linear Technology AN26*.
+6. Ganssle, J. (2008). *The Art of Designing Embedded Systems, 2nd Ed.* Newnes, Chapter 3.

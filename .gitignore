@@ -200,6 +200,7 @@ local.properties
 ## Sublime Text
 *.sublime-workspace
 *.sublime-project
+*.desktop.ini
 
 ## Vim
 [._]*.s[a-v][a-z]
@@ -251,7 +252,7 @@ Thumbs.db:encryptable
 ehthumbs.db
 ehthumbs_vista.db
 *.stackdump
-[Dd]esktop.ini
+**/[Dd]esktop.ini
 $RECYCLE.BIN/
 *.cab
 *.msi
@@ -342,9 +343,7 @@ cache/
 ## Ignore reference materials folder (if contains large PDFs)
 # REFERENSI/
 
-## Ignore old project structures
-F103C8T6/
-Praktikum Sistem Embedded/
+tes/
 
 ## Ignore compiled reports unless specifically needed
 # *.md

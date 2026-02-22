@@ -1,6 +1,6 @@
-# STM32 GPIO Digital I/O - 12 Praktikum
+# STM32 GPIO Digital I/O - 10 Praktikum
 
-Dokumentasi lengkap untuk 12 praktikum GPIO pada STM32 dengan dukungan 3 jenis mikrokontroler.
+Dokumentasi lengkap untuk 10 praktikum GPIO pada STM32 dengan dukungan 3 jenis mikrokontroler.
 
 ## Supported Microcontrollers (MCU)
 
@@ -54,41 +54,47 @@ pio device monitor --baud 115200
 pio debug
 ```
 
-## Daftar 12 Project
+## Daftar 10 Project
 
 | # | Project | Fungsi |
 |---|---------|--------|
-| 1 | **STM32_01_LED_Blink** | LED berkedip dasar (500ms) |
-| 2 | **STM32_02_Multi_LED_Running** | 4 LED bergeser berurutan |
-| 3 | **STM32_03_LED_Binary_Counter** | Hitung biner 0-15 pada 4 LED |
-| 4 | **STM32_04_Button_Debounce** | Tombol dengan debounce state machine |
-| 5 | **STM32_05_Long_Short_Press** | Deteksi tekan panjang vs pendek |
-| 6 | **STM32_06_Toggle_Latch** | Toggle LED di tekan tombol |
-| 7 | **STM32_07_GPIO_Drive_Strength** | Test kekuatan drive GPIO |
-| 8 | **STM32_08_DIP_Switch_Reader** | Baca DIP switch 4-bit |
-| 9 | **STM32_09_GPIO_Port_Register** | Akses register GPIO langsung |
-| 10 | **STM32_10_GPIO_Matrix_Keypad** | Scanning keypad matrix 4x4 |
-| 11 | **STM32_11_Emergency_Stop** | Tombol emergency dengan interrupt |
-| 12 | **STM32_12_LED_Test_Pattern** | Pola diagnostik LED |
+| 1 | **STM32_P01_LED_Output_High** | LED Output Push-Pull Active-HIGH (8 LED, 4 pola) |
+| 2 | **STM32_P02_LED_Output_Low** | LED Output Active-LOW & Open-Drain |
+| 3 | **STM32_P03_Button_PullUp_Ext** | Tombol Pull-UP Eksternal (220Ω ke 3.3V) |
+| 4 | **STM32_P04_Button_PullDown_Ext** | Tombol Pull-DOWN Eksternal (220Ω ke GND) |
+| 5 | **STM32_P05_Button_PullUp_Internal** | Pull-UP Internal ~40kΩ tanpa resistor |
+| 6 | **STM32_P06_Button_PullDown_Internal** | Pull-DOWN Internal ~40kΩ Active-HIGH |
+| 7 | **STM32_P07_Button_Debounce** | Debounce State Machine non-blocking (4 tombol) |
+| 8 | **STM32_P08_LED_Patterns** | GPIO Slew Rate & Pola LED Multi-Kecepatan |
+| 9 | **STM32_P09_Encoder_5Pin** | Rotary Encoder Kuadratur 5-pin & Counter LCD |
+| 10 | **STM32_P10_Keypad_8Pin** | Scanning Keypad Matrix 4×4 (8-pin) & Tampilan LCD |
 
 ## Hardware Configuration
 
-### Pin Mapping (PA, PB, PC)
+### Pin Mapping
 
 ```
 Port A (PA):
-  PA0-PA3   → LED atau Row (Keypad)
-  PA4-PA7   → (Reserved untuk ekspansi)
+  PA0-PA7   → 8 LED External (Active-HIGH, 220Ω ke GND)
 
 Port B (PB):
-  PB0       → Button/DIP Switch/Col (Keypad)
-  PB1       → Button/DIP Switch/Col (Keypad)
-  PB3       → DIP Switch/Col (Keypad) [PB2 = BOOT1, dihindari]
-  PB4       → DIP Switch/Col (Keypad)
+  PB0       → Push Button 1  (P03-P08)
+  PB1       → Push Button 2  (P04-P08)
+  PB3       → Push Button 3  (P07-P08) [PB2 = BOOT1, dihindari]
+  PB4       → Push Button 4  (P07-P08)
+  PB6       → SCL I2C1 (LCD 16x2) — AF Open-Drain
+  PB7       → SDA I2C1 (LCD 16x2) — AF Open-Drain
+  PB8-PB11  → Keypad ROW 1-4 (OUTPUT_PP) [P10]
+  PB12-PB15 → Keypad COL 1-4 (INPUT PULLUP) [P10]
+  PB12      → Encoder CLK (INPUT PULLUP) [P09]
+  PB13      → Encoder DT  (INPUT PULLUP) [P09]
+  PB14      → Encoder SW  (INPUT PULLUP) [P09]
 
 Port C (PC):
-  PC13      → Built-in LED (active-low)
+  PC13      → LED Onboard Blue Pill (Active-LOW, built-in)
 ```
+
+> ⚠️ P09 (Encoder) dan P10 (Keypad) berbagi PB12-PB15 — tidak bisa dijalankan bersamaan.
 
 ### Skema Dasar
 
@@ -115,14 +121,11 @@ GPIO Pin ─┬─[220Ω]─[LED]─┐
 Setiap project memiliki struktur:
 
 ```
-STM32_XX_ProjectName/
+STM32_PXX_ProjectName/
 ├── platformio.ini          ← Config environment & MCU
-├── include/
-│   └── config.h            ← Hardware definition
 ├── src/
 │   └── main.c              ← Program utama
-├── .gitignore
-└── README.md               ← Project-specific docs
+└── schematic.png           ← Diagram rangkaian
 ```
 
 ## Building Instructions
@@ -131,7 +134,7 @@ STM32_XX_ProjectName/
 
 ```bash
 # Navigate ke project
-cd STM32_01_LED_Blink
+cd STM32_P01_LED_Output_High
 
 # Build untuk environment default (atau pilih manual)
 pio run
@@ -176,27 +179,24 @@ Beberapa project tidak punya UART output. Gunakan:
 
 ## Konsep yang Dipelajari
 
-### Basic GPIO (01-03)
-- GPIO output configuration
-- Timing dengan HAL_Delay()
-- Bit manipulation & bitwise operations
+### GPIO Output (P01-P02)
+- GPIO output Push-Pull (Active-HIGH) dan Open-Drain (Active-LOW)
+- Timing dengan HAL_Delay(), register ODR dan BSRR
+- Konsep Hi-Z dan efek kecerahan LED
 
-### Input & Debouncing (04-06)
-- GPIO input dengan pull-up
-- State machine debouncing
-- Edge detection
-- Toggle logic
+### GPIO Input (P03-P06)
+- Pull-UP eksternal (220Ω ke 3.3V) dan Pull-DOWN eksternal (220Ω ke GND)
+- Pull-UP internal (~40kΩ) dan Pull-DOWN internal (~40kΩ)
+- Falling edge / Rising edge detection
 
-### Advanced GPIO (07-10)
-- Drive strength configuration
-- Register access (IDR, ODR, BSRR)
-- Matrix multiplexing
-- Scanning algorithm
+### Debounce & Pola (P07-P08)
+- State machine debounce non-blocking dengan HAL_GetTick()
+- GPIO Slew Rate (SPEED_FREQ_LOW/MEDIUM/HIGH) dan pola LED multi-kecepatan
 
-### Safety & Testing (11-12)
-- Interrupt handling
-- Safety interlock
-- Diagnostic patterns
+### Periferal Lanjut (P09-P10)
+- Rotary Encoder kuadratur 5-pin (CLK/DT/SW): dekode CW/CCW
+- Keypad Matrix 4×4 (8-pin): row/column scanning algorithm
+- LCD I²C 16×2 sebagai tampilan di semua percobaan
 
 ## Reference Documentation
 
@@ -215,5 +215,5 @@ Beberapa project tidak punya UART output. Gunakan:
 
 ---
 
-**Last Updated:** Feb 9, 2026  
-**Status:** All 12 projects verified ✓
+**Last Updated:** Feb 22, 2026  
+**Status:** All 10 projects verified ✓

@@ -26,16 +26,16 @@ Mahasiswa membuat video tutorial yang menjelaskan salah satu konsep atau program
 
 Pilih SATU dari topik berikut:
 
-| No | Topik | Tingkat Kesulitan |
-|----|-------|-------------------|
-| 1 | Penjelasan Konsep GPIO dan Mode Operasi | ⭐⭐ |
-| 2 | Tutorial LED Blink dengan ESP-IDF dan STM32 HAL | ⭐ |
-| 3 | LED Binary Counter dan Bit Manipulation | ⭐⭐ |
-| 4 | Implementasi Software Debouncing | ⭐⭐⭐ |
-| 5 | Perbandingan GPIO STM32 vs ESP32 | ⭐⭐ |
-| 6 | Long Press vs Short Press Detection | ⭐⭐⭐ |
-| 7 | GPIO Register Access (BSRR, ODR, GPIO_OUT_REG) | ⭐⭐⭐ |
-| 8 | Safety: Emergency Stop Implementation | ⭐⭐⭐ |
+| No | Topik | Percobaan | Tingkat Kesulitan |
+|----|-------|-----------|-------------------|
+| 1 | LED Output Push-Pull & Active-LOW | P01, P02 | ⭐ |
+| 2 | Push Button Pull-UP/DOWN Eksternal | P03, P04 | ⭐⭐ |
+| 3 | Pull-UP/DOWN Internal & Perbandingan | P05, P06 | ⭐⭐ |
+| 4 | Implementasi Software Debounce State Machine | P07 | ⭐⭐⭐ |
+| 5 | GPIO Slew Rate & Pola LED Multi-Kecepatan | P08 | ⭐⭐ |
+| 6 | Rotary Encoder Kuadratur 5-pin & Counter LCD | P09 | ⭐⭐⭐ |
+| 7 | Keypad Matrix 4×4 (8-pin) Scanning & LCD | P10 | ⭐⭐⭐ |
+| 8 | Perbandingan GPIO STM32 HAL vs ESP32 ESP-IDF | P01-P10 | ⭐⭐ |
 
 ---
 
@@ -240,4 +240,4 @@ _______________________________________________________________
 ---
 
 *Rubrik Penilaian Video Modul 01 - Praktikum Sistem Embedded*
-*Versi 1.0 - Februari 2026*
+*Versi 1.1 - Februari 2026*

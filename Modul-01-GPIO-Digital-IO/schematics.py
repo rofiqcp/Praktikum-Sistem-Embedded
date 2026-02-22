@@ -24,7 +24,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-BASE = r"D:\Praktikum-Sistem-Embedded\Modul-01-GPIO-Digital-IO\praktikum\STM32"
+BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "praktikum", "STM32")
 
 # ─────────────────────────────────────────────────────────────────
 #  Warna & konstanta

@@ -326,14 +326,13 @@ Slide 26 - Key Takeaways:
   ☑ Register access memberikan kontrol langsung dan cepat
 
 Slide 27 - Preview Praktikum:
-- Judul: "12 Program yang Akan Dipelajari"
+- Judul: "10 Percobaan yang Akan Dipelajari"
 - Grid preview program:
-  * 01 LED Blink           * 07 GPIO Drive Strength
-  * 02 Multi LED Running    * 08 DIP Switch Reader
-  * 03 LED Binary Counter   * 09 GPIO Port Register
-  * 04 Button Debounce      * 10 GPIO Matrix Keypad
-  * 05 Long/Short Press     * 11 Emergency Stop
-  * 06 Toggle Latch         * 12 LED Test Pattern
+  * P01 LED Parade          * P06 Force Field
+  * P02 Shadow & Ghost      * P07 Clean Contact
+  * P03 Sentinel Gate       * P08 Speed Racer
+  * P04 Ground Guardian     * P09 Twist & Count
+  * P05 Phantom Touch       * P10 Matrix Commander
 - "Mari kita praktikkan!"
 ```
 

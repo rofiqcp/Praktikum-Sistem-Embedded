@@ -734,15 +734,15 @@ STM32 PB7 (SDA) ─────── SDA ─── (I2C Expander)
 | Percobaan | LCD Baris 1 | LCD Baris 2 |
 |-----------|-------------|-------------|
 | P01 LED Parade | `Pola: Running    ` | `Delay: 200ms      ` |
-| P02 Shadow Ghost | `Mode: PP vs OD   ` | `PA0=ON PA1=dim    ` |
+| P02 Shadow & Ghost | `Mode: PP vs OD   ` | `PA0=ON PA1=dim    ` |
 | P03 Sentinel Gate | `BTN: LEPAS       ` | `Press Count: xx   ` |
-| P04 Ground Guard | `BTN: LEPAS       ` | `Press Count: xx   ` |
+| P04 Ground Guardian | `BTN: LEPAS       ` | `Press Count: xx   ` |
 | P05 Phantom Touch | `InternalPullUP   ` | `B1:OK B2:OK       ` |
 | P06 Force Field | `InternalPullDN   ` | `B1:OK B3:OK       ` |
 | P07 Clean Contact | `C1:xx C2:xx      ` | `C3:xx C4:xx       ` |
 | P08 Speed Racer | `Speed: SLOW 2MHz ` | `Pola: Running     ` |
 | P09 Twist & Count | `Count= 175  CW   ` | `▓▓▓▓▓▓░░░░░░░░░░  ` |
-| P10 Matrix Cmdr | `KEY: [5]         ` | `Total: 023         ` |
+| P10 Matrix Commander | `KEY: [5]         ` | `Total: 023         ` |
 
 ---
 

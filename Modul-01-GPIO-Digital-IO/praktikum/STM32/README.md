@@ -1,6 +1,6 @@
-# STM32 GPIO Digital I/O - 12 Praktikum
+# STM32 GPIO Digital I/O - 10 Percobaan
 
-Dokumentasi lengkap untuk 12 praktikum GPIO pada STM32 dengan dukungan 3 jenis mikrokontroler.
+Dokumentasi lengkap untuk 10 percobaan GPIO pada STM32 dengan dukungan 3 jenis mikrokontroler.
 
 ## Supported Microcontrollers (MCU)
 
@@ -54,22 +54,20 @@ pio device monitor --baud 115200
 pio debug
 ```
 
-## Daftar 12 Project
+## Daftar 10 Percobaan
 
-| # | Project | Fungsi |
-|---|---------|--------|
-| 1 | **STM32_01_LED_Blink** | LED berkedip dasar (500ms) |
-| 2 | **STM32_02_Multi_LED_Running** | 4 LED bergeser berurutan |
-| 3 | **STM32_03_LED_Binary_Counter** | Hitung biner 0-15 pada 4 LED |
-| 4 | **STM32_04_Button_Debounce** | Tombol dengan debounce state machine |
-| 5 | **STM32_05_Long_Short_Press** | Deteksi tekan panjang vs pendek |
-| 6 | **STM32_06_Toggle_Latch** | Toggle LED di tekan tombol |
-| 7 | **STM32_07_GPIO_Drive_Strength** | Test kekuatan drive GPIO |
-| 8 | **STM32_08_DIP_Switch_Reader** | Baca DIP switch 4-bit |
-| 9 | **STM32_09_GPIO_Port_Register** | Akses register GPIO langsung |
-| 10 | **STM32_10_GPIO_Matrix_Keypad** | Scanning keypad matrix 4x4 |
-| 11 | **STM32_11_Emergency_Stop** | Tombol emergency dengan interrupt |
-| 12 | **STM32_12_LED_Test_Pattern** | Pola diagnostik LED |
+| # | Project | Nama Percobaan | Fungsi |
+|---|---------|----------------|--------|
+| 1 | **STM32_P01_LED_Output_High** | LED Parade | GPIO Output Push-Pull & Pola Cahaya Digital |
+| 2 | **STM32_P02_LED_Output_Low** | Shadow & Ghost | Active-LOW, Open-Drain & Logika Terbalik |
+| 3 | **STM32_P03_Button_PullUp_Ext** | Sentinel Gate | Tombol Pull-UP Eksternal (220Ω ke 3.3V) |
+| 4 | **STM32_P04_Button_PullDown_Ext** | Ground Guardian | Tombol Pull-DOWN Eksternal (220Ω ke GND) |
+| 5 | **STM32_P05_Button_PullUp_Internal** | Phantom Touch | Pull-UP Internal & Tombol Tanpa Resistor |
+| 6 | **STM32_P06_Button_PullDown_Internal** | Force Field | Pull-DOWN Internal & Logika Active-HIGH |
+| 7 | **STM32_P07_Button_Debounce** | Clean Contact | Debounce State Machine & Penghitung Akurat |
+| 8 | **STM32_P08_LED_Patterns** | Speed Racer | GPIO Slew Rate & Pola LED Multi-Kecepatan |
+| 9 | **STM32_P09_Encoder_5Pin** | Twist & Count | Rotary Encoder Kuadratur & Counter LCD |
+| 10 | **STM32_P10_Keypad_8Pin** | Matrix Commander | Pemindaian Keypad 4×4 & Tampilan LCD |
 
 ## Hardware Configuration
 
@@ -115,7 +113,7 @@ GPIO Pin ─┬─[220Ω]─[LED]─┐
 Setiap project memiliki struktur:
 
 ```
-STM32_XX_ProjectName/
+STM32_Pxx_NamaPercobaan/
 ├── platformio.ini          ← Config environment & MCU
 ├── include/
 │   └── config.h            ← Hardware definition
@@ -131,7 +129,7 @@ STM32_XX_ProjectName/
 
 ```bash
 # Navigate ke project
-cd STM32_01_LED_Blink
+cd STM32_P01_LED_Output_High
 
 # Build untuk environment default (atau pilih manual)
 pio run
@@ -176,27 +174,24 @@ Beberapa project tidak punya UART output. Gunakan:
 
 ## Konsep yang Dipelajari
 
-### Basic GPIO (01-03)
-- GPIO output configuration
-- Timing dengan HAL_Delay()
+### Output GPIO (P01–P02)
+- GPIO output configuration (Push-Pull & Open-Drain)
+- Active-HIGH vs Active-LOW
 - Bit manipulation & bitwise operations
 
-### Input & Debouncing (04-06)
-- GPIO input dengan pull-up
-- State machine debouncing
+### Input & Pull Resistor (P03–P06)
+- GPIO input dengan pull-up/pull-down eksternal & internal
 - Edge detection
-- Toggle logic
 
-### Advanced GPIO (07-10)
-- Drive strength configuration
+### Debounce & Patterns (P07–P08)
+- State machine debouncing
+- GPIO Slew Rate (speed configuration)
+- LED patterns
+
+### Encoder & Keypad (P09–P10)
+- Rotary encoder kuadratur (CW/CCW)
 - Register access (IDR, ODR, BSRR)
-- Matrix multiplexing
-- Scanning algorithm
-
-### Safety & Testing (11-12)
-- Interrupt handling
-- Safety interlock
-- Diagnostic patterns
+- Matrix keypad scanning
 
 ## Reference Documentation
 
@@ -216,4 +211,4 @@ Beberapa project tidak punya UART output. Gunakan:
 ---
 
 **Last Updated:** Feb 9, 2026  
-**Status:** All 12 projects verified ✓
+**Status:** All 10 percobaan verified ✓

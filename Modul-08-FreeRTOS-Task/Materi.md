@@ -1,4 +1,4 @@
-# Modul 09: FreeRTOS — Task Management
+# Modul 08: FreeRTOS — Task Management
 
 
 ## Daftar Isi
@@ -1035,7 +1035,9 @@ for(int i = 0; i < 100; i++) {
 
 ---
 
-3. **STM32 HAL and FreeRTOS Guide** - STMicroelectronics AN4631
-4. **ESP-IDF FreeRTOS Documentation** - Espressif Systems
-5. **FreeRTOS API Reference** - https://www.freertos.org/a00106.html
+## Referensi
+
+1. **STM32 HAL and FreeRTOS Guide** - STMicroelectronics AN4631
+2. **ESP-IDF FreeRTOS Documentation** - Espressif Systems
+3. **FreeRTOS API Reference** - https://www.freertos.org/a00106.html
 

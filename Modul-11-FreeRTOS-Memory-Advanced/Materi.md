@@ -1,4 +1,4 @@
-# Modul 12: FreeRTOS — Memory Management dan Advanced Features
+# Modul 11: FreeRTOS — Memory Management dan Advanced Features
 
 ## 📚 Daftar Isi
 

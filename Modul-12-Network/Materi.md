@@ -1,4 +1,4 @@
-# Modul 13: Network dan IoT
+# Modul 12: Network dan IoT
 
 ## Daftar Isi
 1. [Pendahuluan](#1-pendahuluan)

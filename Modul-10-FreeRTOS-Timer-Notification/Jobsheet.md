@@ -1,1467 +1,443 @@
-# Jobsheet Modul 11: FreeRTOS Software Timer dan Task Notification
+# Jobsheet Modul 10: FreeRTOS Software Timer dan Task Notification
 
-## 📋 Informasi Praktikum
+## Praktikum Sistem Embedded
 
-| Komponen | Detail |
-|----------|--------|
-| **Mata Kuliah** | Praktikum Sistem Embedded |
-| **Modul** | 11 - Software Timer dan Task Notification |
-| **Durasi** | 3 × 50 menit |
-| **Platform** | STM32F103C8T6 & ESP32 |
+**Semester:** Genap 2025/2026  
+**Durasi:** 3 × 50 menit (2 pertemuan)  
+**Platform:** ESP32 DevKit V1 & STM32 Blue Pill (STM32F103C8T6)
 
 ---
 
-## 🎯 Capaian Pembelajaran
+## 1. Tujuan Praktikum
 
-Setelah menyelesaikan praktikum ini, mahasiswa mampu:
-1. Membuat dan mengontrol FreeRTOS software timer
-2. Mengimplementasikan timer callback non-blocking
-3. Menggunakan task notification untuk event signaling
-4. Mengkombinasikan timer dan notification dalam aplikasi nyata
+Setelah menyelesaikan praktikum ini, mahasiswa diharapkan mampu:
 
----
-
-## 🔧 Peralatan yang Dibutuhkan
-
-### Hardware
-| Komponen | Jumlah | Fungsi |
-|----------|--------|--------|
-| STM32F103C8T6 (Blue Pill) | 1 | MCU utama |
-| ESP32 DevKit V1 | 1 | MCU pendukung |
-| ST-Link V2 | 1 | Programmer STM32 |
-| LED (berbagai warna) | 4 | Output visual |
-| Push Button | 2 | Input trigger |
-| Resistor 330Ω | 4 | Current limiting LED |
-| Resistor 10kΩ | 2 | Pull-up button |
-| Breadboard | 1 | Prototyping |
-| Kabel jumper | Secukupnya | Koneksi |
-
-### Software
-- VS Code + PlatformIO
-- STM32Cube Framework
-- Serial Terminal (115200 baud)
+1. **Memahami software timer** — Membuat one-shot dan auto-reload timer, mengubah period dinamis, menggunakan timer ID.
+2. **Mengimplementasikan debounce dan timeout** — Menggunakan timer untuk filtering noise dan watchdog heartbeat.
+3. **Menguasai task notification** — Mengirim sinyal, nilai, dan counting event antar task dengan overhead minimal.
+4. **Menggunakan event group** — Sinkronisasi multi-task dengan bit manipulation (AND/OR logic).
+5. **Membandingkan mekanisme** — Menganalisis trade-off antara timer, notification, semaphore, dan event group.
 
 ---
 
-## 📐 Rangkaian
+## 2. Peralatan
 
-### Wiring STM32F103C8T6
-
-```
-     STM32F103C8T6
-    ┌─────────────────┐
-    │                 │
-    │ PA4 ──────────[LED1]──R330──GND (Timer 1)
-    │ PA5 ──────────[LED2]──R330──GND (Timer 2)
-    │ PA6 ──────────[LED3]──R330──GND (Timer 3)
-    │ PA7 ──────────[LED4]──R330──GND (Notification)
-    │                 │
-    │ PB0 ──────[BTN1]──GND (w/internal pull-up)
-    │ PB1 ──────[BTN2]──GND (w/internal pull-up)
-    │                 │
-    │ PA9 (TX) ──────── Serial Monitor
-    │ PA10(RX) ──────── Serial Monitor
-    │                 │
-    └─────────────────┘
-```
-
-### Wiring ESP32
-
-```
-     ESP32 DevKit V1
-    ┌─────────────────┐
-    │                 │
-    │ GPIO4 ─────────[LED1]──R330──GND
-    │ GPIO16 ────────[LED2]──R330──GND
-    │ GPIO17 ────────[LED3]──R330──GND
-    │ GPIO5 ─────────[LED4]──R330──GND
-    │                 │
-    │ GPIO15 ────[BTN1]──GND (internal pull-up)
-    │ GPIO2 ─────[BTN2]──GND (internal pull-up)
-    │                 │
-    │ USB ───────────── Serial Monitor
-    │                 │
-    └─────────────────┘
-```
+| No | Komponen | Jumlah | Keterangan |
+|----|----------|--------|------------|
+| 1 | ESP32 DevKit V1 | 1 | Dual-core, FreeRTOS built-in |
+| 2 | STM32 Blue Pill | 1 | ARM Cortex-M3 + FreeRTOS |
+| 3 | ST-Link V2 | 1 | Programmer STM32 |
+| 4 | LED 5mm | 3 | Indikator (merah, hijau, kuning) |
+| 5 | Resistor 330Ω | 3 | Current limiting |
+| 6 | Push Button | 1 | User input / interrupt source |
+| 7 | Resistor 10kΩ | 1 | Pull-up button |
+| 8 | Breadboard + kabel jumper | 1 set | |
 
 ---
 
-## 🔬 Percobaan 1: Basic Software Timer (STM32)
+## 3. Teori Singkat
 
-### Tujuan
-Memahami pembuatan dan penggunaan software timer periodik dan one-shot.
+**Software Timer** dikelola oleh timer daemon task (bukan hardware timer). Tipe: **one-shot** (fire sekali lalu berhenti) dan **auto-reload** (fire berulang). Callback berjalan di konteks timer task — tidak boleh blocking!
 
-### Konfigurasi PlatformIO
-```ini
-; platformio.ini
-[env:bluepill_f103c8]
-platform = ststm32
-board = bluepill_f103c8
-framework = stm32cube
-upload_protocol = stlink
-build_flags = 
-    -D HSE_VALUE=8000000U
-    -D HAL_UART_MODULE_ENABLED
-lib_deps =
-monitor_speed = 115200
-```
+**Task Notification** adalah mekanisme komunikasi ringan bawaan setiap task (tanpa alokasi tambahan). Mendukung: give/take (seperti semaphore), set value (kirim data 32-bit), dan counting. ~45% lebih cepat dari semaphore.
 
-### Program 1: Timer LED Blink
-
-```c
-/* Percobaan 1: Basic Software Timer STM32
- * File: src/main.c
- * 
- * Demonstrasi software timer untuk blink LED
- */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "timers.h"
-#include "stm32f1xx_hal.h"
-#include <stdio.h>
-#include <string.h>
-
-UART_HandleTypeDef huart1;
-
-/* Timer Handles */
-TimerHandle_t xLedTimer1 = NULL;   // Fast blink
-TimerHandle_t xLedTimer2 = NULL;   // Slow blink
-TimerHandle_t xOneShotTimer = NULL; // One-shot
-
-/* Timer Callbacks */
-void vLed1TimerCallback(TimerHandle_t xTimer)
-{
-    static uint32_t toggleCount = 0;
-    toggleCount++;
-    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_4);
-    printf("[T1@%lu] LED1 toggle #%lu\r\n", 
-           (uint32_t)xTaskGetTickCount(), toggleCount);
-}
-
-void vLed2TimerCallback(TimerHandle_t xTimer)
-{
-    static uint32_t toggleCount = 0;
-    toggleCount++;
-    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-    printf("[T2@%lu] LED2 toggle #%lu\r\n", 
-           (uint32_t)xTaskGetTickCount(), toggleCount);
-}
-
-void vOneShotCallback(TimerHandle_t xTimer)
-{
-    printf("\n*** ONE-SHOT EXPIRED! ***\r\n");
-    
-    // Flash LED3 rapidly (non-blocking approach - set flag)
-    for(int i = 0; i < 5; i++)
-    {
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
-        // Note: Dalam callback sebaiknya tidak delay
-        // Ini hanya demo singkat
-        for(volatile int j = 0; j < 100000; j++);
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
-        for(volatile int j = 0; j < 100000; j++);
-    }
-    
-    printf("One-shot action completed\r\n\n");
-}
-
-/* Control Task */
-void vControlTask(void *pvParameters)
-{
-    uint8_t rxChar;
-    
-    printf("\r\n=== Software Timer Demo ===\r\n");
-    printf("Commands:\r\n");
-    printf("  1 - Start/Stop Timer1 (200ms)\r\n");
-    printf("  2 - Start/Stop Timer2 (1000ms)\r\n");
-    printf("  3 - Trigger One-Shot (3s)\r\n");
-    printf("  f - Timer1 Fast (100ms)\r\n");
-    printf("  s - Timer1 Slow (500ms)\r\n");
-    printf("  i - Info (timer status)\r\n\r\n");
-    
-    for(;;)
-    {
-        if(HAL_UART_Receive(&huart1, &rxChar, 1, 50) == HAL_OK)
-        {
-            switch(rxChar)
-            {
-                case '1':
-                    if(xTimerIsTimerActive(xLedTimer1))
-                    {
-                        xTimerStop(xLedTimer1, pdMS_TO_TICKS(100));
-                        printf("Timer1 STOPPED\r\n");
-                    }
-                    else
-                    {
-                        xTimerStart(xLedTimer1, pdMS_TO_TICKS(100));
-                        printf("Timer1 STARTED\r\n");
-                    }
-                    break;
-                    
-                case '2':
-                    if(xTimerIsTimerActive(xLedTimer2))
-                    {
-                        xTimerStop(xLedTimer2, pdMS_TO_TICKS(100));
-                        printf("Timer2 STOPPED\r\n");
-                    }
-                    else
-                    {
-                        xTimerStart(xLedTimer2, pdMS_TO_TICKS(100));
-                        printf("Timer2 STARTED\r\n");
-                    }
-                    break;
-                    
-                case '3':
-                    xTimerStart(xOneShotTimer, pdMS_TO_TICKS(100));
-                    printf("One-Shot timer started (3s countdown)\r\n");
-                    break;
-                    
-                case 'f':
-                    xTimerChangePeriod(xLedTimer1, pdMS_TO_TICKS(100), 
-                                       pdMS_TO_TICKS(100));
-                    printf("Timer1 period: 100ms (fast)\r\n");
-                    break;
-                    
-                case 's':
-                    xTimerChangePeriod(xLedTimer1, pdMS_TO_TICKS(500), 
-                                       pdMS_TO_TICKS(100));
-                    printf("Timer1 period: 500ms (slow)\r\n");
-                    break;
-                    
-                case 'i':
-                    printf("\n--- Timer Status ---\r\n");
-                    printf("Timer1: %s (period: %lu ticks)\r\n",
-                           xTimerIsTimerActive(xLedTimer1) ? "ACTIVE" : "DORMANT",
-                           xTimerGetPeriod(xLedTimer1));
-                    printf("Timer2: %s (period: %lu ticks)\r\n",
-                           xTimerIsTimerActive(xLedTimer2) ? "ACTIVE" : "DORMANT",
-                           xTimerGetPeriod(xLedTimer2));
-                    printf("OneShot: %s\r\n",
-                           xTimerIsTimerActive(xOneShotTimer) ? "ACTIVE" : "DORMANT");
-                    printf("Free Heap: %lu bytes\r\n", xPortGetFreeHeapSize());
-                    printf("--------------------\r\n\n");
-                    break;
-            }
-        }
-        
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-
-/* System Configuration */
-void SystemClock_Config(void)
-{
-    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-    
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-    RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-    HAL_RCC_OscConfig(&RCC_OscInitStruct);
-    
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                                |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-    HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
-}
-
-void MX_GPIO_Init(void)
-{
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-    
-    // LED outputs (PA4, PA5, PA6, PA7)
-    GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    // Initialize LEDs OFF
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7, 
-                      GPIO_PIN_RESET);
-}
-
-void MX_USART1_UART_Init(void)
-{
-    __HAL_RCC_USART1_CLK_ENABLE();
-    
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    
-    // PA9 = TX, PA10 = RX
-    GPIO_InitStruct.Pin = GPIO_PIN_9;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    GPIO_InitStruct.Pin = GPIO_PIN_10;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    huart1.Instance = USART1;
-    huart1.Init.BaudRate = 115200;
-    huart1.Init.WordLength = UART_WORDLENGTH_8B;
-    huart1.Init.StopBits = UART_STOPBITS_1;
-    huart1.Init.Parity = UART_PARITY_NONE;
-    huart1.Init.Mode = UART_MODE_TX_RX;
-    huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    HAL_UART_Init(&huart1);
-}
-
-int _write(int file, char *ptr, int len)
-{
-    HAL_UART_Transmit(&huart1, (uint8_t*)ptr, len, HAL_MAX_DELAY);
-    return len;
-}
-
-int main(void)
-{
-    HAL_Init();
-    SystemClock_Config();
-    MX_GPIO_Init();
-    MX_USART1_UART_Init();
-    
-    printf("\r\n\n");
-    printf("================================\r\n");
-    printf(" FreeRTOS Software Timer Demo\r\n");
-    printf("================================\r\n\n");
-    
-    /* Create Timer 1 - Fast periodic (200ms) */
-    xLedTimer1 = xTimerCreate(
-        "LED1_Timer",
-        pdMS_TO_TICKS(200),
-        pdTRUE,               // Auto-reload
-        (void*)1,             // Timer ID
-        vLed1TimerCallback
-    );
-    
-    /* Create Timer 2 - Slow periodic (1000ms) */
-    xLedTimer2 = xTimerCreate(
-        "LED2_Timer",
-        pdMS_TO_TICKS(1000),
-        pdTRUE,
-        (void*)2,
-        vLed2TimerCallback
-    );
-    
-    /* Create One-Shot Timer (3 seconds) */
-    xOneShotTimer = xTimerCreate(
-        "OneShot",
-        pdMS_TO_TICKS(3000),
-        pdFALSE,              // One-shot
-        (void*)3,
-        vOneShotCallback
-    );
-    
-    if(xLedTimer1 != NULL && xLedTimer2 != NULL && xOneShotTimer != NULL)
-    {
-        printf("All timers created successfully!\r\n\n");
-        
-        /* Create control task */
-        xTaskCreate(vControlTask, "Control", 256, NULL, 2, NULL);
-        
-        /* Start scheduler */
-        vTaskStartScheduler();
-    }
-    else
-    {
-        printf("ERROR: Failed to create timers!\r\n");
-    }
-    
-    for(;;);
-}
-```
-
-### ✅ Tugas Percobaan 1
-1. Amati output dan catat perbedaan timing Timer1 vs Timer2
-2. Uji perubahan periode timer saat sedang berjalan
-3. Amati behavior one-shot timer
-4. Screenshot serial output setelah menekan 'i' untuk info
+**Event Group** memungkinkan task menunggu kombinasi event menggunakan operasi bit AND/OR. Cocok untuk sinkronisasi barrier (rendezvous) — semua task harus sampai sebelum lanjut.
 
 ---
 
-## 🔬 Percobaan 2: Timer dengan ID untuk Multi-Timer (STM32)
+## 4. Langkah Percobaan
 
-### Tujuan
-Menggunakan Timer ID untuk mengelola beberapa timer dengan satu callback.
-
-### Program 2: Multi-Timer dengan Shared Callback
-
-```c
-/* Percobaan 2: Multi-Timer dengan Shared Callback
- * File: src/main.c
- */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "timers.h"
-#include "stm32f1xx_hal.h"
-#include <stdio.h>
-
-UART_HandleTypeDef huart1;
-
-#define NUM_TIMERS  4
-
-/* LED pins */
-const uint16_t ledPins[NUM_TIMERS] = {
-    GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6, GPIO_PIN_7
-};
-
-/* Timer periods in ms */
-const uint32_t timerPeriods[NUM_TIMERS] = {
-    100, 200, 500, 1000
-};
-
-TimerHandle_t xTimers[NUM_TIMERS];
-uint32_t toggleCounts[NUM_TIMERS] = {0};
-
-/* Shared Callback - Use Timer ID to identify */
-void vSharedTimerCallback(TimerHandle_t xTimer)
-{
-    uint32_t timerId = (uint32_t)pvTimerGetTimerID(xTimer);
-    
-    if(timerId < NUM_TIMERS)
-    {
-        toggleCounts[timerId]++;
-        HAL_GPIO_TogglePin(GPIOA, ledPins[timerId]);
-        
-        // Print setiap 10 toggle untuk mengurangi spam
-        if(toggleCounts[timerId] % 10 == 0)
-        {
-            printf("[Timer%lu] Toggle count: %lu\r\n", 
-                   timerId, toggleCounts[timerId]);
-        }
-    }
-}
-
-/* Status Task */
-void vStatusTask(void *pvParameters)
-{
-    for(;;)
-    {
-        printf("\n=== Timer Status Report ===\r\n");
-        
-        for(int i = 0; i < NUM_TIMERS; i++)
-        {
-            printf("Timer%d: Period=%4lums, Active=%s, Count=%lu\r\n",
-                   i,
-                   timerPeriods[i],
-                   xTimerIsTimerActive(xTimers[i]) ? "YES" : "NO ",
-                   toggleCounts[i]);
-        }
-        
-        printf("===========================\r\n\n");
-        
-        vTaskDelay(pdMS_TO_TICKS(5000));
-    }
-}
-
-/* Control Task */
-void vControlTask(void *pvParameters)
-{
-    uint8_t rxChar;
-    
-    printf("Commands: 0-3 toggle timer, a=all start, z=all stop\r\n\n");
-    
-    for(;;)
-    {
-        if(HAL_UART_Receive(&huart1, &rxChar, 1, 50) == HAL_OK)
-        {
-            if(rxChar >= '0' && rxChar <= '3')
-            {
-                int idx = rxChar - '0';
-                
-                if(xTimerIsTimerActive(xTimers[idx]))
-                {
-                    xTimerStop(xTimers[idx], pdMS_TO_TICKS(100));
-                    printf("Timer%d STOPPED\r\n", idx);
-                }
-                else
-                {
-                    xTimerStart(xTimers[idx], pdMS_TO_TICKS(100));
-                    printf("Timer%d STARTED\r\n", idx);
-                }
-            }
-            else if(rxChar == 'a')
-            {
-                for(int i = 0; i < NUM_TIMERS; i++)
-                {
-                    xTimerStart(xTimers[i], pdMS_TO_TICKS(100));
-                }
-                printf("All timers STARTED\r\n");
-            }
-            else if(rxChar == 'z')
-            {
-                for(int i = 0; i < NUM_TIMERS; i++)
-                {
-                    xTimerStop(xTimers[i], pdMS_TO_TICKS(100));
-                    HAL_GPIO_WritePin(GPIOA, ledPins[i], GPIO_PIN_RESET);
-                }
-                printf("All timers STOPPED\r\n");
-            }
-        }
-        
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-
-/* Assume SystemClock_Config, MX_GPIO_Init, MX_USART1_UART_Init same as before */
-
-int main(void)
-{
-    HAL_Init();
-    SystemClock_Config();
-    MX_GPIO_Init();
-    MX_USART1_UART_Init();
-    
-    printf("\r\n=== Multi-Timer with Shared Callback ===\r\n\n");
-    
-    /* Create all timers with same callback but different IDs */
-    for(int i = 0; i < NUM_TIMERS; i++)
-    {
-        char timerName[16];
-        sprintf(timerName, "Timer%d", i);
-        
-        xTimers[i] = xTimerCreate(
-            timerName,
-            pdMS_TO_TICKS(timerPeriods[i]),
-            pdTRUE,
-            (void*)(uint32_t)i,  // Timer ID = index
-            vSharedTimerCallback // Shared callback
-        );
-        
-        if(xTimers[i] != NULL)
-        {
-            printf("Created %s (period: %lums)\r\n", timerName, timerPeriods[i]);
-        }
-    }
-    
-    printf("\n");
-    
-    xTaskCreate(vControlTask, "Control", 256, NULL, 2, NULL);
-    xTaskCreate(vStatusTask, "Status", 256, NULL, 1, NULL);
-    
-    vTaskStartScheduler();
-    
-    for(;;);
-}
-```
-
-### ✅ Tugas Percobaan 2
-1. Amati bagaimana satu callback handle 4 timer berbeda
-2. Bandingkan frekuensi LED dan periode yang diset
-3. Hitung overhead timer daemon dengan mengamati timing
+> **Catatan:** Serial Monitor 115200 baud. LED pada ESP32: GPIO2, GPIO4, GPIO5. LED pada STM32: PC13, PB0, PB1. Button pada ESP32: GPIO0 (BOOT). Button pada STM32: PA0.
 
 ---
 
-## 🔬 Percobaan 3: Task Notification Basic (STM32)
+### Percobaan 01: Software Timer Basic
 
-### Tujuan
-Memahami penggunaan task notification untuk signaling dari ISR.
+**Tujuan:** Memahami pembuatan dan penggunaan one-shot timer dan auto-reload timer.
 
-### Program 3: Button Notification Handler
+#### Langkah Kerja
 
-```c
-/* Percobaan 3: Task Notification dari ISR
- * File: src/main.c
- */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "stm32f1xx_hal.h"
-#include <stdio.h>
+1. Buka project `ESP32_01` atau `STM32_01`.
+2. Program membuat 2 timer:
+   - **One-shot timer** (3 detik) — menyalakan LED sekali setelah timeout
+   - **Auto-reload timer** (1 detik) — toggle LED berulang
+3. Build dan upload. Amati perilaku kedua timer.
+4. Amati serial: timer callback berjalan di konteks daemon task (bukan task user).
+5. Coba stop dan restart timer — amati perubahan perilaku.
 
-UART_HandleTypeDef huart1;
+#### Tabel Pengamatan
 
-TaskHandle_t xButtonTask = NULL;
+| Timer | Tipe | Period | Callback Count (30s) | LED Behavior |
+|-------|------|--------|---------------------|-------------|
+| Timer 1 | One-shot | 3s | | |
+| Timer 2 | Auto-reload | 1s | | |
 
-volatile uint32_t isrTriggerCount = 0;
-volatile uint32_t processedCount = 0;
+#### Pertanyaan Analisa
 
-/* Button ISR Callback */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    
-    if(GPIO_Pin == GPIO_PIN_0)  // Button 1
-    {
-        isrTriggerCount++;
-        
-        /* Send notification to button task */
-        vTaskNotifyGiveFromISR(xButtonTask, &xHigherPriorityTaskWoken);
-        
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
-}
-
-/* Button Handler Task */
-void vButtonTask(void *pvParameters)
-{
-    uint32_t notificationValue;
-    
-    printf("[ButtonTask] Ready - waiting for button press\r\n\n");
-    
-    for(;;)
-    {
-        /* Wait for notification - blocks until button pressed */
-        notificationValue = ulTaskNotifyTake(
-            pdTRUE,           // Clear count on exit
-            portMAX_DELAY     // Wait forever
-        );
-        
-        if(notificationValue > 0)
-        {
-            processedCount += notificationValue;
-            
-            printf("[ButtonTask] Received %lu notification(s)\r\n", 
-                   notificationValue);
-            printf("           ISR total: %lu, Processed: %lu\r\n\n",
-                   isrTriggerCount, processedCount);
-            
-            /* Visual feedback - blink LED */
-            for(uint32_t i = 0; i < notificationValue; i++)
-            {
-                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);
-                vTaskDelay(pdMS_TO_TICKS(100));
-                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);
-                vTaskDelay(pdMS_TO_TICKS(100));
-            }
-        }
-    }
-}
-
-/* Monitor Task - Low priority background task */
-void vMonitorTask(void *pvParameters)
-{
-    uint32_t lastProcessed = 0;
-    
-    for(;;)
-    {
-        if(processedCount != lastProcessed)
-        {
-            lastProcessed = processedCount;
-            printf("[Monitor] Notifications per second: ~%.1f\r\n",
-                   (float)processedCount / ((float)xTaskGetTickCount() / 1000.0f));
-        }
-        
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-}
-
-void MX_GPIO_Init(void)
-{
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-    __HAL_RCC_AFIO_CLK_ENABLE();
-    
-    /* LED output (PA7) */
-    GPIO_InitStruct.Pin = GPIO_PIN_7;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    /* Button input with interrupt (PB0) */
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
-    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;  // Trigger on press
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-    
-    /* Enable EXTI interrupt */
-    HAL_NVIC_SetPriority(EXTI0_IRQn, 6, 0);  // Priority > configMAX_SYSCALL_INTERRUPT_PRIORITY
-    HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-}
-
-/* ISR Handler */
-void EXTI0_IRQHandler(void)
-{
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
-}
-
-int main(void)
-{
-    HAL_Init();
-    SystemClock_Config();
-    MX_GPIO_Init();
-    MX_USART1_UART_Init();
-    
-    printf("\r\n=== Task Notification Demo ===\r\n");
-    printf("Press the button to trigger notification\r\n\n");
-    
-    /* Create button task FIRST (to have valid handle for ISR) */
-    xTaskCreate(vButtonTask, "Button", 256, NULL, 3, &xButtonTask);
-    xTaskCreate(vMonitorTask, "Monitor", 128, NULL, 1, NULL);
-    
-    vTaskStartScheduler();
-    
-    for(;;);
-}
-```
-
-### ✅ Tugas Percobaan 3
-1. Tekan tombol beberapa kali dengan cepat dan amati notification count
-2. Bandingkan ISR count vs processed count
-3. Jelaskan mengapa bisa terjadi perbedaan
+1. Apa perbedaan one-shot dan auto-reload timer? Kapan gunakan yang mana?
+2. Di task mana callback timer dieksekusi? Mengapa tidak boleh ada blocking call di callback?
+3. Apa yang terjadi jika callback timer memakan waktu terlalu lama?
+4. Berapa prioritas timer daemon task? Bagaimana mempengaruhi responsivitas?
 
 ---
 
-## 🔬 Percobaan 4: Notification dengan Event Bits (STM32)
+### Percobaan 02: Timer Period Change
 
-### Tujuan
-Menggunakan notification sebagai event flags untuk multiple events.
+**Tujuan:** Mengubah period timer secara dinamis saat runtime.
 
-### Program 4: Multi-Event Notification
+#### Langkah Kerja
 
-```c
-/* Percobaan 4: Event Bits dengan Task Notification
- * File: src/main.c
- */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "timers.h"
-#include "stm32f1xx_hal.h"
-#include <stdio.h>
+1. Buka project `ESP32_02` atau `STM32_02`.
+2. Auto-reload timer menggedipkan LED dengan period awal 1000ms.
+3. Setiap button press, speed berubah: 100ms → 500ms → 1000ms → 2000ms → cycle.
+4. Amati `xTimerChangePeriod()` (dari task) atau `xTimerChangePeriodFromISR()` (dari ISR).
+5. Perhatikan bahwa perubahan period langsung efektif tanpa restart.
 
-UART_HandleTypeDef huart1;
+#### Tabel Pengamatan
 
-/* Event bit definitions */
-#define EVENT_BUTTON1     (1 << 0)
-#define EVENT_BUTTON2     (1 << 1)
-#define EVENT_TIMER       (1 << 2)
-#define EVENT_SERIAL      (1 << 3)
+| Button Press | Period (ms) | LED Blink Rate | Change Latency |
+|-------------|-----------|---------------|----------------|
+| 0 (default) | 1000 | | |
+| 1 | | | |
+| 2 | | | |
+| 3 | | | |
 
-TaskHandle_t xEventHandler = NULL;
-TimerHandle_t xEventTimer = NULL;
+#### Pertanyaan Analisa
 
-/* Event counters */
-volatile uint32_t button1Count = 0;
-volatile uint32_t button2Count = 0;
-volatile uint32_t timerCount = 0;
-volatile uint32_t serialCount = 0;
-
-/* Button ISR */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    
-    if(GPIO_Pin == GPIO_PIN_0)  // Button 1
-    {
-        button1Count++;
-        xTaskNotifyFromISR(xEventHandler, EVENT_BUTTON1, eSetBits,
-                           &xHigherPriorityTaskWoken);
-    }
-    else if(GPIO_Pin == GPIO_PIN_1)  // Button 2
-    {
-        button2Count++;
-        xTaskNotifyFromISR(xEventHandler, EVENT_BUTTON2, eSetBits,
-                           &xHigherPriorityTaskWoken);
-    }
-    
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
-
-/* Timer Callback */
-void vTimerCallback(TimerHandle_t xTimer)
-{
-    timerCount++;
-    xTaskNotify(xEventHandler, EVENT_TIMER, eSetBits);
-}
-
-/* Event Handler Task */
-void vEventHandlerTask(void *pvParameters)
-{
-    uint32_t notification;
-    
-    printf("[EventHandler] Ready - waiting for events...\r\n\n");
-    
-    for(;;)
-    {
-        /* Wait for any event bit */
-        if(xTaskNotifyWait(
-            0x00,           // Don't clear on entry
-            0xFFFFFFFF,     // Clear all on exit
-            &notification,
-            portMAX_DELAY) == pdTRUE)
-        {
-            printf("[Event@%lu] Received: 0x%02lX\r\n", 
-                   (uint32_t)xTaskGetTickCount(), notification);
-            
-            /* Process each event */
-            if(notification & EVENT_BUTTON1)
-            {
-                printf("  -> Button1 event! (total: %lu)\r\n", button1Count);
-                HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_4);
-            }
-            
-            if(notification & EVENT_BUTTON2)
-            {
-                printf("  -> Button2 event! (total: %lu)\r\n", button2Count);
-                HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-            }
-            
-            if(notification & EVENT_TIMER)
-            {
-                printf("  -> Timer event! (total: %lu)\r\n", timerCount);
-                HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_6);
-            }
-            
-            if(notification & EVENT_SERIAL)
-            {
-                printf("  -> Serial event! (total: %lu)\r\n", serialCount);
-                HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7);
-            }
-            
-            printf("\n");
-        }
-    }
-}
-
-/* Serial Task - Monitors serial input */
-void vSerialTask(void *pvParameters)
-{
-    uint8_t rxChar;
-    
-    for(;;)
-    {
-        if(HAL_UART_Receive(&huart1, &rxChar, 1, 50) == HAL_OK)
-        {
-            if(rxChar == 's')
-            {
-                serialCount++;
-                xTaskNotify(xEventHandler, EVENT_SERIAL, eSetBits);
-            }
-            else if(rxChar == 't')
-            {
-                // Toggle timer
-                if(xTimerIsTimerActive(xEventTimer))
-                {
-                    xTimerStop(xEventTimer, pdMS_TO_TICKS(100));
-                    printf("[Serial] Timer STOPPED\r\n");
-                }
-                else
-                {
-                    xTimerStart(xEventTimer, pdMS_TO_TICKS(100));
-                    printf("[Serial] Timer STARTED\r\n");
-                }
-            }
-            else if(rxChar == 'i')
-            {
-                printf("\n=== Event Statistics ===\r\n");
-                printf("Button1: %lu\r\n", button1Count);
-                printf("Button2: %lu\r\n", button2Count);
-                printf("Timer:   %lu\r\n", timerCount);
-                printf("Serial:  %lu\r\n", serialCount);
-                printf("========================\r\n\n");
-            }
-        }
-        
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-
-void MX_GPIO_Init(void)
-{
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-    __HAL_RCC_AFIO_CLK_ENABLE();
-    
-    /* LED outputs */
-    GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    /* Button inputs with interrupts */
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
-    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-    
-    GPIO_InitStruct.Pin = GPIO_PIN_1;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-    
-    HAL_NVIC_SetPriority(EXTI0_IRQn, 6, 0);
-    HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-    HAL_NVIC_SetPriority(EXTI1_IRQn, 6, 0);
-    HAL_NVIC_EnableIRQ(EXTI1_IRQn);
-}
-
-void EXTI0_IRQHandler(void) { HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0); }
-void EXTI1_IRQHandler(void) { HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1); }
-
-int main(void)
-{
-    HAL_Init();
-    SystemClock_Config();
-    MX_GPIO_Init();
-    MX_USART1_UART_Init();
-    
-    printf("\r\n=== Multi-Event Notification Demo ===\r\n");
-    printf("Events: Button1, Button2, Timer (t=toggle), Serial (s)\r\n");
-    printf("Press 'i' for statistics\r\n\n");
-    
-    /* Create event handler task FIRST */
-    xTaskCreate(vEventHandlerTask, "Events", 256, NULL, 3, &xEventHandler);
-    xTaskCreate(vSerialTask, "Serial", 256, NULL, 2, NULL);
-    
-    /* Create periodic event timer */
-    xEventTimer = xTimerCreate("EventTmr", pdMS_TO_TICKS(2000), 
-                                pdTRUE, NULL, vTimerCallback);
-    
-    vTaskStartScheduler();
-    
-    for(;;);
-}
-```
-
-### ✅ Tugas Percobaan 4
-1. Trigger multiple event secara bersamaan dan amati hasilnya
-2. Jelaskan keuntungan event bits vs multiple notification
-3. Bandingkan dengan semaphore/queue untuk use case yang sama
+1. Apakah `xTimerChangePeriod()` mereset timer countdown dari awal?
+2. Apa perbedaan `xTimerChangePeriod()` dan `xTimerChangePeriodFromISR()`?
+3. Bagaimana timer daemon memproses command change period — secara sinkron atau asinkron?
+4. Skenario apa yang memerlukan perubahan period dinamis?
 
 ---
 
-## 🔬 Percobaan 5: Debounce Timer Pattern (ESP32)
+### Percobaan 03: Timer ID — Multiple Timer Satu Callback
 
-### Tujuan
-Mengimplementasikan debounce menggunakan software timer.
+**Tujuan:** Menggunakan timer ID untuk membedakan multiple timer yang berbagi satu callback function.
 
-### Konfigurasi PlatformIO
-```ini
-; platformio.ini
-[env:esp32dev]
-platform = espressif32
-board = esp32dev
-framework = espidf
-monitor_speed = 115200
-```
+#### Langkah Kerja
 
-### Program 5: Button Debounce dengan Timer
+1. Buka project `ESP32_03` atau `STM32_03`.
+2. Tiga auto-reload timer (500ms, 1000ms, 2000ms) menggunakan **satu callback function** yang sama.
+3. Callback menggunakan `pvTimerGetTimerID()` untuk mengetahui timer mana yang fire.
+4. Setiap timer toggle LED yang berbeda.
+5. Amati rasio fire count — Timer 500ms harus fire 4× lebih sering dari Timer 2000ms.
 
-```c
-/* Percobaan 5: Debounce Timer Pattern ESP32
- * File: src/main.c
- */
-#include <stdio.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/timers.h"
-#include "driver/gpio.h"
-#include "esp_log.h"
+#### Tabel Pengamatan
 
-static const char *TAG = "DEBOUNCE";
+| Timer | Period (ms) | Fire Count (20s) | Expected Ratio | Actual Ratio |
+|-------|-----------|-----------------|----------------|-------------|
+| Timer A | 500 | | 4 | |
+| Timer B | 1000 | | 2 | |
+| Timer C | 2000 | | 1 | |
 
-#define BUTTON_PIN      GPIO_NUM_15
-#define LED_PIN         GPIO_NUM_4
-#define DEBOUNCE_MS     50
+#### Pertanyaan Analisa
 
-TimerHandle_t xDebounceTimer;
-volatile bool buttonPressConfirmed = false;
-volatile uint32_t rawPressCount = 0;
-volatile uint32_t confirmedPressCount = 0;
-
-/* Debounce Timer Callback */
-void vDebounceCallback(TimerHandle_t xTimer) {
-    // Timer expired without retriggering = stable input
-    
-    // Read actual button state
-    if(gpio_get_level(BUTTON_PIN) == 0) {
-        confirmedPressCount++;
-        buttonPressConfirmed = true;
-        printf("[Debounce] Button CONFIRMED! (#%lu)\n", confirmedPressCount);
-    }
-}
-
-/* Button ISR */
-static void IRAM_ATTR buttonISR(void *arg) {
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    rawPressCount++;
-    
-    // Reset debounce timer setiap ada edge
-    xTimerResetFromISR(xDebounceTimer, &xHigherPriorityTaskWoken);
-    
-    if(xHigherPriorityTaskWoken) {
-        portYIELD_FROM_ISR();
-    }
-}
-
-/* LED Task - Responds to confirmed presses */
-void LedTask(void *pvParameters) {
-    for(;;) {
-        if(buttonPressConfirmed) {
-            buttonPressConfirmed = false;
-            
-            // Toggle LED
-            static int ledState = 0;
-            ledState = !ledState;
-            gpio_set_level(LED_PIN, ledState);
-            
-            printf("[LED] Toggled! State: %s\n", ledState ? "ON" : "OFF");
-        }
-        
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-
-/* Statistics Task */
-void StatsTask(void *pvParameters) {
-    uint32_t lastRaw = 0;
-    uint32_t lastConfirmed = 0;
-    
-    for(;;) {
-        if(rawPressCount != lastRaw || confirmedPressCount != lastConfirmed) {
-            printf("\n=== Debounce Statistics ===\n");
-            printf("Raw ISR triggers:     %lu\n", rawPressCount);
-            printf("Confirmed presses:    %lu\n", confirmedPressCount);
-            printf("Noise filtered:       %lu (%.1f%%)\n",
-                         rawPressCount - confirmedPressCount,
-                         rawPressCount > 0 ? 
-                         100.0f * (rawPressCount - confirmedPressCount) / rawPressCount : 0);
-            printf("===========================\n\n");
-            
-            lastRaw = rawPressCount;
-            lastConfirmed = confirmedPressCount;
-        }
-        
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-}
-
-void app_main(void) {
-    // Configure GPIO
-    gpio_reset_pin(BUTTON_PIN);
-    gpio_set_direction(BUTTON_PIN, GPIO_MODE_INPUT);
-    gpio_set_pull_mode(BUTTON_PIN, GPIO_PULLUP_ONLY);
-    gpio_set_intr_type(BUTTON_PIN, GPIO_INTR_NEGEDGE);
-    
-    gpio_reset_pin(LED_PIN);
-    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
-    
-    printf("\n=== ESP32 Debounce Timer Demo ===\n");
-    printf("Debounce time: %d ms\n\n", DEBOUNCE_MS);
-    
-    // Create debounce timer (one-shot)
-    xDebounceTimer = xTimerCreate(
-        "Debounce",
-        pdMS_TO_TICKS(DEBOUNCE_MS),
-        pdFALSE,  // One-shot
-        NULL,
-        vDebounceCallback
-    );
-    
-    // Install GPIO ISR service and add handler
-    gpio_install_isr_service(0);
-    gpio_isr_handler_add(BUTTON_PIN, buttonISR, NULL);
-    
-    // Create tasks
-    xTaskCreate(LedTask, "LED", 2048, NULL, 2, NULL);
-    xTaskCreate(StatsTask, "Stats", 2048, NULL, 1, NULL);
-    
-    printf("Press button to test debounce...\n\n");
-}
-```
-
-### ✅ Tugas Percobaan 5
-1. Tekan tombol dengan cepat dan amati filter ratio
-2. Ubah DEBOUNCE_MS menjadi 10ms dan 100ms, bandingkan hasilnya
-3. Jelaskan trade-off waktu debounce pendek vs panjang
+1. Apa keuntungan menggunakan satu callback untuk multiple timer vs callback terpisah?
+2. Bagaimana `pvTimerGetTimerID()` bekerja? Apa tipe datanya?
+3. Apakah timer ID bisa diubah saat runtime? Jika ya, untuk apa?
+4. Berapa maksimal jumlah software timer yang wajar? Apa batasannya?
 
 ---
 
-## 🔬 Percobaan 6: Watchdog Timer Pattern (ESP32)
+### Percobaan 04: Timer Debounce
 
-### Tujuan
-Mengimplementasikan timeout watchdog menggunakan software timer.
+**Tujuan:** Mengimplementasikan software debounce menggunakan one-shot timer.
 
-### Program 6: Communication Watchdog
+#### Langkah Kerja
 
-```c
-/* Percobaan 6: Watchdog Timer Pattern ESP32
- * File: src/main.c
- */
-#include <stdio.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/timers.h"
-#include "driver/gpio.h"
-#include "driver/uart.h"
-#include "esp_log.h"
+1. Buka project `ESP32_04` atau `STM32_04`.
+2. Setiap edge ISR dari button memanggil `xTimerResetFromISR()` — mereset countdown 50ms.
+3. Selama button masih bouncing (edge terus terjadi), timer selalu di-reset.
+4. Callback hanya fire setelah button **stabil** selama 50ms (bouncing selesai).
+5. Bandingkan raw ISR count vs debounced count — raw jauh lebih banyak.
 
-static const char *TAG = "WATCHDOG";
+#### Tabel Pengamatan
 
-#define LED_ALIVE       GPIO_NUM_4
-#define LED_TIMEOUT     GPIO_NUM_16
-#define WATCHDOG_MS     3000
+| Press # | Raw ISR Count | Debounced Count | Bounce Ratio |
+|---------|-------------|-----------------|-------------|
+| 1 | | 1 | |
+| 2 | | 2 | |
+| 3 | | 3 | |
+| Total | | | |
 
-TimerHandle_t xWatchdogTimer;
-volatile bool communicationActive = false;
-volatile uint32_t messageCount = 0;
-volatile uint32_t timeoutCount = 0;
+#### Pertanyaan Analisa
 
-/* Watchdog Timeout Callback */
-void vWatchdogCallback(TimerHandle_t xTimer) {
-    timeoutCount++;
-    communicationActive = false;
-    
-    printf("\n!!! WATCHDOG TIMEOUT !!!\n");
-    printf("No data for %d ms\n", WATCHDOG_MS);
-    printf("Total timeouts: %lu\n\n", timeoutCount);
-    
-    // Visual indication
-    gpio_set_level(LED_TIMEOUT, 1);
-    gpio_set_level(LED_ALIVE, 0);
-}
-
-/* Simulated Communication Task */
-void CommTask(void *pvParameters) {
-    printf("[Comm] Waiting for data...\n");
-    printf("Send any character to simulate incoming data\n\n");
-    
-    uint8_t c;
-    for(;;) {
-        if(uart_read_bytes(UART_NUM_0, &c, 1, pdMS_TO_TICKS(10)) > 0) {
-            messageCount++;
-            
-            // Reset watchdog
-            xTimerReset(xWatchdogTimer, pdMS_TO_TICKS(100));
-            
-            // Mark communication as active
-            if(!communicationActive) {
-                communicationActive = true;
-                gpio_set_level(LED_TIMEOUT, 0);
-                printf("[Comm] Communication RESTORED!\n");
-            }
-            
-            printf("[Comm] Received: '%c' (msg #%lu)\n", (char)c, messageCount);
-        }
-        
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-
-/* Heartbeat Task - Visual feedback when alive */
-void HeartbeatTask(void *pvParameters) {
-    static int aliveState = 0;
-    for(;;) {
-        if(communicationActive) {
-            aliveState = !aliveState;
-            gpio_set_level(LED_ALIVE, aliveState);
-        }
-        
-        vTaskDelay(pdMS_TO_TICKS(250));
-    }
-}
-
-/* Status Task */
-void StatusTask(void *pvParameters) {
-    for(;;) {
-        printf("\n--- Status ---\n");
-        printf("Messages received: %lu\n", messageCount);
-        printf("Timeouts: %lu\n", timeoutCount);
-        printf("Communication: %s\n", 
-                     communicationActive ? "ACTIVE" : "INACTIVE");
-        printf("Timer active: %s\n",
-                     xTimerIsTimerActive(xWatchdogTimer) ? "YES" : "NO");
-        printf("--------------\n\n");
-        
-        vTaskDelay(pdMS_TO_TICKS(5000));
-    }
-}
-
-void app_main(void) {
-    // Configure GPIO
-    gpio_reset_pin(LED_ALIVE);
-    gpio_set_direction(LED_ALIVE, GPIO_MODE_OUTPUT);
-    gpio_reset_pin(LED_TIMEOUT);
-    gpio_set_direction(LED_TIMEOUT, GPIO_MODE_OUTPUT);
-    
-    gpio_set_level(LED_ALIVE, 0);
-    gpio_set_level(LED_TIMEOUT, 1);  // Start in timeout state
-    
-    printf("\n=== ESP32 Watchdog Timer Demo ===\n");
-    printf("Watchdog timeout: %d ms\n", WATCHDOG_MS);
-    printf("Send characters to keep communication alive\n\n");
-    
-    // Create watchdog timer (one-shot)
-    xWatchdogTimer = xTimerCreate(
-        "Watchdog",
-        pdMS_TO_TICKS(WATCHDOG_MS),
-        pdFALSE,  // One-shot
-        NULL,
-        vWatchdogCallback
-    );
-    
-    // Start watchdog (will timeout if no data)
-    xTimerStart(xWatchdogTimer, 0);
-    
-    // Create tasks
-    xTaskCreate(CommTask, "Comm", 4096, NULL, 2, NULL);
-    xTaskCreate(HeartbeatTask, "Heartbeat", 2048, NULL, 1, NULL);
-    xTaskCreate(StatusTask, "Status", 2048, NULL, 1, NULL);
-}
-```
-
-### ✅ Tugas Percobaan 6
-1. Amati LED saat tidak ada input vs saat ada input
-2. Berhenti mengirim data dan amati timeout
-3. Hitung waktu exact dari timeout (gunakan millis())
+1. Mengapa teknik debounce timer lebih baik dari delay blocking di ISR?
+2. Berapa waktu debounce optimal? Terlalu pendek vs terlalu panjang — apa efeknya?
+3. Apakah teknik ini menangani both press dan release debounce?
+4. Bandingkan software debounce (timer) vs hardware debounce (RC filter).
 
 ---
 
-## 🔬 Percobaan 7: Timer + Notification Kombinasi (ESP32)
+### Percobaan 05: Timer Timeout Monitor
 
-### Tujuan
-Mengkombinasikan software timer dengan task notification untuk event-driven system.
+**Tujuan:** Menggunakan timer sebagai watchdog heartbeat — deteksi timeout jika tidak ada heartbeat.
 
-### Program 7: Multi-Source Event Handler
+#### Langkah Kerja
 
-```c
-/* Percobaan 7: Timer + Notification Kombinasi ESP32
- * File: src/main.c
- */
-#include <stdio.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/timers.h"
-#include "driver/gpio.h"
-#include "driver/uart.h"
-#include "esp_log.h"
-#include "esp_timer.h"
+1. Buka project `ESP32_05` atau `STM32_05`.
+2. One-shot timer timeout 5 detik dimulai.
+3. Task mengirim heartbeat berkala — setiap heartbeat mereset timer via `xTimerReset()`.
+4. Selama heartbeat aktif, timeout tidak pernah fire.
+5. Simulasikan task hang (berhenti kirim heartbeat) → timer fire → WARNING di serial, LED blink.
+6. Pada STM32, hang disimulasikan setiap 5 heartbeat.
 
-static const char *TAG = "EVT_HANDLER";
+#### Tabel Pengamatan
 
-#define BUTTON_PIN  GPIO_NUM_15
-#define LED1_PIN    GPIO_NUM_4
-#define LED2_PIN    GPIO_NUM_16
-#define LED3_PIN    GPIO_NUM_17
-#define LED4_PIN    GPIO_NUM_5
+| Event | Waktu | Timer State | Output |
+|-------|-------|-----------|--------|
+| Start | 0s | Active (5s timeout) | |
+| Heartbeat 1 | ~1s | Reset | |
+| Heartbeat 2 | ~2s | Reset | |
+| Task hangs | ~5s | Counting down... | |
+| Timeout! | ~10s | FIRED | WARNING! |
 
-/* Event definitions */
-#define EVT_BUTTON      (1 << 0)
-#define EVT_TIMER_1S    (1 << 1)
-#define EVT_TIMER_5S    (1 << 2)
-#define EVT_SERIAL      (1 << 3)
+#### Pertanyaan Analisa
 
-TaskHandle_t xEventHandler = NULL;
-TimerHandle_t xTimer1s = NULL;
-TimerHandle_t xTimer5s = NULL;
-TimerHandle_t xDebounceTimer = NULL;
-
-/* Event statistics */
-struct {
-    uint32_t button;
-    uint32_t timer1s;
-    uint32_t timer5s;
-    uint32_t serial;
-} eventCounts = {0};
-
-/* 1 Second Timer Callback */
-void vTimer1sCallback(TimerHandle_t xTimer) {
-    eventCounts.timer1s++;
-    xTaskNotify(xEventHandler, EVT_TIMER_1S, eSetBits);
-}
-
-/* 5 Second Timer Callback */
-void vTimer5sCallback(TimerHandle_t xTimer) {
-    eventCounts.timer5s++;
-    xTaskNotify(xEventHandler, EVT_TIMER_5S, eSetBits);
-}
-
-/* Debounce Timer Callback */
-void vDebounceCallback(TimerHandle_t xTimer) {
-    if(gpio_get_level(BUTTON_PIN) == 0) {
-        eventCounts.button++;
-        xTaskNotify(xEventHandler, EVT_BUTTON, eSetBits);
-    }
-}
-
-/* Button ISR */
-static void IRAM_ATTR buttonISR(void *arg) {
-    BaseType_t woken = pdFALSE;
-    xTimerResetFromISR(xDebounceTimer, &woken);
-    if(woken) portYIELD_FROM_ISR();
-}
-
-/* Central Event Handler */
-void EventHandlerTask(void *pvParameters) {
-    uint32_t events;
-    
-    printf("[Handler] Started - waiting for events...\n\n");
-    
-    for(;;) {
-        if(xTaskNotifyWait(0, 0xFFFFFFFF, &events, portMAX_DELAY) == pdTRUE) {
-            
-            printf("\n[Event@%lld] Flags: 0x%02lX\n", esp_timer_get_time()/1000, events);
-            
-            if(events & EVT_BUTTON) {
-                printf("  [BUTTON] Press #%lu\n", eventCounts.button);
-                static int led1 = 0; led1 = !led1;
-                gpio_set_level(LED1_PIN, led1);
-            }
-            
-            if(events & EVT_TIMER_1S) {
-                printf("  [1S] Tick #%lu\n", eventCounts.timer1s);
-                static int led2 = 0; led2 = !led2;
-                gpio_set_level(LED2_PIN, led2);
-            }
-            
-            if(events & EVT_TIMER_5S) {
-                printf("  [5S] Tick #%lu\n", eventCounts.timer5s);
-                
-                // Flash LED3 rapidly
-                for(int i = 0; i < 5; i++) {
-                    gpio_set_level(LED3_PIN, 1);
-                    vTaskDelay(pdMS_TO_TICKS(50));
-                    gpio_set_level(LED3_PIN, 0);
-                    vTaskDelay(pdMS_TO_TICKS(50));
-                }
-            }
-            
-            if(events & EVT_SERIAL) {
-                printf("  [SERIAL] Event #%lu\n", eventCounts.serial);
-                static int led4 = 0; led4 = !led4;
-                gpio_set_level(LED4_PIN, led4);
-            }
-        }
-    }
-}
-
-/* Serial Monitor Task */
-void SerialTask(void *pvParameters) {
-    uint8_t cmd;
-    for(;;) {
-        if(uart_read_bytes(UART_NUM_0, &cmd, 1, pdMS_TO_TICKS(10)) > 0) {
-            switch((char)cmd) {
-                case 's':
-                    eventCounts.serial++;
-                    xTaskNotify(xEventHandler, EVT_SERIAL, eSetBits);
-                    break;
-                    
-                case '1':
-                    if(xTimerIsTimerActive(xTimer1s)) {
-                        xTimerStop(xTimer1s, pdMS_TO_TICKS(100));
-                        printf("[Cmd] 1s timer STOPPED\n");
-                    } else {
-                        xTimerStart(xTimer1s, pdMS_TO_TICKS(100));
-                        printf("[Cmd] 1s timer STARTED\n");
-                    }
-                    break;
-                    
-                case '5':
-                    if(xTimerIsTimerActive(xTimer5s)) {
-                        xTimerStop(xTimer5s, pdMS_TO_TICKS(100));
-                        printf("[Cmd] 5s timer STOPPED\n");
-                    } else {
-                        xTimerStart(xTimer5s, pdMS_TO_TICKS(100));
-                        printf("[Cmd] 5s timer STARTED\n");
-                    }
-                    break;
-                    
-                case 'i':
-                    printf("\n=== Event Statistics ===\n");
-                    printf("Button events:  %lu\n", eventCounts.button);
-                    printf("1s timer ticks: %lu\n", eventCounts.timer1s);
-                    printf("5s timer ticks: %lu\n", eventCounts.timer5s);
-                    printf("Serial events:  %lu\n", eventCounts.serial);
-                    printf("\nTimer1s: %s\n", 
-                                 xTimerIsTimerActive(xTimer1s) ? "ACTIVE" : "STOPPED");
-                    printf("Timer5s: %s\n", 
-                                 xTimerIsTimerActive(xTimer5s) ? "ACTIVE" : "STOPPED");
-                    printf("========================\n\n");
-                    break;
-                    
-                case 'h':
-                    printf("\n=== Commands ===\n");
-                    printf("s - Send serial event\n");
-                    printf("1 - Toggle 1s timer\n");
-                    printf("5 - Toggle 5s timer\n");
-                    printf("i - Info/statistics\n");
-                    printf("================\n\n");
-                    break;
-            }
-        }
-        
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-
-void app_main(void) {
-    // Configure GPIO
-    gpio_reset_pin(BUTTON_PIN);
-    gpio_set_direction(BUTTON_PIN, GPIO_MODE_INPUT);
-    gpio_set_pull_mode(BUTTON_PIN, GPIO_PULLUP_ONLY);
-    gpio_set_intr_type(BUTTON_PIN, GPIO_INTR_NEGEDGE);
-    
-    gpio_num_t leds[] = {LED1_PIN, LED2_PIN, LED3_PIN, LED4_PIN};
-    for(int i = 0; i < 4; i++) {
-        gpio_reset_pin(leds[i]);
-        gpio_set_direction(leds[i], GPIO_MODE_OUTPUT);
-    }
-    
-    printf("\n=== ESP32 Timer + Notification Demo ===\n");
-    printf("Press 'h' for help\n\n");
-    
-    // Create event handler task first
-    xTaskCreate(EventHandlerTask, "Events", 4096, NULL, 3, &xEventHandler);
-    xTaskCreate(SerialTask, "Serial", 2048, NULL, 2, NULL);
-    
-    // Create timers
-    xTimer1s = xTimerCreate("1s", pdMS_TO_TICKS(1000), pdTRUE, NULL, vTimer1sCallback);
-    xTimer5s = xTimerCreate("5s", pdMS_TO_TICKS(5000), pdTRUE, NULL, vTimer5sCallback);
-    xDebounceTimer = xTimerCreate("Debounce", pdMS_TO_TICKS(50), pdFALSE, NULL, vDebounceCallback);
-    
-    // Start timers
-    xTimerStart(xTimer1s, 0);
-    xTimerStart(xTimer5s, 0);
-    
-    // Install GPIO ISR service and add handler
-    gpio_install_isr_service(0);
-    gpio_isr_handler_add(BUTTON_PIN, buttonISR, NULL);
-}
-```
-
-### ✅ Tugas Percobaan 7
-1. Amati kombinasi events saat multiple sources trigger bersamaan
-2. Jelaskan keuntungan central event handler
-3. Modifikasi untuk menambah event baru (sensor, dll)
+1. Apa perbedaan pendekatan ini dengan hardware watchdog (IWDG di STM32)?
+2. Mengapa `xTimerReset()` cocok untuk heartbeat pattern?
+3. Apa yang harus dilakukan saat timeout terdeteksi? (restart task? system reset? alert?)
+4. Bagaimana menangani multiple task yang masing-masing perlu dimonitor?
 
 ---
 
-## 📝 Laporan Praktikum
+### Percobaan 06: Task Notification Basic
 
-### Format Laporan
-1. **Cover** - Identitas dan judul praktikum
-2. **Tujuan** - Capaian pembelajaran modul
-3. **Dasar Teori** - Ringkasan materi timer dan notification
-4. **Hasil Percobaan** - Screenshot dan output per percobaan
-5. **Analisis** - Jawaban tugas dan pembahasan
-6. **Kesimpulan** - Rangkuman pembelajaran
+**Tujuan:** Menggunakan task notification sebagai pengganti binary semaphore — lebih ringan dan cepat.
 
-### Pertanyaan Analisis
-1. Apa perbedaan fundamental software timer vs hardware timer?
-2. Kapan sebaiknya menggunakan task notification vs semaphore?
-3. Jelaskan mengapa timer callback tidak boleh blocking!
-4. Apa keuntungan event-driven architecture dengan notification?
-5. Bagaimana debounce timer meningkatkan reliability input?
+#### Langkah Kerja
+
+1. Buka project `ESP32_06` atau `STM32_06`.
+2. Button ISR memanggil `vTaskNotifyGiveFromISR()` — membangunkan handler task.
+3. Handler task menunggu pada `ulTaskNotifyTake()` — toggle LED saat terbangunkan.
+4. Pada ESP32, bandingkan latency: notification vs binary semaphore (mode bergantian setiap 5 press).
+5. Amati bahwa notification lebih cepat karena tidak perlu membuat objek terpisah.
+
+#### Tabel Pengamatan
+
+| Method | Press Count | Avg Latency (μs) | Min | Max |
+|--------|-----------|------------------|-----|-----|
+| Notification | 10 | | | |
+| Semaphore | 10 | | | |
+
+#### Pertanyaan Analisa
+
+1. Apa keuntungan task notification dibanding binary semaphore?
+2. Apa kelemahan task notification? (hanya bisa notify satu task tertentu)
+3. Mengapa notification lebih cepat? Apa yang dihemat?
+4. Kapan sebaiknya tetap menggunakan semaphore meskipun notification tersedia?
 
 ---
 
-## 📚 Referensi
+### Percobaan 07: Task Notification Value
 
-1. FreeRTOS Timer API: https://freertos.org/FreeRTOS-timers-xTimerCreate.html
-2. FreeRTOS Task Notification: https://freertos.org/RTOS-task-notifications.html
-3. STM32 HAL Documentation
-4. ESP-IDF FreeRTOS: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/freertos.html
+**Tujuan:** Mengirim data 32-bit melalui task notification — sebagai pengganti queue ringan.
+
+#### Langkah Kerja
+
+1. Buka project `ESP32_07` atau `STM32_07`.
+2. Sender task mengirim command (LED_ON, LED_OFF, STATUS, RESET, dll) via `xTaskNotify()`.
+3. Receiver task menggunakan `xTaskNotifyWait()` untuk membaca nilai.
+4. Pelajari perbedaan `eSetValueWithOverwrite` dan `eSetValueWithoutOverwrite`.
+5. ESP32: ketik command di serial. STM32: cycle otomatis.
+
+#### Tabel Pengamatan
+
+| Action | Command Value | Overwrite Mode | Received? | Result |
+|--------|-------------|---------------|----------|--------|
+| | eSetValueWithOverwrite | | | |
+| | eSetValueWithoutOverwrite | | | |
+| Rapid send 2× | | | Yang mana diterima? | |
+
+#### Pertanyaan Analisa
+
+1. Apa perbedaan `eSetValueWithOverwrite` dan `eSetValueWithoutOverwrite`?
+2. Bagaimana jika receiver belum sempat membaca dan sender kirim lagi (overwrite)?
+3. Kapan sebaiknya menggunakan notification value vs queue?
+4. Apakah notification value bisa mengirim struct? Jika data > 32-bit, apa solusinya?
 
 ---
 
-*Jobsheet Modul 11 - FreeRTOS Software Timer dan Task Notification*
+### Percobaan 08: Task Notification Counting
+
+**Tujuan:** Menggunakan task notification sebagai counting semaphore — menghitung event.
+
+#### Langkah Kerja
+
+1. Buka project `ESP32_08` atau `STM32_08`.
+2. Multiple producer task memanggil `xTaskNotifyGive()` — setiap call increment notification value.
+3. Handler task menggunakan `ulTaskNotifyTake(pdTRUE)` — decrement by 1, proses satu event.
+4. Amati backlog: jika producer lebih cepat, notification value (pending count) naik.
+5. Bandingkan `pdTRUE` (decrement) vs `pdFALSE` (clear to zero) behavior.
+
+#### Tabel Pengamatan
+
+| Waktu | Events Sent | Events Processed | Backlog (pending) |
+|-------|-----------|-----------------|------------------|
+| 5s | | | |
+| 15s | | | |
+| 30s | | | |
+
+#### Pertanyaan Analisa
+
+1. Apa perbedaan `ulTaskNotifyTake(pdTRUE)` dan `ulTaskNotifyTake(pdFALSE)`?
+2. Apa keuntungan counting notification dibanding counting semaphore?
+3. Apakah ada batas maksimal notification count? Apa tipe datanya?
+4. Bagaimana menangani overflow jika events terlalu banyak?
+
+---
+
+### Percobaan 09: Task Notification vs Semaphore dari ISR
+
+**Tujuan:** Membandingkan latency wake-up ISR-to-task: notification vs semaphore secara kuantitatif.
+
+#### Langkah Kerja
+
+1. Buka project `ESP32_09` atau `STM32_09`.
+2. Button press memicu ISR — bergantian menggunakan notification dan semaphore.
+3. Ukur latency dari ISR trigger sampai task wakeup.
+4. ESP32: menggunakan `esp_timer_get_time()` (microsecond precision).
+5. Amati tabel perbandingan: min, max, average latency.
+
+#### Tabel Pengamatan
+
+| Method | Samples | Min (μs) | Max (μs) | Avg (μs) |
+|--------|---------|---------|---------|---------|
+| Notification | | | | |
+| Semaphore | | | | |
+| Difference | | | | |
+
+#### Pertanyaan Analisa
+
+1. Mana yang lebih cepat? Berapa persentase perbedaannya?
+2. Mengapa ada perbedaan latency? Apa yang dilakukan FreeRTOS secara internal?
+3. Apakah perbedaan ini signifikan untuk aplikasi nyata?
+4. Faktor apa saja yang mempengaruhi ISR-to-task latency (selain mekanisme)?
+
+---
+
+### Percobaan 10: Event Group Basic
+
+**Tujuan:** Menggunakan event group untuk sinkronisasi multi-event dengan logika AND/OR.
+
+#### Langkah Kerja
+
+1. Buka project `ESP32_10` atau `STM32_10`.
+2. Tiga sensor task simulasi (Temp, Humidity, Pressure) — masing-masing set 1 bit di event group.
+3. Collector task menunggu **semua 3 bit** di-set (AND logic) menggunakan `xEventGroupWaitBits()`.
+4. Setelah semua sensor ready → LED menyala, data diproses.
+5. Pada ESP32, amati juga OR logic — trigger jika *salah satu* sensor alert.
+
+#### Tabel Pengamatan
+
+| Sensor | Bit | Set Time | All Ready? | Collector Wakeup |
+|--------|-----|---------|-----------|-----------------|
+| Temp | BIT_0 | | | |
+| Humidity | BIT_1 | | | |
+| Pressure | BIT_2 | | | |
+| --- | ALL | --- | YES | Waktu: |
+
+#### Pertanyaan Analisa
+
+1. Apa perbedaan AND logic dan OR logic pada `xEventGroupWaitBits()`?
+2. Apa fungsi parameter `xClearOnExit`? Kapan set `pdTRUE` vs `pdFALSE`?
+3. Berapa bit maksimal yang tersedia di event group? (24 bit user pada 32-bit system)
+4. Kapan gunakan event group vs multiple notification/semaphore?
+
+---
+
+### Percobaan 11: Event Group Sync (Barrier)
+
+**Tujuan:** Mengimplementasikan barrier synchronization — semua task menunggu di titik rendezvous.
+
+#### Langkah Kerja
+
+1. Buka project `ESP32_11` atau `STM32_11`.
+2. Tiga worker task melakukan pekerjaan dengan durasi berbeda (1s, 2s, 3s).
+3. Setelah selesai, masing-masing memanggil `xEventGroupSync()` — menunggu semua task selesai.
+4. Tidak ada task yang lanjut ke fase berikutnya sampai **semua** task di sync point.
+5. LED menyala saat synchronization tercapai.
+
+#### Tabel Pengamatan
+
+| Worker | Work Duration | Arrive at Sync | Wait Time | All Synced? |
+|--------|-------------|---------------|----------|------------|
+| A | 1s | ~1s | ~2s waiting | |
+| B | 2s | ~2s | ~1s waiting | |
+| C | 3s | ~3s | 0s | |
+| --- | --- | --- | Total: ~3s | YES |
+
+#### Pertanyaan Analisa
+
+1. Apa perbedaan `xEventGroupSync()` dan `xEventGroupWaitBits()`?
+2. Apa itu barrier / rendezvous pattern? Berikan contoh penggunaan nyata.
+3. Apa yang terjadi jika satu task tidak pernah sampai di sync point?
+4. Bisakah `xEventGroupSync()` digunakan untuk multi-phase synchronization?
+
+---
+
+### Percobaan 12: Benchmark — Timer vs Notification vs Semaphore
+
+**Tujuan:** Membandingkan overhead dan latency tiga mekanisme secara kuantitatif (1000 iterasi).
+
+#### Langkah Kerja
+
+1. Buka project `ESP32_12` atau `STM32_12`.
+2. Program menjalankan benchmark 3 mekanisme masing-masing 1000 iterasi:
+   - **Software Timer:** create → start → callback → stop
+   - **Task Notification:** give → take cycle
+   - **Binary Semaphore:** give → take cycle
+3. Ukur latency per iterasi (μs) dan hitung statistik.
+4. Amati tabel perbandingan: min, max, average, stddev.
+5. Identifikasi mekanisme tercepat dan alasannya.
+
+#### Tabel Pengamatan
+
+| Mechanism | Min (μs) | Max (μs) | Avg (μs) | StdDev (μs) |
+|-----------|---------|---------|---------|-------------|
+| Software Timer | | | | |
+| Task Notification | | | | |
+| Binary Semaphore | | | | |
+
+#### Pertanyaan Analisa
+
+1. Urutkan ketiga mekanisme dari tercepat ke terlambat. Mengapa urutan demikian?
+2. Apa overhead utama software timer dibanding notification langsung?
+3. Kapan memilih timer meskipun lebih lambat? (periodic, non-blocking)
+4. Bagaimana menggunakan hasil benchmark ini untuk desain sistem real?
+
+---
+
+## 5. Tabel Komparatif
+
+| Mekanisme | Tipe | Overhead | ISR Safe? | Capacity |
+|-----------|------|----------|----------|----------|
+| Software Timer | Periodik/one-shot | Sedang (daemon task) | Reset/Change FromISR | Unlimited (command queue) |
+| Task Notification | Point-to-point | Rendah (built-in) | Give FromISR | 1 target task |
+| Event Group | Multi-point sync | Sedang | SetBits FromISR | 24 bits |
+| Binary Semaphore | Signal | Sedang | Give FromISR | 1 value |
+| Counting Semaphore | Event counting | Sedang | Give FromISR | configMAX |
+
+| Aspek | STM32 | ESP32 |
+|-------|-------|-------|
+| Timer Daemon Priority | `configTIMER_TASK_PRIORITY` | Same |
+| Notification API | Standard FreeRTOS | Standard FreeRTOS |
+| Event Group Bits | 24 user bits | 24 user bits |
+| Timing Precision | SysTick (1ms) | esp_timer (1μs) |
+| Benchmark Resolution | Tick-based | μs-based |
+
+---
+
+## 6. Referensi
+
+1. FreeRTOS Software Timer API — https://www.freertos.org/FreeRTOS-Software-Timer-API-Functions.html
+2. FreeRTOS Task Notification API — https://www.freertos.org/RTOS-task-notifications.html
+3. FreeRTOS Event Group API — https://www.freertos.org/FreeRTOS-Event-Groups.html
+4. Mastering the FreeRTOS Real Time Kernel — Richard Barry (Ch. 5, 8, 9)
+5. AN4631 — Using FreeRTOS on STM32, STMicroelectronics
+6. ESP-IDF FreeRTOS Documentation — Espressif Systems
+
+---
+
+*Jobsheet Modul 10 — FreeRTOS Timer & Notification | Praktikum Sistem Embedded | 2025/2026*

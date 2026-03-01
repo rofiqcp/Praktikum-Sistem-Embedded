@@ -1,4 +1,4 @@
-# Modul 10: FreeRTOS — Queue dan Semaphore
+# Modul 09: FreeRTOS — Queue dan Semaphore
 
 ## 📚 Daftar Isi
 1. [Pendahuluan](#1-pendahuluan)
@@ -1487,3 +1487,11 @@ TaskA → Mutex1 → TaskB (waiting)
 
 ---
 
+## Referensi
+
+1. **FreeRTOS Queue API Reference** — https://www.freertos.org/a00018.html
+2. **FreeRTOS Semaphore/Mutex API Reference** — https://www.freertos.org/a00113.html
+3. **Mastering the FreeRTOS Real Time Kernel** — Richard Barry
+4. **AN4631: Using FreeRTOS on STM32** — STMicroelectronics
+5. **ESP-IDF FreeRTOS Documentation** — Espressif Systems
+6. **FreeRTOS API Reference** — https://www.freertos.org/a00106.html

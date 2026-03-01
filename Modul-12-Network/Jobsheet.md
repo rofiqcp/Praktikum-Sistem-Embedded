@@ -1,360 +1,556 @@
-# Jobsheet Modul 13: Network & IoT — Konektivitas Jaringan
+# Jobsheet Modul 12: Network dan IoT
 
-## A. Tujuan Praktikum
+## Praktikum Sistem Embedded
+
+**Semester:** Genap 2025/2026  
+**Durasi:** 3 × 50 menit (2 pertemuan)  
+**Platform:** ESP32 DevKit V1 & STM32 Blue Pill (STM32F103C8T6)
+
+---
+
+## 1. Tujuan Praktikum
 
 Setelah menyelesaikan praktikum ini, mahasiswa diharapkan mampu:
-1. Memahami arsitektur IoT dan protokol jaringan (TCP/IP, HTTP, MQTT, BLE)
-2. Mengimplementasikan koneksi WiFi (Station/AP) pada ESP32 menggunakan ESP-IDF
-3. Membangun aplikasi TCP/UDP client-server dan HTTP server/client
-4. Menggunakan protokol MQTT untuk komunikasi publish/subscribe
-5. Mengimplementasikan BLE advertising dan GATT server pada ESP32
-6. Menggunakan modul external (ESP-01, W5500, HM-10) pada STM32 untuk konektivitas jaringan
-7. Membangun sistem IoT end-to-end dari sensor hingga dashboard
 
-## B. Alat dan Bahan
+1. **Mengkonfigurasi konektifitas jaringan** — WiFi (ESP32) atau Ethernet/UART bridge (STM32) untuk koneksi internet.
+2. **Mengimplementasikan protokol transport** — TCP client/server dan UDP unicast/broadcast.
+3. **Menggunakan protokol aplikasi** — HTTP server/client dan MQTT publish/subscribe.
+4. **Mengkonfigurasi BLE** — Advertising, GATT server, dan komunikasi BLE.
+5. **Membangun sistem IoT end-to-end** — Dashboard sensor real-time dengan multiple protokol.
+
+---
+
+## 2. Peralatan
 
 | No | Komponen | Jumlah | Keterangan |
 |----|----------|--------|------------|
-| 1 | ESP32 DevKit V1 | 1 | Platform utama (WiFi/BLE native) |
-| 2 | STM32F103C8T6 (Blue Pill) | 1 | Platform kedua (tanpa WiFi) |
+| 1 | ESP32 DevKit V1 | 1 | WiFi + BLE built-in |
+| 2 | STM32 Blue Pill | 1 | ARM Cortex-M3 |
 | 3 | ST-Link V2 | 1 | Programmer STM32 |
-| 4 | Kabel USB Micro | 2 | Untuk ESP32 dan ST-Link |
-| 5 | ESP-01 (ESP8266) | 1 | Modul WiFi external untuk STM32 |
-| 6 | W5500 Ethernet Module | 1 | Modul Ethernet SPI untuk STM32 |
-| 7 | HM-10 BLE Module | 1 | Modul BLE untuk STM32 |
-| 8 | Router WiFi / Hotspot HP | 1 | Access Point untuk koneksi |
-| 9 | Kabel Ethernet (RJ45) | 1 | Untuk W5500 ke switch/router |
-| 10 | Breadboard + Jumper | 1 set | Untuk wiring |
-| 11 | LED + Resistor 220Ω | 2 set | Indikator status |
-| 12 | Push Button | 1 | Untuk kontrol |
-| 13 | Sensor DHT22/BMP280 (opsional) | 1 | Untuk percobaan IoT |
-| 14 | Komputer/Laptop | 1 | Untuk serial monitor, browser, MQTT tools |
-| 15 | Smartphone + nRF Connect App | 1 | Untuk percobaan BLE |
-
-### Software yang Diperlukan:
-- PlatformIO IDE (VS Code extension)
-- Serial Monitor (PlatformIO built-in)
-- Web Browser (Chrome/Firefox)
-- MQTT Explorer / Mosquitto client
-- nRF Connect App (Android/iOS) untuk BLE
-- Python 3.x + pip (untuk debug scripts)
-- Wireshark (opsional, untuk packet analysis)
-
-## C. Dasar Teori
-
-Lihat **Materi.md** untuk pembahasan lengkap. Ringkasan:
-
-### Arsitektur IoT
-```
-Sensor → MCU → Network → Cloud → Dashboard → Control → Actuator
-```
-
-### Perbandingan Platform
-| Aspek | ESP32 | STM32 |
-|-------|-------|-------|
-| WiFi | Built-in | Via ESP-01 (AT cmd) |
-| BLE | Built-in | Via HM-10 (AT cmd) |
-| Ethernet | RMII | Via W5500 (SPI) |
-| Framework | ESP-IDF | STM32Cube HAL |
+| 4 | ESP-01 (ESP8266) | 1 | WiFi module untuk STM32 (UART AT) |
+| 5 | W5500 Ethernet Module | 1 | Ethernet untuk STM32 (SPI) |
+| 6 | HM-10 BLE Module | 1 | BLE untuk STM32 (UART AT) |
+| 7 | LED 5mm | 2 | Indikator |
+| 8 | Resistor 330Ω | 2 | Current limiting |
+| 9 | Breadboard + kabel jumper | 1 set | |
+| 10 | Router WiFi / Hotspot HP | 1 | Akses jaringan |
 
 ---
 
-## D. Percobaan
+## 3. Teori Singkat
 
-### ═══════════════════════════════════════
-### BAGIAN 1: ESP32 — WiFi & Network (Native)
-### ═══════════════════════════════════════
+**WiFi (802.11)** menyediakan koneksi nirkabel ke jaringan lokal/internet. ESP32 memiliki WiFi built-in (STA/AP/STA+AP mode). STM32 menggunakan ESP-01 sebagai WiFi coprocessor melalui AT commands via UART.
 
-### Percobaan 1: WiFi Scan (ESP32_01_WiFi_Scan)
+**TCP** (Transmission Control Protocol) menjamin pengiriman data secara berurutan dan reliable. **UDP** (User Datagram Protocol) lebih cepat tetapi tanpa jaminan — cocok untuk sensor data real-time.
 
-**Tujuan:** Melakukan scanning Access Point WiFi di sekitar dan menampilkan informasi SSID, RSSI, channel, dan mode autentikasi.
+**HTTP** adalah protokol request-response untuk web. Mikrokontroler bisa menjadi HTTP server (menyajikan halaman) atau client (mengambil data dari API).
 
-**Langkah Kerja:**
-1. Buka folder `praktikum/ESP32/ESP32_01_WiFi_Scan/`
-2. Buka file `src/main.c`, pelajari kode program
-3. Compile: `pio run`
-4. Upload: `pio run -t upload`
-5. Buka Serial Monitor: `pio device monitor`
-6. Amati daftar Access Point yang terdeteksi
-7. Jalankan `python debug_analysis.py` untuk visualisasi RSSI
+**MQTT** (Message Queuing Telemetry Transport) adalah protokol publish-subscribe ringan yang ideal untuk IoT. Publisher mengirim data ke topic, subscriber menerima data dari topic yang diminati.
 
-**Tabel Pengamatan:**
-
-| No | SSID | RSSI (dBm) | Channel | Auth Mode | Kualitas |
-|----|------|-----------|---------|-----------|----------|
-| 1 | | | | | |
-| 2 | | | | | |
-| 3 | | | | | |
-
-**Pertanyaan:**
-1. Apa hubungan antara RSSI dan jarak ke Access Point?
-2. Mengapa channel yang berbeda digunakan oleh AP yang berbeda?
+**BLE** (Bluetooth Low Energy) untuk komunikasi jarak dekat hemat daya. GATT (Generic Attribute Profile) mendefinisikan service dan characteristic untuk pertukaran data.
 
 ---
 
-### Percobaan 2: WiFi Station Mode (ESP32_02_WiFi_Station)
+## 4. Langkah Percobaan
 
-**Tujuan:** Menghubungkan ESP32 ke Access Point WiFi dan mendapatkan IP address via DHCP.
-
-**Langkah Kerja:**
-1. Edit `src/main.c`, ubah SSID dan PASSWORD sesuai jaringan tersedia
-2. Compile dan upload
-3. Amati proses koneksi di Serial Monitor
-4. Catat IP address yang didapat
-
-**Tabel Pengamatan:**
-
-| Parameter | Nilai |
-|-----------|-------|
-| SSID Target | |
-| IP Address | |
-| Gateway | |
-| RSSI | |
-| Waktu Koneksi | |
-| Jumlah Retry | |
+> **Catatan Penting:** Percobaan ESP32 dan STM32 mencakup **topik yang sama** tetapi dengan **implementasi berbeda** karena perbedaan hardware. ESP32 menggunakan API native, STM32 menggunakan modul eksternal.
 
 ---
 
-### Percobaan 3: WiFi Access Point (ESP32_03_WiFi_Access_Point)
+### Percobaan 01: WiFi Scan / AT Command Init
 
-**Tujuan:** Membuat ESP32 sebagai Soft-AP yang dapat diakses oleh perangkat lain.
+**Tujuan:** Menginisialisasi koneksi wireless dan melihat jaringan yang tersedia.
 
-**Langkah Kerja:**
-1. Upload program ke ESP32
-2. Gunakan smartphone/laptop untuk mencari WiFi "ESP32_AP"
-3. Hubungkan ke jaringan tersebut
-4. Amati informasi client di Serial Monitor
+#### Langkah Kerja (ESP32)
 
----
+1. Buka project `ESP32_01`.
+2. Program melakukan WiFi scan — menampilkan semua AP yang ditemukan.
+3. Amati tabel: SSID, RSSI (kekuatan sinyal), channel, tipe autentikasi.
+4. Identifikasi AP yang akan digunakan dan kualitas sinyalnya.
 
-### Percobaan 4: TCP Client/Server (ESP32_04_TCP_Client_Server)
+#### Langkah Kerja (STM32)
 
-**Tujuan:** Membangun komunikasi TCP client-server menggunakan BSD socket API.
+1. Buka project `STM32_01`.
+2. Hubungkan ESP-01 ke UART2 STM32 (TX2→RX ESP, RX2→TX ESP, 3.3V, GND).
+3. Program mengirim AT commands: `AT`, `AT+GMR`, `AT+CWMODE?`, `AT+RST`.
+4. Amati response dari ESP-01 — pastikan komunikasi UART berhasil.
 
-**Langkah Kerja:**
-1. Upload program (TCP server di port 8080)
-2. Hubungkan ESP32 ke WiFi
-3. Dari PC, gunakan `python debug_analysis.py` sebagai TCP client
-4. Kirim pesan dan amati echo response
-5. Atau gunakan: `echo "Hello" | nc <ESP32_IP> 8080`
+#### Tabel Pengamatan
 
----
+| Platform | Test | Result | Status |
+|----------|------|--------|--------|
+| ESP32 | AP scan count | | |
+| ESP32 | Strongest AP (RSSI) | | |
+| STM32 | AT response | OK? | |
+| STM32 | Firmware version | | |
 
-### Percobaan 5: UDP Communication (ESP32_05_UDP_Communication)
+#### Pertanyaan Analisa
 
-**Tujuan:** Mengirim dan menerima datagram UDP termasuk broadcast.
-
-**Langkah Kerja:**
-1. Upload program
-2. Gunakan `python debug_analysis.py` sebagai UDP client/server
-3. Kirim datagram, amati response
-4. Test broadcast ke 255.255.255.255
-
-**Pertanyaan:**
-- Apa perbedaan TCP dan UDP dalam hal reliability?
-- Kapan UDP lebih cocok daripada TCP?
+1. Apa arti nilai RSSI? Berapa dBm yang dianggap sinyal baik/buruk?
+2. (STM32) Mengapa menggunakan AT commands untuk berkomunikasi dengan ESP-01?
+3. Apa perbedaan mode STA, AP, dan STA+AP pada WiFi?
+4. Mengapa ESP32 lebih mudah untuk WiFi dibanding STM32?
 
 ---
 
-### Percobaan 6: HTTP Server (ESP32_06_HTTP_Server)
+### Percobaan 02: WiFi Station Connect
 
-**Tujuan:** Membuat web server dengan REST API pada ESP32.
+**Tujuan:** Menghubungkan mikrokontroler ke jaringan WiFi dan mendapatkan IP address.
 
-**Langkah Kerja:**
-1. Upload program
-2. Buka browser, akses `http://<ESP32_IP>/` → lihat HTML dashboard
-3. Akses `http://<ESP32_IP>/api/status` → lihat JSON response
-4. Gunakan `curl -X POST http://<ESP32_IP>/api/led` → kontrol LED
+#### Langkah Kerja (ESP32)
 
----
+1. Buka project `ESP32_02`. Isi SSID dan password di kode.
+2. Program terhubung ke AP menggunakan event-driven handler.
+3. Amati proses: CONNECTING → GOT_IP → status connected.
+4. Amati RSSI monitoring periodik — kualitas sinyal real-time.
 
-### Percobaan 7: HTTP Client (ESP32_07_HTTP_Client)
+#### Langkah Kerja (STM32)
 
-**Tujuan:** ESP32 sebagai HTTP client, mengirim GET request dan mem-parse response.
+1. Buka project `STM32_02`. Isi SSID dan password.
+2. Program mengirim `AT+CWMODE=1` (STA) dan `AT+CWJAP="SSID","PASS"`.
+3. Amati retry logic jika koneksi gagal.
+4. `AT+CIFSR` menampilkan IP address yang didapat.
 
----
+#### Tabel Pengamatan
 
-### Percobaan 8: MQTT Publish/Subscribe (ESP32_08_MQTT_Pub_Sub)
+| Metric | ESP32 | STM32+ESP-01 |
+|--------|-------|-------------|
+| Connect time | | |
+| IP Address | | |
+| RSSI | | |
+| Retry count | | |
 
-**Tujuan:** Implementasi MQTT pub/sub menggunakan broker test.mosquitto.org.
+#### Pertanyaan Analisa
 
-**Langkah Kerja:**
-1. Upload program
-2. ESP32 akan publish ke topic `esp32/sensor`
-3. Install MQTT Explorer atau gunakan `python debug_analysis.py`
-4. Subscribe ke topic `esp32/sensor` untuk melihat data
-5. Publish ke topic `esp32/control` untuk mengirim command
-
-**Pertanyaan:**
-- Apa perbedaan QoS 0, 1, dan 2?
-- Apa fungsi Last Will Testament (LWT)?
-
----
-
-### Percobaan 9: BLE Advertising (ESP32_09_BLE_Advertising)
-
-**Tujuan:** Mengiklankan perangkat ESP32 via BLE GAP advertising.
-
-**Langkah Kerja:**
-1. Upload program
-2. Buka nRF Connect App di smartphone
-3. Scan perangkat BLE, cari "ESP32_BLE"
-4. Amati advertising data (name, TX power, service UUID)
+1. Apa perbedaan DHCP dan static IP? Kapan gunakan yang mana?
+2. Apa yang terjadi jika password salah? Bagaimana error handling-nya?
+3. Mengapa penting retry logic untuk koneksi WiFi?
+4. Bandingkan kecepatan koneksi ESP32 native vs STM32+ESP-01.
 
 ---
 
-### Percobaan 10: BLE GATT Server (ESP32_10_BLE_GATT_Server)
+### Percobaan 03: WiFi Access Point / TCP Client
 
-**Tujuan:** Membuat GATT server dengan service dan characteristic.
+**Tujuan ESP32:** Membuat ESP32 sebagai Access Point (AP) — perangkat lain bisa konek. 
+**Tujuan STM32:** Mengirim data TCP melalui koneksi WiFi via ESP-01.
 
-**Langkah Kerja:**
-1. Upload program
-2. Gunakan nRF Connect App
-3. Connect ke ESP32
-4. Read characteristic → lihat sensor data
-5. Write characteristic → kontrol LED (0x01=ON, 0x00=OFF)
-6. Enable notification → terima update data otomatis
+#### Langkah Kerja (ESP32)
 
----
+1. Buka project `ESP32_03`.
+2. ESP32 menjadi Soft-AP — terbentuk jaringan WiFi sendiri.
+3. Hubungkan HP/laptop ke AP yang dibuat ESP32.
+4. Amati tracking koneksi client: MAC address, event connect/disconnect.
 
-### Percobaan 11: WebSocket Server (ESP32_11_WebSocket_Server)
+#### Langkah Kerja (STM32)
 
-**Tujuan:** Komunikasi real-time bidirectional via WebSocket.
+1. Buka project `STM32_03`.
+2. Setelah terkoneksi WiFi, buka TCP koneksi: `AT+CIPSTART="TCP","server",port`.
+3. Kirim data: `AT+CIPSEND=length` → tunggu `>` → kirim data.
+4. Amati response dari server. `AT+CIPCLOSE` untuk menutup.
 
-**Langkah Kerja:**
-1. Upload program
-2. Buka browser, akses `http://<ESP32_IP>/` → HTML dengan WebSocket client
-3. Atau gunakan `python debug_analysis.py` sebagai WebSocket client
-4. Kirim pesan, amati response real-time
+#### Tabel Pengamatan (ESP32)
 
----
+| Event | Client MAC | Action | Client Count |
+|-------|-----------|--------|-------------|
+| Connect | | | |
+| Disconnect | | | |
 
-### Percobaan 12: IoT Dashboard (ESP32_12_IoT_Dashboard)
+#### Tabel Pengamatan (STM32)
 
-**Tujuan:** Membangun sistem IoT lengkap: sensor → MQTT → dashboard.
+| Step | AT Command | Response | Status |
+|------|-----------|----------|--------|
+| Open TCP | AT+CIPSTART | | |
+| Send data | AT+CIPSEND | | |
+| Receive | | | |
+| Close | AT+CIPCLOSE | | |
 
-**Langkah Kerja:**
-1. Upload program
-2. ESP32 membaca sensor dan publish via MQTT
-3. Akses HTTP dashboard di browser
-4. Gunakan `python debug_analysis.py` untuk monitoring MQTT
+#### Pertanyaan Analisa
 
----
-
-### ═══════════════════════════════════════
-### BAGIAN 2: STM32 — Network via Modul External
-### ═══════════════════════════════════════
-
-### Percobaan 13: UART AT Command (STM32_01_UART_AT_Command)
-
-**Tujuan:** Mengirim AT command ke ESP-01 via UART dan mem-parse response.
-
-**Wiring:**
-```
-STM32          ESP-01
-PA2(TX) -----> RX
-PA3(RX) <----- TX
-3.3V --------> VCC + CH_PD
-GND ---------> GND
-```
-
-**Langkah Kerja:**
-1. Wiring ESP-01 ke STM32 sesuai diagram
-2. Upload program
-3. Amati Serial Monitor (UART1 = debug)
-4. ESP-01 menerima AT commands via UART2
+1. (ESP32) Berapa client maksimal yang bisa konek ke Soft-AP?
+2. (STM32) Apa arti `AT+CIPSTART="TCP","IP",port`? Jelaskan setiap parameter.
+3. Apa perbedaan TCP dan UDP dalam konteks koneksi ini?
+4. Kapan mikrokontroler lebih cocok menjadi AP vs STA?
 
 ---
 
-### Percobaan 14: WiFi Connect via ESP-01 (STM32_02_ESP01_WiFi_Connect)
+### Percobaan 04: TCP Socket / HTTP GET
 
-**Tujuan:** Menghubungkan ke WiFi AP menggunakan AT commands ESP-01.
+**Tujuan ESP32:** Mengimplementasikan TCP server dan client menggunakan BSD sockets.
+**Tujuan STM32:** Mengirim HTTP GET request melalui TCP via ESP-01.
 
----
+#### Langkah Kerja (ESP32)
 
-### Percobaan 15: TCP Client via ESP-01 (STM32_03_ESP01_TCP_Client)
+1. Buka project `ESP32_04`.
+2. TCP server berjalan di port 8080. Setiap client baru ditangani task terpisah.
+3. Gunakan `nc (netcat)` atau browser untuk konek ke ESP32.
+4. Data yang dikirim akan di-echo kembali. Amati multi-client handling.
 
-**Tujuan:** Membuat koneksi TCP melalui ESP-01 AT commands.
+#### Langkah Kerja (STM32)
 
----
+1. Buka project `STM32_04`.
+2. Buka TCP koneksi ke httpbin.org port 80.
+3. Kirim HTTP GET request secara manual (raw HTTP string).
+4. Parse response: status code, Content-Type, body.
 
-### Percobaan 16: HTTP GET via ESP-01 (STM32_04_ESP01_HTTP_GET)
+#### Tabel Pengamatan
 
-**Tujuan:** Mengirim HTTP GET request melalui ESP-01.
+| Platform | Test | Result |
+|----------|------|--------|
+| ESP32 | Server listening on port | |
+| ESP32 | Client connected from | |
+| ESP32 | Echo test | |
+| STM32 | HTTP status code | |
+| STM32 | Response body | |
 
----
+#### Pertanyaan Analisa
 
-### Percobaan 17: W5500 Ethernet Init (STM32_05_W5500_Ethernet_Init)
-
-**Tujuan:** Inisialisasi modul W5500 Ethernet via SPI.
-
-**Wiring:**
-```
-STM32          W5500
-PA5(SCK) ----> SCLK
-PA6(MISO) <--- MISO
-PA7(MOSI) ---> MOSI
-PA4(CS) -----> CS
-PB0 ---------> RST
-3.3V --------> VCC
-GND ---------> GND
-```
-
----
-
-### Percobaan 18-20: W5500 TCP/UDP/HTTP Server
-
-**Tujuan:** Implementasi server TCP, UDP, dan HTTP via W5500 Ethernet.
+1. (ESP32) Bagaimana server menangani multiple client secara bersamaan? (multi-task)
+2. (STM32) Jelaskan format HTTP GET request: method, path, host, headers.
+3. Apa fungsi `bind()`, `listen()`, `accept()` pada TCP server?
+4. Mengapa perlu parsing response HTTP? Apa perbedaan header dan body?
 
 ---
 
-### Percobaan 21: UART Bridge ke ESP32 (STM32_09_UART_Bridge_ESP32)
+### Percobaan 05: UDP / Ethernet Init
 
-**Tujuan:** Komunikasi custom protocol antara STM32 dan ESP32 via UART.
+**Tujuan ESP32:** Komunikasi UDP unicast dan broadcast.
+**Tujuan STM32:** Inisialisasi modul Ethernet W5500 via SPI.
+
+#### Langkah Kerja (ESP32)
+
+1. Buka project `ESP32_05`.
+2. UDP server menunggu data di port tertentu.
+3. UDP client mengirim data unicast dan broadcast (255.255.255.255).
+4. Amati bahwa UDP tidak menjamin pengiriman — bandingkan dengan TCP.
+
+#### Langkah Kerja (STM32)
+
+1. Buka project `STM32_05`.
+2. Hubungkan W5500 ke SPI1 STM32 (SCK, MOSI, MISO, CS, RST).
+3. Program menginisialisasi W5500: set MAC address, IP, gateway, subnet.
+4. Verifikasi chip version (0x04) dan PHY link status.
+
+#### Tabel Pengamatan
+
+| Platform | Test | Result |
+|----------|------|--------|
+| ESP32 | UDP send OK | |
+| ESP32 | Broadcast received | |
+| STM32 | W5500 chip version | |
+| STM32 | PHY link status | |
+| STM32 | IP configured | |
+
+#### Pertanyaan Analisa
+
+1. (ESP32) Apa perbedaan UDP unicast dan broadcast? Kapan gunakan yang mana?
+2. (STM32) Mengapa W5500 menggunakan SPI? Apa keuntungan hardware TCP/IP stack?
+3. UDP tidak menjamin pengiriman — mengapa tetap digunakan? Berikan contoh use case.
+4. Apa perbedaan WiFi dan Ethernet untuk embedded system?
 
 ---
 
-### Percobaan 22: BLE HM-10 (STM32_10_BLE_HM10)
+### Percobaan 06: HTTP Server / TCP Server
 
-**Tujuan:** Komunikasi BLE menggunakan modul HM-10 via UART AT commands.
+**Tujuan ESP32:** Membuat HTTP web server dengan REST API dan kontrol LED.
+**Tujuan STM32:** Membuat TCP echo server menggunakan W5500.
+
+#### Langkah Kerja (ESP32)
+
+1. Buka project `ESP32_06`.
+2. HTTP server berjalan — buka browser, akses `http://<ESP32_IP>`.
+3. Halaman web menampilkan status LED dengan tombol kontrol.
+4. Test REST API: `GET /api/status` (JSON), `POST /api/led` (toggle LED).
+
+#### Langkah Kerja (STM32)
+
+1. Buka project `STM32_06`.
+2. W5500 TCP server di port 8080. Menunggu koneksi client.
+3. Data yang masuk di-echo kembali ke client.
+4. Amati socket state transitions: OPEN → LISTEN → ESTABLISHED → CLOSE.
+
+#### Tabel Pengamatan
+
+| Platform | Test | Result |
+|----------|------|--------|
+| ESP32 | Web page loads | |
+| ESP32 | LED toggle via API | |
+| ESP32 | JSON response | |
+| STM32 | TCP server accepts client | |
+| STM32 | Echo data correct | |
+
+#### Pertanyaan Analisa
+
+1. (ESP32) Apa itu REST API? Apa perbedaan GET dan POST?
+2. (STM32) Jelaskan state diagram TCP socket: LISTEN → ESTABLISHED → CLOSE.
+3. Bagaimana web server di mikrokontroler berbeda dari server konvensional (Nginx, Apache)?
+4. Apa keuntungan HTTP server di embedded vs cloud server + polling?
 
 ---
 
-### Percobaan 23: MQTT via ESP-01 (STM32_11_ESP01_MQTT)
+### Percobaan 07: HTTP Client / UDP via W5500
 
-**Tujuan:** Implementasi protokol MQTT menggunakan raw TCP melalui ESP-01.
+**Tujuan ESP32:** Mengambil data dari API menggunakan HTTP client.
+**Tujuan STM32:** Komunikasi UDP menggunakan W5500.
+
+#### Langkah Kerja (ESP32)
+
+1. Buka project `ESP32_07`.
+2. Program mengirim HTTP GET ke `httpbin.org/get` secara periodik.
+3. Parse response: status code, headers, body.
+4. Amati event handler untuk streaming response chunks.
+
+#### Langkah Kerja (STM32)
+
+1. Buka project `STM32_07`.
+2. W5500 UDP socket mengirim data ke target IP/port.
+3. Terima response dan parse header UDP (source IP, port, length).
+4. Amati bahwa UDP header parsing manual diperlukan pada W5500.
+
+#### Tabel Pengamatan
+
+| Platform | Test | Result |
+|----------|------|--------|
+| ESP32 | HTTP GET status | |
+| ESP32 | Response parse | |
+| STM32 | UDP send OK | |
+| STM32 | UDP receive OK | |
+
+#### Pertanyaan Analisa
+
+1. (ESP32) Apa perbedaan `esp_http_client` library vs raw TCP?
+2. (STM32) Mengapa harus parsing UDP header manual di W5500?
+3. Apa keuntungan menggunakan library HTTP vs implementasi manual?
+4. Kapan embedded system menjadi HTTP client vs server?
 
 ---
 
-### Percobaan 24: IoT Sensor Gateway (STM32_12_IoT_Sensor_Gateway)
+### Percobaan 08: MQTT Publish/Subscribe / HTTP Server W5500
 
-**Tujuan:** Membangun gateway IoT lengkap: STM32 sensor → ESP-01 → cloud.
+**Tujuan ESP32:** Menggunakan MQTT untuk publish sensor data dan subscribe commands.
+**Tujuan STM32:** Membuat HTTP web server menggunakan W5500.
+
+#### Langkah Kerja (ESP32)
+
+1. Buka project `ESP32_08`.
+2. Connect ke MQTT broker: `test.mosquitto.org` port 1883.
+3. Publish sensor data (JSON) ke topic, mis. `esp32/sensor`.
+4. Subscribe ke command topic, mis. `esp32/cmd`. Kirim perintah dari MQTT client di PC.
+5. Amati QoS 0/1/2 behavior.
+
+#### Langkah Kerja (STM32)
+
+1. Buka project `STM32_08`.
+2. W5500 HTTP server di port 80. Sajikan halaman HTML dengan status.
+3. Implementasikan `GET /` (HTML page), `GET /api/status` (JSON), `POST /api/led`.
+4. Parse HTTP request: method, path, body.
+
+#### Tabel Pengamatan (ESP32)
+
+| MQTT Action | Topic | QoS | Payload | Status |
+|-------------|-------|-----|---------|--------|
+| Publish | esp32/sensor | 0 | | |
+| Subscribe | esp32/cmd | 1 | | |
+| Receive cmd | | | | |
+
+#### Tabel Pengamatan (STM32)
+
+| HTTP Request | Path | Response Code | Body |
+|-------------|------|-------------|------|
+| GET | / | | HTML |
+| GET | /api/status | | JSON |
+| POST | /api/led | | |
+
+#### Pertanyaan Analisa
+
+1. (ESP32) Apa perbedaan MQTT QoS 0, 1, dan 2? Trade-off masing-masing?
+2. (STM32) Bagaimana parse HTTP request header di embedded system?
+3. Apa keuntungan MQTT vs HTTP untuk IoT sensor data?
+4. Apa itu MQTT broker? Mengapa perlu perantara?
 
 ---
 
-## E. Tugas
+### Percobaan 09: BLE Advertising / UART Bridge Protocol
 
-1. **Tugas Individu:** Buat sistem monitoring suhu (DHT22/BMP280) yang mengirim data via MQTT dan menampilkan di dashboard web. Dokumentasikan dalam video 5-10 menit.
+**Tujuan ESP32:** Mengkonfigurasi BLE advertising — device discovery.
+**Tujuan STM32:** Komunikasi bilateral dengan ESP32 coprocessor via UART protocol.
 
-2. **Tugas Kelompok:** Bandingkan kinerja TCP vs UDP untuk transmisi data sensor (latency, packet loss, throughput). Buat laporan analisis.
+#### Langkah Kerja (ESP32)
 
-3. **Pertanyaan Analisis:**
-   - Jelaskan perbedaan arsitektur komunikasi ESP32 (native WiFi) vs STM32 (via ESP-01)!
-   - Mengapa MQTT lebih cocok untuk IoT dibanding HTTP polling?
-   - Apa kelebihan dan kekurangan BLE dibanding WiFi untuk IoT?
-   - Bagaimana cara mengamankan komunikasi IoT? Sebutkan 3 metode!
+1. Buka project `ESP32_09`.
+2. BLE advertising dimulai — device name, TX power, appearance di-broadcast.
+3. Scan dari HP (nRF Connect app) — temukan ESP32.
+4. Amati advertising data: nama, flag, UUID.
 
-## F. Python Debug & Analysis Scripts
+#### Langkah Kerja (STM32)
 
-Setiap folder percobaan memiliki file `debug_analysis.py` yang berfungsi sebagai:
-- Serial monitor dan data parser
-- Test client (TCP/UDP/HTTP/MQTT/WebSocket/BLE)
-- Visualisasi data dengan matplotlib
-- Logging dan analisis performa
+1. Buka project `STM32_09`.
+2. Custom binary protocol: STX + CMD + LEN + DATA + CHECKSUM + ETX.
+3. STM32 mengirim frame ke ESP32 via UART2. ESP32 memproses dan respond.
+4. Amati state machine receiver: WAIT_STX → GET_CMD → GET_LEN → GET_DATA → VERIFY.
 
-Cara penggunaan:
-```bash
-cd praktikum/ESP32/ESP32_01_WiFi_Scan/
-python debug_analysis.py          # Mode default (serial monitor)
-python debug_analysis.py --help   # Lihat opsi lainnya
-```
+#### Tabel Pengamatan
+
+| Platform | Test | Result |
+|----------|------|--------|
+| ESP32 | BLE device visible | |
+| ESP32 | Device name correct | |
+| ESP32 | Adv data content | |
+| STM32 | Frame sent OK | |
+| STM32 | Checksum verified | |
+| STM32 | Response received | |
+
+#### Pertanyaan Analisa
+
+1. (ESP32) Apa itu BLE advertising? Apa data yang bisa di-broadcast?
+2. (STM32) Mengapa perlu custom binary protocol vs plain text?
+3. Apa keuntungan checksum dalam protokol komunikasi?
+4. Bandingkan BLE advertising vs WiFi scan — tujuan berbeda.
+
+---
+
+### Percobaan 10: BLE GATT Server / BLE HM-10
+
+**Tujuan ESP32:** Implementasi BLE GATT server — custom service dan characteristic.
+**Tujuan STM32:** BLE communication via HM-10 module menggunakan AT commands.
+
+#### Langkah Kerja (ESP32)
+
+1. Buka project `ESP32_10`.
+2. GATT server membuat custom service (UUID 0x00FF) dengan:
+   - Read characteristic: sensor data
+   - Write characteristic: LED control
+   - Notify characteristic: periodic update
+3. Koneksikan dari HP (nRF Connect). Baca, tulis, dan subscribe notify.
+
+#### Langkah Kerja (STM32)
+
+1. Buka project `STM32_10`.
+2. HM-10 dihubungkan ke UART. Init: `AT+NAME`, `AT+ROLE0`, `AT+UUID`.
+3. Module mengiklankan diri — koneksikan dari HP.
+4. Saat connected, data bisa dikirim/terima via UART transparan.
+
+#### Tabel Pengamatan
+
+| Platform | Test | Result |
+|----------|------|--------|
+| ESP32 | GATT read sensor | |
+| ESP32 | GATT write LED | |
+| ESP32 | GATT notify received | |
+| STM32 | HM-10 advertising | |
+| STM32 | BLE connected | |
+| STM32 | Data exchange | |
+
+#### Pertanyaan Analisa
+
+1. (ESP32) Apa struktur GATT? (Service → Characteristic → Descriptor)
+2. (STM32) Apa perbedaan HM-10 transparent mode vs AT mode?
+3. Apa perbedaan BLE read, write, dan notify? Kapan gunakan masing-masing?
+4. Bandingkan kemampuan BLE ESP32 native vs STM32+HM-10.
+
+---
+
+### Percobaan 11: WebSocket / MQTT Manual
+
+**Tujuan ESP32:** Komunikasi real-time bidirectional menggunakan WebSocket.
+**Tujuan STM32:** Konstruksi packet MQTT manual over TCP via ESP-01.
+
+#### Langkah Kerja (ESP32)
+
+1. Buka project `ESP32_11`.
+2. WebSocket server berjalan di port 80 dengan HTTP upgrade.
+3. Client (browser/tool) konek — data bisa dikirim dua arah secara real-time.
+4. Server broadcast sensor data ke semua connected client.
+
+#### Langkah Kerja (STM32)
+
+1. Buka project `STM32_11`.
+2. Program membangun packet MQTT 3.1.1 secara manual: CONNECT, PUBLISH, SUBSCRIBE, PINGREQ.
+3. Packet dikirim sebagai raw TCP data melalui ESP-01.
+4. Amati konstruksi byte-level: packet type, remaining length, payload.
+
+#### Tabel Pengamatan
+
+| Platform | Test | Result |
+|----------|------|--------|
+| ESP32 | WebSocket connected | |
+| ESP32 | Server → client push | |
+| ESP32 | Client → server msg | |
+| STM32 | MQTT CONNECT sent | |
+| STM32 | MQTT PUBLISH sent | |
+| STM32 | MQTT SUBSCRIBE OK | |
+
+#### Pertanyaan Analisa
+
+1. (ESP32) Apa keuntungan WebSocket vs HTTP polling untuk real-time data?
+2. (STM32) Jelaskan struktur MQTT packet: fixed header, variable header, payload.
+3. Apa perbedaan WebSocket dan MQTT? Kapan gunakan yang mana?
+4. Mengapa STM32 harus membangun MQTT packet manual?
+
+---
+
+### Percobaan 12: IoT Dashboard (Capstone)
+
+**Tujuan:** Membangun sistem IoT end-to-end — sensor → processing → publish → dashboard.
+
+#### Langkah Kerja (ESP32)
+
+1. Buka project `ESP32_12`.
+2. Sensor disimulasikan → data dikumpulkan → dikirim via MQTT.
+3. Bersamaan, HTTP server menyajikan halaman dashboard HTML/JS.
+4. Dashboard menampilkan data sensor real-time dengan auto-refresh.
+5. Command dari dashboard mengontrol LED.
+
+#### Langkah Kerja (STM32)
+
+1. Buka project `STM32_12`.
+2. ADC membaca sensor (internal temp + PA0 external).
+3. Data dikirim ke queue → upload task mengirim HTTP POST (JSON) via ESP-01.
+4. Amati JSON format data dan response dari server.
+
+#### Tabel Pengamatan
+
+| Platform | Metric | Value |
+|----------|--------|-------|
+| ESP32 | MQTT publish rate | /menit |
+| ESP32 | Dashboard loads | |
+| ESP32 | Remote LED control | |
+| STM32 | Sensor data sent | |
+| STM32 | HTTP POST status | |
+| STM32 | Server response | |
+
+#### Pertanyaan Analisa
+
+1. Apa komponen utama sistem IoT end-to-end? (sensor, gateway, cloud, dashboard)
+2. Mengapa menggunakan dual-protocol (MQTT + HTTP) di ESP32?
+3. Bagaimana memastikan data integrity dari sensor sampai dashboard?
+4. Apa pertimbangan keamanan untuk sistem IoT production? (TLS, authentication)
+
+---
+
+## 5. Tabel Komparatif
+
+| Aspek | ESP32 (Native) | STM32 (External Modules) |
+|-------|----------------|------------------------|
+| WiFi | Built-in, `esp_wifi` API | ESP-01 via UART AT commands |
+| Ethernet | Tidak ada (butuh PHY) | W5500 via SPI |
+| BLE | Built-in, `esp_gap/gatts` | HM-10 via UART AT |
+| TCP/UDP | BSD sockets (lwIP) | W5500 socket API / AT commands |
+| HTTP | `esp_http_server/client` | Manual HTTP string / W5500 |
+| MQTT | ESP-MQTT component | Manual packet construction |
+| WebSocket | HTTP server upgrade | Tidak tersedia |
+
+---
+
+## 6. Referensi
+
+1. ESP-IDF WiFi Guide — https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html
+2. ESP-IDF MQTT Client — https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/protocols/mqtt.html
+3. ESP-IDF BLE Guide — https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/bluetooth/
+4. W5500 Datasheet — WIZnet
+5. ESP8266 AT Instruction Set — Espressif Systems
+6. Kolban's Book on ESP32 — Neil Kolban
+7. MQTT Specification 3.1.1 — OASIS
+
+---
+
+*Jobsheet Modul 12 — Network & IoT | Praktikum Sistem Embedded | 2025/2026*

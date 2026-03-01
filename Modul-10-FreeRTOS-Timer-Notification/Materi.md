@@ -1,4 +1,4 @@
-# Modul 11: FreeRTOS — Software Timer dan Task Notification
+# Modul 10: FreeRTOS — Software Timer dan Task Notification
 
 ## 📚 Daftar Isi
 1. [Pendahuluan](#1-pendahuluan)

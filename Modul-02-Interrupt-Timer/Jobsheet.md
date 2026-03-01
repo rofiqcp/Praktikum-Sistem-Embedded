@@ -1,41 +1,43 @@
 # JOBSHEET BAB 02: Interrupt dan Timer
 
-## 📋 Informasi Praktikum
+## Informasi Praktikum
 
 | Item | Keterangan |
 |------|------------|
 | **Topik** | External Interrupt dan Hardware Timer |
 | **Platform** | STM32F103C8T6 (Blue Pill), ESP32 DevKitC |
 | **Framework** | STM32Cube HAL (STM32), ESP-IDF (ESP32) |
-| **Jumlah Program STM32** | 12 program |
-| **Jumlah Program ESP32** | 12 program |
-| **Durasi** | 3 x 50 menit |
-| **Tools** | PlatformIO, VS Code, Serial Monitor |
+| **Jumlah Program** | 12 program per platform |
+| **Durasi** | 3 × 50 menit |
 
 ---
 
-## 🎯 Tujuan Praktikum
+## Tujuan Praktikum
 
 Setelah menyelesaikan praktikum ini, mahasiswa mampu:
 
-1. Memahami perbedaan mekanisme polling dan interrupt
-2. Mengkonfigurasi External Interrupt pada STM32 (HAL) dan ESP32 (ESP-IDF)
-3. Mengimplementasikan Hardware Timer dengan interrupt
-4. Mengkonfigurasi Watchdog Timer (IWDG/WWDG dan esp_task_wdt)
-5. Menerapkan teknik Timer Cascade (master-slave chaining)
-6. Menerapkan teknik debouncing berbasis interrupt
-7. Mengembangkan aplikasi real-time dengan timer dan interrupt
+1. Mengkonfigurasi External Interrupt (EXTI) pada STM32 dan ESP32 untuk mendeteksi edge pada GPIO
+2. Mengimplementasikan teknik debounce berbasis timer pada interrupt
+3. Mengkonfigurasi Hardware Timer dalam mode periodic (auto-reload) dan one-shot
+4. Menghasilkan sinyal PWM dasar menggunakan timer hardware
+5. Mengimplementasikan Watchdog Timer (IWDG/WWDG pada STM32, esp_task_wdt pada ESP32)
+6. Menerapkan Timer Cascade (master-slave chaining) untuk extended timing
+7. Menggunakan Output Compare untuk toggle GPIO pada frekuensi presisi
+8. Mengukur lebar pulsa dan frekuensi sinyal dengan Input Capture
+9. Membaca rotary encoder menggunakan Timer Encoder Interface
+10. Menjalankan multiple timer secara bersamaan
+11. Mengelola prioritas interrupt dan nested interrupt behavior
 
 ---
 
-## 🔧 Alat dan Bahan
+## Alat dan Bahan
 
 ### Hardware
 
 | No | Komponen | Jumlah | Keterangan |
 |----|----------|--------|------------|
-| 1 | STM32F103C8T6 (Blue Pill) | 1 | ARM Cortex-M3, 72MHz |
-| 2 | ESP32 DevKitC | 1 | Dual-core, 240MHz |
+| 1 | STM32F103C8T6 Blue Pill | 1 | ARM Cortex-M3, 72 MHz |
+| 2 | ESP32 DevKitC | 1 | Dual-core, 240 MHz |
 | 3 | ST-Link V2 | 1 | Programmer STM32 |
 | 4 | USB Cable Micro | 2 | Power & programming |
 | 5 | Push Button | 4 | Tactile switch |
@@ -44,21 +46,18 @@ Setelah menyelesaikan praktikum ini, mahasiswa mampu:
 | 8 | Resistor 10kΩ | 4 | Pull-up/pull-down |
 | 9 | Breadboard | 1 | 830 tie-points |
 | 10 | Kabel Jumper | 20 | Male-Male |
-| 11 | Rotary Encoder | 1 | Untuk program Encoder_Interface |
+| 11 | Rotary Encoder 5-pin | 1 | Untuk percobaan Encoder Interface |
 
 ### Software
 
-| No | Software | Versi | Keterangan |
-|----|----------|-------|------------|
-| 1 | VS Code | Latest | IDE utama |
-| 2 | PlatformIO | Latest | Build system |
-| 3 | STM32 Platform | ststm32 | Framework: stm32cube |
-| 4 | ESP32 Platform | espressif32 | Framework: espidf |
-| 5 | Serial Monitor | Built-in | Debugging output |
+| No | Software | Keterangan |
+|----|----------|------------|
+| 1 | VS Code + PlatformIO | IDE utama |
+| 2 | Serial Monitor | Debugging output |
 
 ---
 
-## 📐 Konfigurasi Pin
+## Konfigurasi Pin
 
 ### STM32F103C8T6
 
@@ -84,283 +83,381 @@ Setelah menyelesaikan praktikum ini, mahasiswa mampu:
 
 ---
 
-## 📝 Daftar Program Praktikum
+## Persiapan Umum
 
-### Program STM32 (STM32Cube HAL)
-
-| No | Direktori | Topik | Tingkat |
-|----|-----------|-------|---------|
-| 1 | STM32_01_EXTI_Interrupt | External Interrupt dasar dengan HAL | Dasar |
-| 2 | STM32_02_EXTI_Debounce | EXTI dengan timer-based debounce | Dasar |
-| 3 | STM32_03_Timer_Periodic | Timer periodik (auto-reload) | Dasar |
-| 4 | STM32_04_Timer_One_Shot | Timer satu kali (one-shot mode) | Menengah |
-| 5 | STM32_05_Timer_PWM_Basic | PWM output via timer OC | Menengah |
-| 6 | STM32_06_Watchdog_Timer | IWDG dan WWDG watchdog | Menengah |
-| 7 | STM32_07_Timer_Cascade | Master-slave timer chaining | Lanjut |
-| 8 | STM32_08_Output_Compare_Toggle | Output Compare toggle GPIO | Menengah |
-| 9 | STM32_09_Input_Capture | Mengukur lebar pulsa / frekuensi | Lanjut |
-| 10 | STM32_10_Encoder_Interface | Timer encoder mode | Lanjut |
-| 11 | STM32_11_Multiple_Timers | Beberapa timer bersamaan | Lanjut |
-| 12 | STM32_12_NVIC_Priority | Prioritas interrupt dan nesting | Lanjut |
-
-### Program ESP32 (ESP-IDF)
-
-| No | Direktori | Topik | Tingkat |
-|----|-----------|-------|---------|
-| 1 | ESP32_01_EXTI_Interrupt | GPIO interrupt dengan ISR service | Dasar |
-| 2 | ESP32_02_EXTI_Debounce | GPIO interrupt + esp_timer debounce | Dasar |
-| 3 | ESP32_03_Timer_Periodic | GPTimer periodic alarm | Dasar |
-| 4 | ESP32_04_Timer_One_Shot | GPTimer one-shot alarm | Menengah |
-| 5 | ESP32_05_Timer_PWM_Basic | LEDC PWM via timer | Menengah |
-| 6 | ESP32_06_Watchdog_Timer | esp_task_wdt watchdog | Menengah |
-| 7 | ESP32_07_Timer_Cascade | Software timer chaining | Lanjut |
-| 8 | ESP32_08_Output_Compare_Toggle | GPTimer alarm toggle GPIO | Menengah |
-| 9 | ESP32_09_Input_Capture | Pulse counting / PCNT | Lanjut |
-| 10 | ESP32_10_Encoder_Interface | PCNT encoder mode | Lanjut |
-| 11 | ESP32_11_Multiple_Timers | Multiple GPTimers | Lanjut |
-| 12 | ESP32_12_NVIC_Priority | Interrupt priority levels | Lanjut |
+1. Buka VS Code + PlatformIO
+2. Sambungkan ST-Link V2 ke Blue Pill (SWCLK, SWDIO, GND, 3.3V)
+3. Pasang LED ke pin output dengan resistor 330Ω seri
+4. Pasang push button ke pin input dengan pull-up 10kΩ
+5. Hubungkan USB untuk power dan serial monitor
 
 ---
 
-## 📚 Tugas Praktikum
+## Langkah Kerja Percobaan
 
-### Tugas 1: External Interrupt (30 menit)
+### Percobaan 1 — EXTI Interrupt
 
-**Tujuan:** Memahami dan mengimplementasikan external interrupt
+**Tujuan:** Memahami mekanisme External Interrupt dasar pada kedua platform.
 
 **Langkah Kerja:**
 
-1. **Persiapan Hardware (10 menit)**
-   - Hubungkan button ke PA0 (STM32) atau GPIO0 (ESP32)
-   - Hubungkan LED ke PB3 (STM32) atau GPIO4 (ESP32)
-   - Verifikasi koneksi
+1. Buka folder `STM32_01_EXTI_Interrupt/`, build dan upload
+2. Buka Serial Monitor (115200 baud)
+3. Tekan BTN1 (PA0) — amati LED toggle dan pesan di serial
+4. Amati bahwa LED berubah state **hanya** saat tombol ditekan, bukan polling
+5. Ulangi pada ESP32: buka `ESP32_01_EXTI_Interrupt/`, upload, tekan BTN1 (GPIO4)
+6. Perhatikan penggunaan `IRAM_ATTR` pada ISR ESP32
 
-2. **STM32 — HAL EXTI (10 menit)**
-   - Buka program `STM32_01_EXTI_Interrupt`
-   - Compile dan upload
-   - Tekan button, amati LED toggle
-   - Perhatikan penggunaan `HAL_GPIO_EXTI_Callback()`
+**Hasil Pengamatan:**
 
-3. **ESP32 — ESP-IDF GPIO ISR (10 menit)**
-   - Buka program `ESP32_01_EXTI_Interrupt`
-   - Compile dan upload
-   - Tekan button, amati LED toggle
-   - Perhatikan penggunaan `gpio_isr_handler_add()` dan `IRAM_ATTR`
+| Platform | Pin BTN | Trigger Edge | Respons LED | Serial Output |
+|----------|---------|-------------|-------------|---------------|
+| STM32 | PA0 | Falling | Toggle | \_\_\_\_\_ |
+| ESP32 | GPIO4 | Falling | Toggle | \_\_\_\_\_ |
 
-**Pertanyaan Analisis:**
-1. Apa perbedaan konfigurasi EXTI antara HAL dan ESP-IDF?
-2. Mengapa ESP32 memerlukan `IRAM_ATTR` pada ISR?
-3. Apa yang terjadi jika tidak clear interrupt flag di STM32?
+**Analisa:**
+1. Apa perbedaan konfigurasi EXTI antara `HAL_GPIO_EXTI_Callback()` (STM32) dan `gpio_isr_handler_add()` (ESP32)?
+2. Mengapa ESP32 memerlukan `IRAM_ATTR` pada ISR sedangkan STM32 tidak?
+3. Apa yang terjadi jika interrupt flag di STM32 tidak di-clear?
 
 ---
 
-### Tugas 2: Hardware Timer (30 menit)
+### Percobaan 2 — EXTI Debounce
 
-**Tujuan:** Mengkonfigurasi dan menggunakan hardware timer
+**Tujuan:** Mengatasi masalah bouncing tombol pada interrupt menggunakan timer-based debounce.
 
 **Langkah Kerja:**
 
-1. **Timer Periodic (15 menit)**
-   - **STM32:** Buka `STM32_03_Timer_Periodic` — gunakan `HAL_TIM_Base_Start_IT()`
-   - **ESP32:** Buka `ESP32_03_Timer_Periodic` — gunakan `gptimer` API
+1. Upload `STM32_02_EXTI_Debounce/` dan buka Serial Monitor
+2. Tekan BTN1 cepat 10× — catat jumlah press count yang terdeteksi
+3. Bandingkan dengan Percobaan 1 (tanpa debounce) — apakah count lebih akurat?
+4. Ulangi pada ESP32: upload `ESP32_02_EXTI_Debounce/`
+5. Perhatikan penggunaan `esp_timer_get_time()` untuk timestamp debounce (200ms threshold)
 
-2. **Timer One-Shot (15 menit)**
-   - **STM32:** Buka `STM32_04_Timer_One_Shot` — disable auto-reload
-   - **ESP32:** Buka `ESP32_04_Timer_One_Shot` — one-shot alarm config
+**Hasil Pengamatan:**
+
+| Pengujian | Tanpa Debounce (P01) | Dengan Debounce (P02) |
+|-----------|---------------------|----------------------|
+| 10× tekan → count | \_\_\_ | \_\_\_ |
+| False trigger | Ya / Tidak | Ya / Tidak |
+
+**Analisa:**
+1. Berapa waktu debounce yang digunakan (dalam ms)? Apakah cukup untuk tombol tactile?
+2. Mengapa debounce berbasis timer lebih efektif dibanding blocking delay di dalam ISR?
+3. Apa risiko jika threshold debounce terlalu besar (misalnya 500ms)?
+
+---
+
+### Percobaan 3 — Timer Periodic
+
+**Tujuan:** Mengkonfigurasi hardware timer dalam mode periodic auto-reload.
+
+**Langkah Kerja:**
+
+1. Upload `STM32_03_Timer_Periodic/`
+2. Amati LED berkedip dengan interval presisi 1 detik dari timer interrupt
+3. Buka Serial Monitor — amati counter yang increment setiap 1 detik
+4. Upload `ESP32_03_Timer_Periodic/` — amati GPTimer periodic alarm
+5. Bandingkan akurasi timer STM32 vs ESP32 (hitung 60 kedipan, apakah tepat 60 detik?)
 
 **Perhitungan Timer STM32:**
 ```
-Clock = 72 MHz, Target = 1 second
-PSC = 7199, ARR = 9999
-Timer_Freq = 72MHz / 7200 = 10kHz
-Period = 10000 / 10kHz = 1 second ✓
+Clock = 72 MHz
+PSC = 7199 → Timer clock = 72MHz / 7200 = 10 kHz
+ARR = 9999 → Period = 10000 / 10kHz = 1.000 detik
 ```
+
+**Hasil Pengamatan:**
+
+| Platform | PSC | ARR | Target Period | Actual (ukur) | Error |
+|----------|-----|-----|---------------|---------------|-------|
+| STM32 | 7199 | 9999 | 1000 ms | \_\_\_ ms | \_\_\_ % |
+| ESP32 | — | — | 1000 ms | \_\_\_ ms | \_\_\_ % |
+
+**Analisa:**
+1. Tuliskan rumus perhitungan timer untuk PSC=3599 dan ARR=19999. Berapa periodenya?
+2. Mengapa ESP32 GPTimer menggunakan resolusi 1MHz (1µs) sebagai acuan?
+3. Apa keuntungan auto-reload dibanding manual restart timer?
 
 ---
 
-### Tugas 3: Watchdog Timer (20 menit)
+### Percobaan 4 — Timer One-Shot
 
-**Tujuan:** Mengimplementasikan watchdog untuk deteksi system hang
+**Tujuan:** Mengimplementasikan timer yang hanya berjalan sekali (one-shot mode).
 
 **Langkah Kerja:**
 
-1. **STM32 IWDG (10 menit)**
-   - Buka `STM32_06_Watchdog_Timer`
-   - Amati system reset saat WDT timeout
-   - Verifikasi `HAL_IWDG_Refresh()` mencegah reset
+1. Upload `STM32_04_Timer_One_Shot/`
+2. Tekan BTN — LED menyala, setelah 3 detik LED mati otomatis (one-shot timer)
+3. Tekan BTN lagi — siklus berulang
+4. Upload `ESP32_04_Timer_One_Shot/` — amati behavior yang sama
+5. Perhatikan bahwa timer tidak auto-reload, hanya berjalan sekali per trigger
 
-2. **ESP32 Task WDT (10 menit)**
-   - Buka `ESP32_06_Watchdog_Timer`
-   - Amati panic saat `esp_task_wdt_reset()` tidak dipanggil
-   - Coba simulasi hang (infinite loop tanpa kick)
+**Hasil Pengamatan:**
 
-**Pertanyaan Analisis:**
-1. Apa perbedaan IWDG dan WWDG pada STM32?
-2. Kapan menggunakan watchdog timer dalam aplikasi real?
-3. Bagaimana cara mendeteksi apakah reset disebabkan oleh WDT?
+| Aksi | LED State | Durasi ON | Auto-repeat? |
+|------|-----------|-----------|-------------|
+| Tekan BTN | ON → OFF | \_\_\_ detik | Ya / Tidak |
+| Tekan BTN lagi | ON → OFF | \_\_\_ detik | Ya / Tidak |
+| Tanpa tekan | OFF | — | — |
+
+**Analisa:**
+1. Apa perbedaan konfigurasi timer one-shot vs periodic di STM32 HAL?
+2. Dalam skenario apa one-shot timer lebih tepat digunakan dibanding periodic?
+3. Bagaimana cara mengubah durasi one-shot dari 3 detik menjadi 5 detik?
 
 ---
 
-### Tugas 4: Timer Cascade (20 menit)
+### Percobaan 5 — Timer PWM Basic
 
-**Tujuan:** Menghubungkan beberapa timer untuk extended timing
+**Tujuan:** Menghasilkan sinyal PWM (Pulse Width Modulation) dasar menggunakan timer hardware.
 
 **Langkah Kerja:**
 
-1. **STM32 Master-Slave (10 menit)**
-   - Buka `STM32_07_Timer_Cascade`
-   - Amati TIM2 (master) memicu TIM3 (slave)
-   - Verifikasi periode cascade = master × slave
+1. Upload `STM32_05_Timer_PWM_Basic/`
+2. Hubungkan oscilloscope atau LED ke pin PWM output
+3. Amati sinyal PWM 50Hz dengan duty cycle 50%
+4. Upload `ESP32_05_Timer_PWM_Basic/` — amati LEDC PWM pada GPIO2
+5. Perhatikan penggunaan LEDC hardware timer ESP32 (13-bit resolution)
 
-2. **ESP32 Software Chain (10 menit)**
-   - Buka `ESP32_07_Timer_Cascade`
-   - Amati timer chaining via software counter
-   - Bandingkan dengan hardware cascade STM32
+**Hasil Pengamatan:**
+
+| Parameter | STM32 | ESP32 |
+|-----------|-------|-------|
+| Frekuensi PWM | \_\_\_ Hz | 50 Hz |
+| Duty Cycle | \_\_\_ % | 50% |
+| Resolusi | 16-bit | 13-bit |
+| Pin Output | \_\_\_ | GPIO2 |
+
+**Analisa:**
+1. Bagaimana hubungan antara frekuensi PWM, prescaler, dan auto-reload register?
+2. Jika resolusi 13-bit, berapa level duty cycle yang tersedia?
+3. Untuk mengontrol servo motor (1-2ms pulse pada 50Hz), berapa nilai CCR yang tepat?
 
 ---
 
-### Tugas 5: Integrasi (30 menit)
+### Percobaan 6 — Watchdog Timer
 
-**Tujuan:** Menggabungkan interrupt, timer, dan watchdog
+**Tujuan:** Mengimplementasikan watchdog timer untuk deteksi system hang dan auto-recovery.
 
 **Langkah Kerja:**
 
-1. **Multiple Timers**
-   - Buka `STM32_11_Multiple_Timers` atau `ESP32_11_Multiple_Timers`
-   - Amati beberapa timer berjalan bersamaan
+1. Upload `STM32_06_Watchdog_Timer/`
+2. Amati LED berjalan normal — watchdog di-kick periodik
+3. Tekan BTN untuk simulasi hang (loop tanpa kick) — tunggu ~1 detik
+4. Amati sistem reset otomatis oleh IWDG
+5. Upload `ESP32_06_Watchdog_Timer/`
+6. Amati normal operation, lalu tekan BTN untuk starve WDT
+7. Amati panic reset setelah 5 detik timeout
 
-2. **NVIC Priority**
-   - Buka `STM32_12_NVIC_Priority` atau `ESP32_12_NVIC_Priority`
-   - Amati nested interrupt behavior
+**Hasil Pengamatan:**
 
-**Tugas Pengembangan:**
-Modifikasi program untuk membuat Reaction Time Tester:
-- LED menyala random setelah 1-5 detik (timer)
-- Ukur waktu user menekan button (interrupt + timestamp)
-- Tampilkan hasil via ESP_LOGI / HAL UART
+| Skenario | Platform | Timeout | Aksi Reset |
+|----------|----------|---------|-----------|
+| Normal (kick aktif) | STM32 | — | Tidak ada reset |
+| Simul hang | STM32 | \_\_\_ detik | Auto reset |
+| Normal (feed aktif) | ESP32 | — | Tidak ada reset |
+| Simul hang (BTN) | ESP32 | \_\_\_ detik | Panic reset |
 
----
-
-## 📊 Rubrik Penilaian Praktikum
-
-| Komponen | Bobot | Kriteria |
-|----------|-------|----------|
-| **Implementasi** | 40% | Semua program berjalan dengan benar |
-| **Laporan** | 30% | Dokumentasi lengkap dan analisis mendalam |
-| **Pemahaman** | 20% | Menjawab pertanyaan dengan benar |
-| **Keaktifan** | 10% | Partisipasi dan inisiatif |
+**Analisa:**
+1. Apa perbedaan IWDG dan WWDG pada STM32? Kapan masing-masing digunakan?
+2. Bagaimana cara mendeteksi apakah reset terakhir disebabkan oleh WDT?
+3. Dalam aplikasi industri, mengapa watchdog timer sangat penting?
 
 ---
 
-## ⚠️ Troubleshooting
+### Percobaan 7 — Timer Cascade
 
-### Masalah Umum Interrupt
+**Tujuan:** Menghubungkan dua timer (master-slave) untuk memperluas range timing.
 
-| Masalah | Penyebab | Solusi |
-|---------|----------|--------|
-| ISR tidak terpanggil | NVIC tidak di-enable | `HAL_NVIC_EnableIRQ()` / `gpio_install_isr_service()` |
-| ISR terpanggil terus | Flag tidak di-clear | Gunakan `HAL_GPIO_EXTI_IRQHandler()` |
-| ESP32 crash | IRAM_ATTR hilang | Tambahkan `IRAM_ATTR` pada ISR |
-| Double trigger | Bouncing | Implementasi debounce (program 02) |
+**Langkah Kerja:**
 
-### Masalah Umum Timer
+1. Upload `STM32_07_Timer_Cascade/`
+2. Amati LED1 berkedip cepat (fast timer / master) setiap 100ms
+3. Amati LED2 berkedip lambat (cascade / slave) — hanya toggle setiap N tick dari master
+4. Hitung rasio: berapa kali LED1 toggle sebelum LED2 toggle?
+5. Upload `ESP32_07_Timer_Cascade/` — amati software timer chaining
 
-| Masalah | Penyebab | Solusi |
-|---------|----------|--------|
-| Timer tidak jalan | Clock tidak enabled | `__HAL_RCC_TIMx_CLK_ENABLE()` |
-| Periode tidak akurat | PSC/ARR salah | Hitung ulang dengan rumus |
-| WDT reset terus | Lupa kick | Panggil refresh/reset periodik |
+**Hasil Pengamatan:**
 
----
+| Timer | LED | Interval | Rasio |
+|-------|-----|----------|-------|
+| Fast (Master) | LED1 | \_\_\_ ms | 1× |
+| Cascade (Slave) | LED2 | \_\_\_ ms | \_\_\_× |
 
-## 📚 Referensi
-
-1. *Mastering STM32* — Ch7 (Interrupts), Ch11 (Timers)
-2. *Kolban's Book on ESP32* — p267-268 (ISR), p300-302 (Timers)
-3. STM32F103 Reference Manual (RM0008)
-4. [ESP-IDF GPIO API](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/gpio.html)
-5. [ESP-IDF GPTimer API](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/gptimer.html)
-6. [ESP-IDF Task WDT](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/wdts.html)
----
-
-## 📐 Skema Rangkaian
-
-### Rangkaian Button dengan Pull-up Internal
-
-```
-STM32/ESP32:
-                    ┌─────────────────────┐
-                    │     MCU             │
-    ┌───────────────┤ GPIO (INPUT_PULLUP) │
-    │               └─────────────────────┘
-    │                        │
-    │                       ─┴─ Internal Pull-up
-    │                        │
-   ─┴─
-   │ │ Push Button
-   ─┬─
-    │
-   ─┴─
-   GND
-
-Saat tidak ditekan: GPIO = HIGH (pulled up)
-Saat ditekan: GPIO = LOW (connected to GND)
-Trigger: FALLING edge
-```
-
-### Rangkaian LED dengan Current Limiting Resistor
-
-```
-                    ┌─────────────────┐
-                    │     MCU         │
-                    │ GPIO (OUTPUT)   ├────[R 330Ω]──▶│LED├── GND
-                    └─────────────────┘
-```
+**Analisa:**
+1. STM32 mendukung hardware timer cascade (TRGO). Apa keuntungannya dibanding software chaining?
+2. Berapa range timing maksimal yang bisa dicapai dengan cascade 2 timer 16-bit pada 72MHz?
+3. Dalam aplikasi apa timer cascade diperlukan?
 
 ---
 
-## 📝 Format Laporan Praktikum
+### Percobaan 8 — Output Compare Toggle
 
-### Struktur Laporan
+**Tujuan:** Menggunakan Output Compare (OC) timer untuk toggle GPIO pada frekuensi presisi.
 
-1. **Cover** (1 halaman) — Judul, Nama, NIM, Tanggal
-2. **Tujuan** (0.5 halaman) — List tujuan dari jobsheet
-3. **Dasar Teori** (1-2 halaman) — Ringkasan interrupt, timer, watchdog, cascade
-4. **Metodologi** (1 halaman) — Alat, diagram, prosedur
-5. **Hasil dan Analisis** (3-4 halaman)
-   - Screenshot hasil setiap tugas
-   - Tabel pengukuran timing
-   - Analisis perbandingan STM32 vs ESP32
-   - Jawaban pertanyaan analisis
-6. **Kesimpulan** (0.5 halaman)
-7. **Lampiran** — Source code modifikasi
+**Langkah Kerja:**
+
+1. Upload `STM32_08_Output_Compare_Toggle/`
+2. Hubungkan LED atau oscilloscope ke pin OC output
+3. Amati toggle pada frekuensi yang ditentukan (tanpa software intervention)
+4. Upload `ESP32_08_Output_Compare_Toggle/` — amati GPTimer alarm toggle GPIO via ISR
+
+**Hasil Pengamatan:**
+
+| Platform | Pin OC | Frekuensi Toggle | Metode |
+|----------|--------|-----------------|--------|
+| STM32 | \_\_\_ | \_\_\_ Hz | Hardware OC |
+| ESP32 | \_\_\_ | \_\_\_ Hz | GPTimer alarm + ISR |
+
+**Analisa:**
+1. Apa perbedaan antara Output Compare dan simple timer interrupt toggle?
+2. Mengapa hardware OC lebih presisi daripada software toggle di ISR?
+3. Sebutkan 2 aplikasi nyata yang memerlukan Output Compare!
 
 ---
 
-## 📊 Tabel Dokumentasi Hasil
+### Percobaan 9 — Input Capture
 
-### Tabel 1: External Interrupt Response
+**Tujuan:** Mengukur lebar pulsa dan frekuensi sinyal eksternal menggunakan Input Capture timer.
 
-| Percobaan | Platform | Response Time | False Trigger |
-|-----------|----------|---------------|---------------|
-| EXTI tanpa debounce | STM32 | | |
-| EXTI tanpa debounce | ESP32 | | |
-| EXTI dengan debounce | STM32 | | |
-| EXTI dengan debounce | ESP32 | | |
+**Langkah Kerja:**
 
-### Tabel 2: Timer Accuracy
+1. Upload `STM32_09_Input_Capture/`
+2. Hubungkan sinyal dari timer PWM percobaan 5 ke pin input capture
+3. Amati serial monitor — lebar pulsa dan frekuensi terukur
+4. Upload `ESP32_09_Input_Capture/` — amati pengukuran menggunakan ANYEDGE interrupt + timestamp
+5. Ubah frekuensi input — amati perubahan pengukuran
 
-| Timer Config | Target Period | Measured Period | Error (%) |
-|-------------|---------------|-----------------|-----------|
-| STM32 1Hz | 1000 ms | | |
-| ESP32 1Hz | 1000 ms | | |
-| STM32 10Hz | 100 ms | | |
-| ESP32 10Hz | 100 ms | | |
+**Hasil Pengamatan:**
 
-### Tabel 3: Watchdog Timer
+| Sinyal Input | Pulse Width Terukur | Frekuensi Terukur | Error |
+|-------------|--------------------|--------------------|-------|
+| PWM 50Hz 50% | \_\_\_ µs | \_\_\_ Hz | \_\_\_ % |
+| PWM 100Hz 50% | \_\_\_ µs | \_\_\_ Hz | \_\_\_ % |
 
-| Platform | WDT Type | Timeout Setting | Actual Reset Time |
-|----------|----------|-----------------|-------------------|
-| STM32 | IWDG | 1s | |
-| STM32 | WWDG | - | |
-| ESP32 | TWDT | 5s | |
+**Analisa:**
+1. Jelaskan mekanisme Input Capture — bagaimana rising/falling edge dicapture oleh timer?
+2. Apa batasan frekuensi minimum dan maksimum yang bisa diukur?
+3. Bagaimana jika ada noise pada sinyal input? Apa solusinya?
+
+---
+
+### Percobaan 10 — Encoder Interface
+
+**Tujuan:** Membaca rotary encoder menggunakan Timer Encoder Interface mode.
+
+**Langkah Kerja:**
+
+1. Sambungkan rotary encoder: CLK dan DT ke pin timer STM32
+2. Upload `STM32_10_Encoder_Interface/`
+3. Putar encoder CW 10× — amati counter naik di serial monitor
+4. Putar encoder CCW 10× — amati counter turun
+5. Upload `ESP32_10_Encoder_Interface/` — amati PCNT encoder mode
+
+**Hasil Pengamatan:**
+
+| Aksi | Count STM32 | Count ESP32 | Sesuai? |
+|------|------------|------------|---------|
+| CW 10 step | \_\_\_ | \_\_\_ | Ya / Tidak |
+| CCW 10 step | \_\_\_ | \_\_\_ | Ya / Tidak |
+| CW cepat 20 step | \_\_\_ | \_\_\_ | Ya / Tidak |
+
+**Analisa:**
+1. Apa keuntungan Timer Encoder Mode dibanding polling manual (seperti di Modul 01 P09)?
+2. Jelaskan mode X1, X2, X4 pada encoder interface!
+3. Mengapa encoder mode tidak kehilangan step meski diputar cepat?
+
+---
+
+### Percobaan 11 — Multiple Timers
+
+**Tujuan:** Menjalankan beberapa timer hardware secara bersamaan dengan interval berbeda.
+
+**Langkah Kerja:**
+
+1. Upload `STM32_11_Multiple_Timers/`
+2. Amati 3 LED berkedip dengan interval berbeda secara independen
+3. Verifikasi setiap LED: LED1 (200ms), LED2 (500ms), LED3 (1000ms)
+4. Upload `ESP32_11_Multiple_Timers/` — amati 3 GPTimer independen
+5. Hitung: dalam 10 detik, berapa kali masing-masing LED toggle?
+
+**Hasil Pengamatan:**
+
+| Timer | LED | Interval | Toggle per 10 detik |
+|-------|-----|----------|---------------------|
+| Timer A | LED1 | 200 ms | \_\_\_ kali |
+| Timer B | LED2 | 500 ms | \_\_\_ kali |
+| Timer C | LED3 | 1000 ms | \_\_\_ kali |
+
+**Analisa:**
+1. Berapa jumlah hardware timer yang tersedia pada STM32F103 dan ESP32?
+2. Apa yang terjadi jika semua timer sudah terpakai dan kita butuh timer tambahan?
+3. Kapan sebaiknya menggunakan software timer (FreeRTOS) vs hardware timer?
+
+---
+
+### Percobaan 12 — NVIC Priority (Prioritas Interrupt)
+
+**Tujuan:** Memahami sistem prioritas interrupt dan nested interrupt behavior.
+
+**Langkah Kerja:**
+
+1. Upload `STM32_12_NVIC_Priority/`
+2. BTN1 memiliki prioritas tinggi, BTN2 prioritas rendah — masing-masing toggle LED berbeda
+3. Tekan BTN2 (tahan) lalu tekan BTN1 — amati apakah BTN1 meng-interrupt handler BTN2
+4. Upload `ESP32_12_NVIC_Priority/` — amati priority behavior
+5. Catat behavior nested interrupt
+
+**Hasil Pengamatan:**
+
+| Skenario | LED1 (High Prio) | LED2 (Low Prio) | Nested? |
+|----------|------------------|-----------------|---------|
+| BTN1 saja | Toggle | — | — |
+| BTN2 saja | — | Toggle | — |
+| BTN2 lalu BTN1 | \_\_\_ | \_\_\_ | Ya / Tidak |
+
+**Analisa:**
+1. Jelaskan konsep preemption priority dan sub-priority pada NVIC STM32!
+2. Apa yang dimaksud priority inversion dalam konteks interrupt?
+3. Bagaimana cara menentukan prioritas interrupt yang tepat dalam sistem multi-sensor?
+
+---
+
+## Tabel Komparatif STM32 vs ESP32
+
+| Aspek | STM32 (HAL) | ESP32 (ESP-IDF) |
+|-------|-------------|-----------------|
+| Interrupt controller | NVIC | Interrupt Matrix |
+| EXTI config | `HAL_GPIO_EXTI_Callback()` | `gpio_isr_handler_add()` |
+| ISR attribute | Tidak perlu | `IRAM_ATTR` wajib |
+| Timer config | TIM2–TIM4 (16-bit) | GPTimer (64-bit) |
+| Timer start | `HAL_TIM_Base_Start_IT()` | `gptimer_start()` |
+| Watchdog | IWDG + WWDG | `esp_task_wdt` |
+| Timer cascade | Hardware master-slave | Software chaining |
+| Priority levels | 16 levels (4-bit) | 7 levels |
+| Encoder mode | Timer Encoder Interface | PCNT |
+| PWM | Timer OC | LEDC |
+
+---
+
+## Kesimpulan
+
+Tuliskan kesimpulan mencakup:
+1. Perbedaan mekanisme polling vs interrupt dan kapan masing-masing tepat digunakan
+2. Konfigurasi timer periodic vs one-shot, termasuk rumus perhitungan PSC dan ARR
+3. Pentingnya watchdog timer dalam sistem embedded real-time
+4. Keuntungan timer cascade untuk extended timing
+5. Perbedaan implementasi interrupt dan timer antara STM32 HAL dan ESP-IDF
+
+---
+
+## Referensi
+
+1. Noviello, C. (2020). *Mastering STM32, 2nd Edition*, Ch7: Interrupts, Ch11: Timers. Leanpub.
+2. Kolban, N. (2018). *Kolban's Book on ESP32*, p267–302: ISR & Timers.
+3. Yiu, J. (2010). *The Definitive Guide to ARM Cortex-M3 and Cortex-M4 Processors*. Elsevier.
+4. STMicroelectronics. (2021). *RM0008 Reference Manual*, Ch10: EXTI, Ch13–15: Timers.
+5. STMicroelectronics. (2017). *AN4776 Timer Cookbook for STM32*.
+6. Espressif Systems. (2024). *ESP-IDF Programming Guide*: GPIO, GPTimer, Task WDT APIs.
+

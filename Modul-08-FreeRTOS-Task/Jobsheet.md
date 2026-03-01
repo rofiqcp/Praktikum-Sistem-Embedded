@@ -1,426 +1,455 @@
-# JOBSHEET BAB 09: FreeRTOS Task Management
+# Jobsheet Modul 08: FreeRTOS Task Management
 
-## 📋 Informasi Praktikum
+## Praktikum Sistem Embedded
 
-| Item | Keterangan |
-|------|------------|
-| **Topik** | FreeRTOS Task Management |
-| **Platform** | STM32F103C8T6 (Blue Pill), ESP32 DevKit V1 |
-| **Jumlah Program STM32** | 10 |
-| **Jumlah Program ESP32** | 10 |
-| **Durasi** | 3 x 50 menit |
-| **Prasyarat** | Modul 1-8 (GPIO, Interrupt, Timer, UART) |
+**Semester:** Genap 2025/2026  
+**Durasi:** 3 × 50 menit (2 pertemuan)  
+**Platform:** ESP32 DevKit V1 & STM32 Blue Pill (STM32F103C8T6)
 
 ---
 
-## 🎯 Tujuan Praktikum
+## 1. Tujuan Praktikum
 
-Setelah menyelesaikan praktikum ini, mahasiswa mampu:
+Setelah menyelesaikan praktikum ini, mahasiswa diharapkan mampu:
 
-1. Memahami konsep Real-Time Operating System (RTOS)
-2. Membuat dan mengelola task di FreeRTOS
-3. Mengatur prioritas dan state task
-4. Mengimplementasikan multi-tasking pada STM32 dan ESP32
-5. Melakukan debugging task menggunakan runtime statistics
-6. Menerapkan pattern task design yang baik
-
----
-
-## 🛠️ Komponen yang Dibutuhkan
-
-| Komponen | Jumlah | Keterangan |
-|----------|--------|------------|
-| STM32F103C8T6 | 1 | Blue Pill Board |
-| ESP32 DevKit V1 | 1 | 30/38 pin |
-| LED | 4 | Merah, Kuning, Hijau, Biru |
-| Push Button | 2 | Momentary switch |
-| Resistor 220Ω | 4 | Untuk LED |
-| Resistor 10kΩ | 2 | Pull-up button |
-| Potensiometer 10kΩ | 1 | Untuk input analog |
-| Breadboard | 1 | Full size |
-| Kabel Jumper | 20 | Male-to-male |
-| USB-TTL | 1 | Untuk debugging |
+1. **Memahami konsep RTOS** — Menjelaskan perbedaan bare-metal vs RTOS, konsep task/thread, scheduler, dan context switching.
+2. **Membuat dan mengelola FreeRTOS task** — Menggunakan `xTaskCreate()`, `vTaskDelete()`, `vTaskSuspend()/Resume()` untuk manajemen lifecycle task.
+3. **Mengatur prioritas dan penjadwalan** — Memahami preemptive scheduling, priority inversion, cooperative scheduling, dan time slicing.
+4. **Memonitor kesehatan sistem** — Menggunakan stack high water mark, idle hook, watchdog timer, dan scheduler info untuk debugging.
+5. **Mendesain sistem multi-task** — Merancang pembagian task yang efisien dengan mempertimbangkan prioritas, stack size, dan resource sharing.
 
 ---
 
-## 🔌 Skema Koneksi
+## 2. Peralatan
 
-### STM32F103C8T6
-
-\`\`\`
-STM32F103C8T6 Pinout:
-┌─────────────────────────────────────┐
-│                                     │
-│  PA0  ──── Button 1 (dengan 10K pull-up)
-│  PA1  ──── Button 2 (dengan 10K pull-up)
-│  PA4  ──── LED Merah (dengan 220Ω)
-│  PA5  ──── LED Kuning (dengan 220Ω)
-│  PA6  ──── LED Hijau (dengan 220Ω)
-│  PA7  ──── LED Biru (dengan 220Ω)
-│  PA9  ──── USB-TTL TX
-│  PA10 ──── USB-TTL RX
-│  PB0  ──── Potentiometer (ADC input)
-│  3.3V ──── VCC
-│  GND  ──── GND
-│                                     │
-└─────────────────────────────────────┘
-\`\`\`
-
-### ESP32 DevKit
-
-\`\`\`
-ESP32 DevKit Pinout:
-┌─────────────────────────────────────┐
-│                                     │
-│  GPIO2  ──── Built-in LED
-│  GPIO4  ──── LED Merah (dengan 220Ω)
-│  GPIO5  ──── LED Kuning (dengan 220Ω)
-│  GPIO18 ──── LED Hijau (dengan 220Ω)
-│  GPIO19 ──── LED Biru (dengan 220Ω)
-│  GPIO21 ──── Button 1 (internal pull-up)
-│  GPIO22 ──── Button 2 (internal pull-up)
-│  GPIO34 ──── Potentiometer (ADC input)
-│  3.3V   ──── VCC
-│  GND    ──── GND
-│                                     │
-└─────────────────────────────────────┘
-\`\`\`
+| No | Komponen | Jumlah | Keterangan |
+|----|----------|--------|------------|
+| 1 | ESP32 DevKit V1 | 1 | Dual-core, FreeRTOS built-in |
+| 2 | STM32 Blue Pill | 1 | ARM Cortex-M3 + FreeRTOS |
+| 3 | ST-Link V2 | 1 | Programmer STM32 |
+| 4 | LED 5mm | 3 | Indikator task (merah, hijau, kuning) |
+| 5 | Resistor 330Ω | 3 | Current limiting |
+| 6 | Push Button | 2 | User input |
+| 7 | Resistor 10kΩ | 2 | Pull-up button |
+| 8 | Breadboard + kabel jumper | 1 set | |
 
 ---
 
-## 📝 Praktikum STM32
+## 3. Teori Singkat
 
-### Program 1: Basic Task Creation - STM32
+FreeRTOS adalah Real-Time Operating System yang memungkinkan multitasking pada mikrokontroler. Setiap **task** adalah unit eksekusi independen dengan stack sendiri. **Scheduler** menentukan task mana yang berjalan berdasarkan **prioritas** (angka lebih tinggi = prioritas lebih tinggi). Pada mode **preemptive**, task prioritas tinggi dapat menginterupsi task prioritas rendah kapan saja. Setiap task memiliki state: **Running**, **Ready**, **Blocked**, **Suspended**.
 
-**Tujuan:** Membuat dua task sederhana yang berjalan bersamaan
-
-**Konsep:** xTaskCreate, vTaskDelay, vTaskDelayUntil
-
-**Langkah:**
-1. Buat project PlatformIO dengan framework stm32cube
-2. Tambahkan FreeRTOS library
-3. Implementasikan dua task: LED blink dan UART print
-
-**Kode:** Lihat file \`praktikum/STM32/STM32_01_Basic_Task/src/main.c\`
-
-**Analisis:**
-- Amati output UART, perhatikan tick count
-- Task mana yang dieksekusi lebih sering?
-- Mengapa LED blink 2x lebih cepat dari UART print?
+ESP32 memiliki keunikan dual-core — task dapat di-pin ke Core 0 atau Core 1 menggunakan `xTaskCreatePinnedToCore()`. STM32F103 single-core sehingga fokus pada preemptive scheduling dan priority management.
 
 ---
 
-### Program 2: Task Priority - STM32
+## 4. Langkah Percobaan
 
-**Tujuan:** Memahami pengaruh prioritas terhadap scheduling
-
-**Konsep:** Priority-based preemptive scheduling
-
-**Analisis:**
-- Amati urutan eksekusi task
-- Apa yang terjadi jika high priority task tidak yield?
-- Bagaimana low priority task mendapat CPU time?
+> **Catatan:** Serial Monitor 115200 baud. LED pada ESP32: GPIO2 (built-in), GPIO4, GPIO5. LED pada STM32: PC13 (built-in), PB0, PB1. Button pada ESP32: GPIO0 (BOOT). Button pada STM32: PA0.
 
 ---
 
-### Program 3: Task Suspend/Resume - STM32
+### Percobaan 01: Task Create Basic
 
-**Tujuan:** Kontrol manual state task
+**Tujuan:** Membuat beberapa FreeRTOS task dasar dan memahami parameter `xTaskCreate()`.
 
-**Konsep:** vTaskSuspend, vTaskResume
+#### Langkah Kerja
 
-**Analisis:**
-- Bagaimana state task berubah saat suspend?
-- Apa yang terjadi dengan LED saat task suspended?
+1. Buka project `ESP32_01` atau `STM32_01`.
+2. Pelajari parameter `xTaskCreate()`: nama, fungsi, stack size, parameter, prioritas, handle.
+3. Program membuat 2 task LED blink (frekuensi berbeda) + 1 monitor task.
+4. Build dan upload. Amati 2 LED berkedip di rate berbeda.
+5. Amati serial output: nama task, prioritas, stack high water mark, state.
+6. Pada ESP32, perhatikan di core mana setiap task berjalan.
 
----
+#### Tabel Pengamatan
 
-### Program 4: Dynamic Task Creation - STM32
+| Task | Prioritas | Stack (words) | HWM (words) | Core (ESP32) | LED Rate |
+|------|-----------|-------------|-------------|-------------|----------|
+| Task1 | | | | | |
+| Task2 | | | | | |
+| Monitor | | | | | |
 
-**Tujuan:** Membuat dan menghapus task secara runtime
+#### Pertanyaan Analisa
 
-**Konsep:** xTaskCreate, vTaskDelete, heap management
-
-**Analisis:**
-- Amati perubahan free heap saat task dibuat/dihapus
-- Apa yang terjadi jika membuat terlalu banyak task?
-
----
-
-### Program 5: Runtime Statistics - STM32
-
-**Tujuan:** Monitor CPU dan stack usage
-
-**Konsep:** vTaskList, vTaskGetRunTimeStats, uxTaskGetStackHighWaterMark
-
-**Analisis:**
-- Task mana yang menggunakan CPU paling banyak?
-- Apakah stack size sudah optimal?
+1. Apa hubungan antara stack size dan stack high water mark? Berapa margin aman yang direkomendasikan?
+2. Apa yang terjadi jika dua task memiliki prioritas yang sama? Bagaimana scheduler membagi waktu?
+3. Berapa total RAM yang digunakan oleh semua task? (stack × jumlah task + overhead)
+4. Apa perbedaan `xTaskCreate()` dan `xTaskCreatePinnedToCore()` di ESP32?
 
 ---
 
-### Program 6: vTaskDelayUntil Precision - STM32
+### Percobaan 02: Task Priority
 
-**Tujuan:** Demonstrasi periodic task dengan timing presisi
+**Tujuan:** Memahami pengaruh prioritas terhadap penjadwalan task dan distribusi CPU time.
 
-**Konsep:** vTaskDelayUntil vs vTaskDelay
+#### Langkah Kerja
 
----
+1. Buka project `ESP32_02` atau `STM32_02`.
+2. Program membuat 3 task (Low/Med/High priority) yang melakukan pekerjaan CPU-intensive.
+3. Amati distribusi CPU — task prioritas tinggi menyelesaikan work lebih cepat.
+4. Perhatikan mekanisme **priority swap** di runtime — prioritas bertukar mid-execution.
+5. Amati bagaimana distribusi CPU berubah setelah swap.
 
-### Program 7: Task Parameters - STM32
+#### Tabel Pengamatan
 
-**Tujuan:** Passing data ke task via parameter
+| Phase | Task High (%) | Task Med (%) | Task Low (%) | Catatan |
+|-------|-------------|-------------|-------------|---------|
+| Normal | | | | |
+| After Swap | | | | |
 
-**Konsep:** pvParameters, struct passing
+#### Pertanyaan Analisa
 
----
-
-### Program 8: Rate Monotonic Scheduling - STM32
-
-**Tujuan:** Implementasi RMS scheduling
-
-**Konsep:** Period-to-priority mapping
-
----
-
-### Program 9: Idle Hook - STM32
-
-**Tujuan:** Power management dengan idle hook
-
-**Konsep:** vApplicationIdleHook, WFI instruction
+1. Mengapa task prioritas tinggi mendapat lebih banyak CPU time pada preemptive scheduler?
+2. Apa yang terjadi jika semua task memiliki prioritas sama? Bagaimana time-slicing bekerja?
+3. Kapan sebaiknya menggunakan `vTaskPrioritySet()` untuk mengubah prioritas secara dinamis?
+4. Apa risiko jika task prioritas tinggi tidak pernah melakukan `vTaskDelay()` atau blocking call?
 
 ---
 
-### Program 10: Task Watchdog - STM32
+### Percobaan 03: Task Delay Periodic
 
-**Tujuan:** Deteksi task yang hang
+**Tujuan:** Membandingkan `vTaskDelay()` (relatif) vs `vTaskDelayUntil()` (absolut) untuk timing periodik presisi.
 
-**Konsep:** Task monitoring, watchdog pattern
+#### Langkah Kerja
 
----
+1. Buka project `ESP32_03` atau `STM32_03`.
+2. Program menjalankan dua task periodik — satu pakai `vTaskDelay()`, satu pakai `vTaskDelayUntil()`.
+3. Amati statistik timing: mean, min, max, stddev, drift.
+4. Perhatikan `vTaskDelay()` menunjukkan drift terakumulasi seiring waktu.
+5. Perhatikan `vTaskDelayUntil()` mempertahankan periode presisi.
 
-## 📝 Praktikum ESP32
+#### Tabel Pengamatan
 
-### Program 1: Basic Dual Core - ESP32
+| Metode | Target (ms) | Mean (ms) | Max Drift (ms) | StdDev (μs) |
+|--------|------------|-----------|----------------|-------------|
+| vTaskDelay | | | | |
+| vTaskDelayUntil | | | | |
 
-**Tujuan:** Memanfaatkan dual core ESP32
+#### Pertanyaan Analisa
 
-**Konsep:** xTaskCreatePinnedToCore, core affinity
-
-\`\`\`cpp
-#include <Arduino.h>
-
-// Pin definitions
-#define LED_RED     4
-#define LED_YELLOW  5
-#define LED_GREEN   18
-#define LED_BLUE    19
-#define BTN1_PIN    21
-#define BTN2_PIN    22
-
-TaskHandle_t Task1Handle = NULL;
-TaskHandle_t Task2Handle = NULL;
-
-void Task1_Core0(void *pvParameters) {
-    Serial.println("[Task1] Running on Core 0");
-    
-    for(;;) {
-        digitalWrite(LED_RED, HIGH);
-        Serial.printf("[Core %d] Task1: LED ON  - Tick: %lu\n", 
-                      xPortGetCoreID(), xTaskGetTickCount());
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-        
-        digitalWrite(LED_RED, LOW);
-        Serial.printf("[Core %d] Task1: LED OFF - Tick: %lu\n", 
-                      xPortGetCoreID(), xTaskGetTickCount());
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-    }
-}
-
-void Task2_Core1(void *pvParameters) {
-    Serial.println("[Task2] Running on Core 1");
-    
-    for(;;) {
-        digitalWrite(LED_YELLOW, HIGH);
-        Serial.printf("[Core %d] Task2: LED ON  - Tick: %lu\n", 
-                      xPortGetCoreID(), xTaskGetTickCount());
-        vTaskDelay(300 / portTICK_PERIOD_MS);
-        
-        digitalWrite(LED_YELLOW, LOW);
-        Serial.printf("[Core %d] Task2: LED OFF - Tick: %lu\n", 
-                      xPortGetCoreID(), xTaskGetTickCount());
-        vTaskDelay(300 / portTICK_PERIOD_MS);
-    }
-}
-
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-    
-    Serial.println("\n==========================================");
-    Serial.println("ESP32 Program 1: Basic Dual Core Tasks");
-    Serial.println("==========================================\n");
-    
-    pinMode(LED_RED, OUTPUT);
-    pinMode(LED_YELLOW, OUTPUT);
-    pinMode(LED_GREEN, OUTPUT);
-    pinMode(LED_BLUE, OUTPUT);
-    
-    // Create task pinned to Core 0
-    xTaskCreatePinnedToCore(
-        Task1_Core0,      // Task function
-        "Task1",          // Task name
-        4096,             // Stack size (bytes)
-        NULL,             // Parameters
-        1,                // Priority
-        &Task1Handle,     // Task handle
-        0                 // Core 0
-    );
-    
-    // Create task pinned to Core 1
-    xTaskCreatePinnedToCore(
-        Task2_Core1,
-        "Task2",
-        4096,
-        NULL,
-        1,
-        &Task2Handle,
-        1                 // Core 1
-    );
-    
-    Serial.println("Tasks created on both cores!");
-}
-
-void loop() {
-    // Loop runs on Core 1 by default
-    Serial.printf("[Loop] Free Heap: %d bytes\n", ESP.getFreeHeap());
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-}
-\`\`\`
+1. Mengapa `vTaskDelay()` mengalami drift sedangkan `vTaskDelayUntil()` tidak?
+2. Dalam skenario apa drift dari `vTaskDelay()` bisa menjadi masalah serius?
+3. Berapa tick rate FreeRTOS default? Apa pengaruhnya terhadap resolusi delay?
+4. Apakah `vTaskDelayUntil()` bisa mengejar ketinggalan jika suatu iterasi terlambat?
 
 ---
 
-### Program 2: Task Priority with Core Affinity - ESP32
+### Percobaan 04: Task Suspend Resume
 
-**Tujuan:** Kombinasi priority dan core affinity
+**Tujuan:** Mengontrol eksekusi task menggunakan suspend/resume termasuk resume dari ISR.
 
----
+#### Langkah Kerja
 
-### Program 3: Task Suspend/Resume - ESP32
+1. Buka project `ESP32_04` atau `STM32_04`.
+2. Program memiliki task LED yang bisa di-suspend/resume.
+3. Tekan tombol — LED task di-suspend (LED berhenti berkedip).
+4. Tekan tombol lagi — `xTaskResumeFromISR()` membangunkan task dari ISR.
+5. Amati state transition di serial: Running → Suspended → Ready → Running.
+6. Perhatikan `vTaskSuspendAll()` / `xTaskResumeAll()` untuk suspend semua task sebaligus.
 
-**Tujuan:** Kontrol task dengan button
+#### Tabel Pengamatan
 
----
+| Aksi | Task State | LED | Serial Output |
+|------|-----------|-----|---------------|
+| Awal | | | |
+| Tekan tombol (suspend) | | | |
+| Tekan tombol (resume) | | | |
+| SuspendAll | | | |
 
-### Program 4: Dynamic Task Management - ESP32
+#### Pertanyaan Analisa
 
-**Tujuan:** Create/delete task dengan WiFi connected
-
----
-
-### Program 5: Task Statistics - ESP32
-
-**Tujuan:** Monitor task dengan ESP-IDF tools
-
----
-
-### Program 6: Inter-Core Communication - ESP32
-
-**Tujuan:** Komunikasi task antar core
-
----
-
-### Program 7: Watchdog Timer Integration - ESP32
-
-**Tujuan:** Task dengan hardware watchdog
+1. Apa perbedaan `vTaskSuspend()` dan `vTaskDelay()`? Kapan gunakan yang mana?
+2. Mengapa perlu `xTaskResumeFromISR()` alih-alih `vTaskResume()` di dalam ISR?
+3. Apa efek `vTaskSuspendAll()` terhadap scheduler? Apakah interrupt tetap dilayani?
+4. Apa risiko jika task di-suspend saat sedang memegang mutex/semaphore?
 
 ---
 
-### Program 8: Task with WiFi - ESP32
+### Percobaan 05: Task Delete
 
-**Tujuan:** Multi-task dengan koneksi WiFi
+**Tujuan:** Memahami proses penghapusan task dan dampaknya terhadap memory (heap) — deteksi memory leak.
 
----
+#### Langkah Kerja
 
-### Program 9: Memory Monitoring - ESP32
+1. Buka project `ESP32_05` atau `STM32_05`.
+2. Program membuat task baru saat tombol ditekan, dan menghapusnya saat ditekan lagi.
+3. Amati heap usage sebelum, sesudah create, dan sesudah delete.
+4. Perhatikan apakah heap kembali ke nilai awal setelah task dihapus.
+5. Amati warning tentang memory leak jika task yang dihapus memiliki alokasi yang tidak di-free.
 
-**Tujuan:** PSRAM dan heap monitoring
+#### Tabel Pengamatan
 
----
+| Aksi | Free Heap | Min Ever Free | Task Count | Catatan |
+|------|----------|--------------|-----------|---------|
+| Awal | | | | |
+| Setelah Create | | | | |
+| Setelah Delete | | | | |
+| Create+Delete 10× | | | | |
 
-### Program 10: Production Task Pattern - ESP32
+#### Pertanyaan Analisa
 
-**Tujuan:** Best practices untuk production
-
----
-
-## 📊 Tabel Perbandingan STM32 vs ESP32
-
-| Aspek | STM32F103 | ESP32 |
-|-------|-----------|-------|
-| Cores | 1 (72MHz) | 2 (240MHz) |
-| RAM | 20KB | 520KB |
-| Stack Unit | Words | Bytes |
-| Core Affinity | N/A | Supported |
-| Default Tick | 1000Hz | 100Hz |
-| Heap | heap_4.c | ESP-IDF |
-
----
-
-## 📝 Tugas Praktikum
-
-### Tugas 1: Implementasi Dasar (20 poin)
-1. Jalankan Program 1 pada kedua platform
-2. Dokumentasikan output serial
-3. Jelaskan perbedaan implementasi
-
-### Tugas 2: Modifikasi Priority (20 poin)
-1. Ubah prioritas task dan amati perilaku
-2. Buat diagram timing eksekusi
-3. Analisis dampak priority inversion
-
-### Tugas 3: Dynamic Task (20 poin)
-1. Implementasikan system dengan 3 worker task
-2. Tambahkan monitoring task
-3. Demonstrasikan memory management
-
-### Tugas 4: Cross-Platform (20 poin)
-1. Port program STM32 ke ESP32
-2. Manfaatkan fitur dual-core ESP32
-3. Bandingkan performance
-
-### Tugas 5: Inovasi (20 poin)
-1. Kembangkan aplikasi multi-task original
-2. Dokumentasikan dengan flowchart
-3. Presentasikan di kelas
+1. Apakah `vTaskDelete()` otomatis membebaskan memori yang dialokasikan task dengan `pvPortMalloc()`?
+2. Apa yang terjadi jika task menghapus dirinya sendiri (`vTaskDelete(NULL)`)? Siapa yang membersihkan stack-nya?
+3. Mengapa bisa terjadi memory leak setelah berulang kali create/delete task?
+4. Bagaimana caranya mencegah memory leak saat menghapus task?
 
 ---
 
-## 📋 Rubrik Penilaian Praktikum
+### Percobaan 06: Task Stack Monitor
 
-| Komponen | Bobot | Kriteria |
-|----------|-------|----------|
-| Implementasi | 40% | Program berjalan sesuai spesifikasi |
-| Laporan | 25% | Lengkap, analisis mendalam |
-| Pemahaman | 20% | Mampu menjawab pertanyaan |
-| Keaktifan | 15% | Partisipasi dan kreativitas |
+**Tujuan:** Memonitor penggunaan stack task dan mendeteksi stack overflow.
+
+#### Langkah Kerja
+
+1. Buka project `ESP32_06` atau `STM32_06`.
+2. Program membuat 3 task dengan stack size berbeda (small/medium/large).
+3. Setiap task melakukan operasi rekursif dengan kedalaman berbeda.
+4. Amati stack high water mark — semakin kecil = semakin penuh.
+5. Monitor task memberikan warning jika penggunaan stack > 80%.
+6. Task dengan stack kecil akan overflow → amati `vApplicationStackOverflowHook()`.
+
+#### Tabel Pengamatan
+
+| Task | Stack Size | Recursion Depth | HWM (words) | Usage (%) | Overflow? |
+|------|-----------|----------------|-------------|-----------|-----------|
+| Small | | | | | |
+| Medium | | | | | |
+| Large | | | | | |
+
+#### Pertanyaan Analisa
+
+1. Apa itu stack high water mark? Bagaimana FreeRTOS mengukurnya?
+2. Berapa margin stack yang aman? Mengapa tidak cukup memberi stack minimal?
+3. Apa yang terjadi saat stack overflow? Mengapa bisa merusak data task lain?
+4. Bagaimana `vApplicationStackOverflowHook()` mendeteksi overflow? Apa kelemahannya?
 
 ---
 
-## 🔍 Troubleshooting
+### Percobaan 07: Core Affinity (ESP32) / Priority Inversion (STM32)
 
-| Masalah | Kemungkinan Penyebab | Solusi |
-|---------|---------------------|--------|
-| Task tidak jalan | Stack overflow | Tambah stack size |
-| System freeze | Tidak ada yield | Tambah vTaskDelay |
-| Timing tidak akurat | Gunakan vTaskDelay | Ganti ke vTaskDelayUntil |
-| Memory habis | Terlalu banyak task | Kurangi task atau stack |
+**Tujuan ESP32:** Memahami pinning task ke core tertentu pada dual-core ESP32.
+**Tujuan STM32:** Memahami masalah priority inversion pada single-core system.
+
+#### Langkah Kerja (ESP32)
+
+1. Buka project `ESP32_07`.
+2. Program membuat task yang di-pin ke Core 0, Core 1, atau floating (`tskNO_AFFINITY`).
+3. Amati di core mana setiap task berjalan menggunakan `xPortGetCoreID()`.
+4. Bandingkan execution time task pinned vs floating.
+
+#### Langkah Kerja (STM32)
+
+1. Buka project `STM32_07`.
+2. Program mendemonstrasikan priority inversion:
+   - Task Low (prioritas 1) mengambil resource
+   - Task High (prioritas 3) ingin resource → blocked
+   - Task Med (prioritas 2) berjalan → High tertunda oleh Med (inversion!)
+3. Amati timeline event — durasi inversion terukur.
+
+#### Tabel Pengamatan (ESP32)
+
+| Task | Affinity | Actual Core | Execution Time (μs) |
+|------|----------|------------|---------------------|
+| Pinned Core 0 | 0 | | |
+| Pinned Core 1 | 1 | | |
+| Floating | ANY | | |
+
+#### Tabel Pengamatan (STM32)
+
+| Event | Timestamp | Task | State |
+|-------|-----------|------|-------|
+| Low acquires resource | | Low | Running |
+| High requests resource | | High | Blocked |
+| Med starts running | | Med | Running (INVERSION!) |
+| Low releases resource | | Low | Ready |
+| High gets resource | | High | Running |
+
+#### Pertanyaan Analisa
+
+1. (ESP32) Kapan sebaiknya pin task ke core tertentu? Apa keuntungan dan risikonya?
+2. (STM32) Apa itu priority inversion? Mengapa task High bisa di-delay oleh task Med?
+3. (STM32) Bagaimana priority inheritance protocol (mutex) menyelesaikan masalah inversion?
+4. Apa perbedaan arsitektur dual-core ESP32 vs single-core STM32 dalam konteks FreeRTOS?
 
 ---
 
-## 📚 Referensi
+### Percobaan 08: Task Idle Hook
 
-1. FreeRTOS Official Documentation
-2. STM32 FreeRTOS User Guide (UM1722)
-3. ESP-IDF FreeRTOS Documentation
-4. Mastering the FreeRTOS Real Time Kernel - Richard Barry
+**Tujuan:** Menggunakan idle hook untuk mengukur CPU usage dan mengimplementasikan power saving.
+
+#### Langkah Kerja
+
+1. Buka project `ESP32_08` atau `STM32_08`.
+2. Idle hook terdaftar — menghitung berapa kali idle task dijalankan.
+3. Task dengan variable load cycle melalui 0%, 25%, 50%, 75%, 95% CPU load.
+4. Amati: semakin tinggi load, semakin sedikit idle count, semakin tinggi CPU usage.
+5. Pada STM32, idle hook memanggil `__WFI()` (Wait For Interrupt) untuk power saving.
+
+#### Tabel Pengamatan
+
+| Load Level | Idle Count | CPU Usage (%) | Catatan |
+|-----------|-----------|-------------|---------|
+| 0% | | | |
+| 25% | | | |
+| 50% | | | |
+| 75% | | | |
+| 95% | | | |
+
+#### Pertanyaan Analisa
+
+1. Bagaimana idle hook menghitung CPU usage? Apa formulanya?
+2. Apa itu `__WFI()` dan bagaimana mengurangi konsumsi daya?
+3. Pada ESP32 dual-core, apakah idle hook per-core? Bagaimana mengukur usage per core?
+4. Apa yang terjadi jika idle hook berisi kode yang memblokir (blocking)?
+
+---
+
+### Percobaan 09: Task Watchdog
+
+**Tujuan:** Menggunakan watchdog timer untuk mendeteksi dan recovery dari task yang hang.
+
+#### Langkah Kerja
+
+1. Buka project `ESP32_09` atau `STM32_09`.
+2. ESP32: Pelajari Task Watchdog (`esp_task_wdt_*`) — setiap task terdaftar harus "feed" dalam timeout.
+3. STM32: Pelajari IWDG hardware watchdog — task feeder harus refresh sebelum timeout 4 detik.
+4. Build dan upload. Amati task "good" yang feed tepat waktu.
+5. Setelah beberapa cycle, task "bad" berhenti feed → watchdog timeout → system reset.
+6. Amati proses recovery setelah reset.
+
+#### Tabel Pengamatan
+
+| Event | Waktu | Task | Feed Status | System Action |
+|-------|-------|------|------------|---------------|
+| Startup | | | | |
+| Normal feed | | Good | OK | |
+| Bad task hangs | | Bad | TIMEOUT | |
+| Watchdog reset | | — | | Reset! |
+| Recovery | | | | |
+
+#### Pertanyaan Analisa
+
+1. Apa perbedaan Task Watchdog (ESP32) dan IWDG hardware watchdog (STM32)?
+2. Mengapa watchdog penting dalam sistem embedded? Berikan contoh skenario nyata.
+3. Berapa timeout watchdog yang optimal? Terlalu pendek vs terlalu panjang — apa risikonya?
+4. Bagaimana cara mendeteksi bahwa reset disebabkan oleh watchdog (bukan power cycle)?
+
+---
+
+### Percobaan 10: Task Communication (Unsafe)
+
+**Tujuan:** Mendemonstrasikan race condition dan data corruption saat task berbagi variabel tanpa proteksi.
+
+#### Langkah Kerja
+
+1. Buka project `ESP32_10` atau `STM32_10`.
+2. Program sengaja **TIDAK menggunakan** mutex atau queue — shared struct diakses langsung.
+3. Producer task menulis data, consumer task membaca data secara bersamaan.
+4. Amati statistik corruption: counter mismatch, checksum error, torn reads.
+5. Semakin tinggi load, semakin banyak corruption.
+
+> **Catatan:** Ini adalah demonstrasi masalah — solusinya di Modul 09 (Queue & Semaphore).
+
+#### Tabel Pengamatan
+
+| Waktu | Total Reads | Corruption Count | Corruption Rate (%) |
+|-------|------------|-----------------|-------------------|
+| 10 detik | | | |
+| 30 detik | | | |
+| 60 detik | | | |
+
+#### Pertanyaan Analisa
+
+1. Mengapa terjadi data corruption saat dua task mengakses shared variable secara bersamaan?
+2. Apa itu race condition? Berikan contoh urutan eksekusi yang menyebabkan corruption.
+3. Apa itu torn read? Mengapa struct yang lebih besar lebih rentan?
+4. Bagaimana cara menyelesaikan masalah ini? (Preview: mutex, queue, semaphore di Modul 09)
+
+---
+
+### Percobaan 11: Task Scheduler Info
+
+**Tujuan:** Menggunakan API FreeRTOS untuk mendapatkan informasi runtime tentang semua task dan scheduler.
+
+#### Langkah Kerja
+
+1. Buka project `ESP32_11` atau `STM32_11`.
+2. Program mencetak tabel lengkap semua task: nama, state, prioritas, stack HWM, core.
+3. Juga mencetak runtime stats: CPU usage per task (%).
+4. Program membuat, suspend, dan delete task — amati perubahan tabel.
+5. Identifikasi task-task sistem (IDLE, Tmr Svc, esp_timer, dll).
+
+#### Tabel Pengamatan
+
+| Task Name | State | Priority | Stack HWM | CPU (%) |
+|-----------|-------|----------|-----------|---------|
+| | | | | |
+| | | | | |
+| | | | | |
+
+#### Pertanyaan Analisa
+
+1. Apa fungsi `vTaskList()` dan `vTaskGetRunTimeStats()`? Apa perbedaannya?
+2. Task apa saja yang dibuat oleh sistem (bukan oleh user)? Apa fungsi masing-masing?
+3. Mengapa task IDLE selalu ada? Apa yang dilakukan jika tidak ada task lain yang ready?
+4. Bagaimana runtime stats menghitung CPU percentage per task?
+
+---
+
+### Percobaan 12: Task Cooperative Scheduling
+
+**Tujuan:** Membandingkan preemptive scheduling, cooperative scheduling (`taskYIELD()`), dan efek CPU hogging.
+
+#### Langkah Kerja
+
+1. Buka project `ESP32_12` atau `STM32_12`.
+2. Program berjalan dalam 3 fase:
+   - **Fase 1:** Preemptive — task menggunakan `vTaskDelay()`, distribusi merata
+   - **Fase 2:** Cooperative — task menggunakan `taskYIELD()`, distribusi mirip
+   - **Fase 3:** Hogging — satu task tidak yield/delay, memonopoli CPU
+3. Amati fairness index setiap fase.
+4. Pada fase 3, amati task lain kelaparan (starvation).
+
+#### Tabel Pengamatan
+
+| Fase | Task A (%) | Task B (%) | Task C (%) | Fairness Index |
+|------|----------|----------|----------|---------------|
+| Preemptive | | | | |
+| Cooperative | | | | |
+| Hogging | | | | |
+
+#### Pertanyaan Analisa
+
+1. Apa perbedaan preemptive dan cooperative scheduling?
+2. Apa yang terjadi jika task tidak pernah yield pada cooperative scheduling?
+3. Apa itu fairness index? Bagaimana menghitungnya?
+4. Dalam skenario apa cooperative scheduling lebih cocok daripada preemptive?
+
+---
+
+## 5. Tabel Komparatif
+
+| Aspek | STM32 (FreeRTOS) | ESP32 (FreeRTOS) |
+|-------|-------------------|-------------------|
+| Core | Single-core Cortex-M3 | Dual-core Xtensa LX6 |
+| Tick Rate | Configurable (default 1kHz) | 100Hz (default ESP-IDF) |
+| Core Affinity | N/A | `xTaskCreatePinnedToCore()` |
+| Watchdog | IWDG/WWDG hardware | Task WDT (software) |
+| Idle Hook | `vApplicationIdleHook()` | `esp_register_freertos_idle_hook()` |
+| Stack Overflow | `configCHECK_FOR_STACK_OVERFLOW` | Same + ESP panic handler |
+| Heap | heap_4 (default) | Multi-region (DRAM, IRAM, PSRAM) |
+
+---
+
+## 6. Referensi
+
+1. FreeRTOS API Reference — https://www.freertos.org/a00106.html
+2. Mastering the FreeRTOS Real Time Kernel — Richard Barry
+3. AN4631 — Using FreeRTOS on STM32, STMicroelectronics
+4. ESP-IDF FreeRTOS Documentation — Espressif Systems
+5. STM32F103 Reference Manual (RM0008) — NVIC, SysTick
+
+---
+
+*Jobsheet Modul 08 — FreeRTOS Task | Praktikum Sistem Embedded | 2025/2026*

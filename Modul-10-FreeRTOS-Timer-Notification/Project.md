@@ -1,4 +1,4 @@
-# Project Modul 11: FreeRTOS Timer & Notification (Smart Kitchen Timer)
+# Project Modul 10: FreeRTOS Timer & Notification (Smart Kitchen Timer)
 
 ## 🎯 Tujuan Project
 1.  Mahasiswa mampu merancang sistem embedded multitasking menggunakan **FreeRTOS**.

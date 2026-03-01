@@ -1,243 +1,202 @@
-# Rubrik Penilaian Tugas Video
-## Modul 01: GPIO Digital I/O
+# Tugas Video — Modul 01: GPIO dan Digital I/O
 
----
-
-## 📋 Informasi Tugas
+## Informasi Tugas
 
 | Item | Keterangan |
 |------|------------|
-| **Jenis Tugas** | Video Pembelajaran/Tutorial |
-| **Durasi Video** | 5-8 menit |
-| **Format** | MP4 (H.264) atau link YouTube |
-| **Resolusi Minimum** | 720p (1280x720) |
+| **Jenis Tugas** | Video Laporan Praktikum & Project |
+| **Durasi Video** | 15–25 menit |
+| **Format** | MP4 (H.264) atau link YouTube (Unlisted/Public) |
+| **Resolusi Minimum** | 720p (1280×720) |
 | **Penilaian** | Individu |
+| **Deadline** | 1 minggu setelah praktikum |
 | **Total Skor** | 100 poin |
 
 ---
 
-## 🎯 Tujuan Tugas Video
+## Deskripsi Tugas
 
-Mahasiswa membuat video tutorial yang menjelaskan salah satu konsep atau program dari praktikum GPIO Digital I/O. Video harus mampu mengajarkan konsep tersebut kepada mahasiswa lain yang belum memahami materi.
+Mahasiswa membuat **satu video utuh** yang merupakan **laporan lengkap** dari seluruh kegiatan praktikum dan project Modul 01: GPIO dan Digital I/O. Video ini bukan tutorial singkat, melainkan dokumentasi menyeluruh yang mencakup:
 
----
-
-## 📝 Pilihan Topik Video
-
-Pilih SATU dari topik berikut:
-
-| No | Topik | Tingkat Kesulitan |
-|----|-------|-------------------|
-| 1 | Penjelasan Konsep GPIO dan Mode Operasi | ⭐⭐ |
-| 2 | Tutorial LED Blink dengan ESP-IDF dan STM32 HAL | ⭐ |
-| 3 | LED Binary Counter dan Bit Manipulation | ⭐⭐ |
-| 4 | Implementasi Software Debouncing | ⭐⭐⭐ |
-| 5 | Perbandingan GPIO STM32 vs ESP32 | ⭐⭐ |
-| 6 | Long Press vs Short Press Detection | ⭐⭐⭐ |
-| 7 | GPIO Register Access (BSRR, ODR, GPIO_OUT_REG) | ⭐⭐⭐ |
-| 8 | Safety: Emergency Stop Implementation | ⭐⭐⭐ |
+1. **Penjelasan materi** dari awal (teori GPIO, mode output, mode input, debounce, encoder, keypad)
+2. **Seluruh 10 percobaan praktikum** (P01–P10) — masing-masing ditunjukkan proses dan hasilnya
+3. **Project** (Sistem Kontrol Akses Ruang Laboratorium) — demo dan penjelasan
 
 ---
 
-## 📊 Komponen Penilaian
+## Ketentuan Teknis Video
 
-| Komponen | Bobot | Poin Maksimum |
-|----------|-------|---------------|
-| Konten & Kebenaran Materi | 40% | 40 poin |
-| Teknis Video | 25% | 25 poin |
-| Penyampaian & Komunikasi | 25% | 25 poin |
-| Kreativitas & Originalitas | 10% | 10 poin |
-| **Total** | **100%** | **100 poin** |
+### Wajib Ada dalam Video
 
----
+| Elemen | Keterangan |
+|--------|------------|
+| **Screen recording** | Layar komputer terlihat saat menjelaskan kode, compile, upload, dan serial monitor |
+| **Webcam** | Wajah presenter **harus terlihat** (overlay di pojok atau split screen) selama menjelaskan |
+| **Hardware demo** | Video kamera terpisah atau close-up menunjukkan rangkaian fisik (LED, tombol, encoder, keypad, LCD) saat setiap percobaan dijalankan |
+| **Narasi suara** | Menjelaskan secara lisan setiap bagian, bukan hanya teks di layar |
 
-## 📝 Rubrik Detail
-
-### A. Konten dan Kebenaran Materi (40 poin)
-
-| Aspek | Poin | Kriteria |
-|-------|------|----------|
-| **Keakuratan Teknis** | 0-15 | **15:** Semua penjelasan teknis 100% akurat<br>**12:** Minor inaccuracy (1-2 kesalahan kecil)<br>**9:** Beberapa kesalahan tidak fatal<br>**6:** Ada kesalahan konsep penting<br>**0-3:** Banyak kesalahan/miskonsepsi |
-| **Kelengkapan Materi** | 0-10 | **10:** Mencakup semua aspek penting topik<br>**7:** Sebagian besar tercakup<br>**5:** Hanya basics<br>**0-3:** Tidak lengkap |
-| **Demonstrasi Praktis** | 0-10 | **10:** Demo jelas, kode berjalan, hasil terlihat<br>**7:** Demo ada tapi kurang jelas<br>**5:** Demo minimal<br>**0-3:** Tidak ada demo praktis |
-| **Penjelasan Kode** | 0-5 | **5:** Line-by-line explanation yang jelas<br>**3:** Penjelasan umum<br>**0-1:** Tidak menjelaskan kode |
-
-### B. Teknis Video (25 poin)
-
-| Aspek | Poin | Kriteria |
-|-------|------|----------|
-| **Kualitas Visual** | 0-8 | **8:** HD, sharp, well-lit, screen recording jelas<br>**6:** Good quality, minor issues<br>**4:** Acceptable quality<br>**2:** Low quality tapi masih bisa dilihat<br>**0:** Tidak bisa dilihat |
-| **Kualitas Audio** | 0-8 | **8:** Jernih, tidak ada noise, volume konsisten<br>**6:** Baik dengan minor noise<br>**4:** Dapat didengar dengan jelas<br>**2:** Sulit didengar<br>**0:** Tidak bisa didengar |
-| **Durasi** | 0-5 | **5:** Sesuai ketentuan (5-8 menit)<br>**3:** Sedikit di luar range (4-9 menit)<br>**1:** Jauh di luar range (3-10 menit)<br>**0:** <2 atau >12 menit |
-| **Editing** | 0-4 | **4:** Smooth transitions, good pacing<br>**2:** Basic editing<br>**0:** No editing, banyak dead air |
-
-### C. Penyampaian dan Komunikasi (25 poin)
-
-| Aspek | Poin | Kriteria |
-|-------|------|----------|
-| **Kejelasan Penjelasan** | 0-10 | **10:** Sangat jelas, mudah diikuti, logical flow<br>**7:** Jelas dengan beberapa bagian yang kurang<br>**5:** Cukup jelas<br>**2:** Membingungkan<br>**0:** Tidak dapat dimengerti |
-| **Struktur Presentasi** | 0-8 | **8:** Intro-Content-Summary yang baik<br>**6:** Struktur cukup baik<br>**4:** Ada struktur tapi tidak konsisten<br>**0-2:** Tidak terstruktur |
-| **Penggunaan Visual Aids** | 0-7 | **7:** Diagram, highlighting, annotations efektif<br>**5:** Beberapa visual aids<br>**3:** Minimal visual aids<br>**0:** Tidak ada visual aids |
-
-### D. Kreativitas dan Originalitas (10 poin)
-
-| Aspek | Poin | Kriteria |
-|-------|------|----------|
-| **Pendekatan Unik** | 0-5 | **5:** Analogi kreatif, pendekatan teaching yang unik<br>**3:** Beberapa elemen kreatif<br>**1:** Standar/biasa<br>**0:** Copy-paste dari tutorial lain |
-| **Contoh/Aplikasi Real-world** | 0-5 | **5:** Contoh aplikasi nyata yang relevan<br>**3:** Beberapa contoh<br>**1:** Contoh generic<br>**0:** Tidak ada contoh aplikasi |
-
----
-
-## 📋 Struktur Video yang Direkomendasikan
+### Struktur Video yang Wajib Diikuti
 
 ```
-1. PEMBUKAAN (30-45 detik)
-   - Salam dan perkenalan
-   - Topik yang akan dibahas
-   - Mengapa topik ini penting
+1. PEMBUKAAN (1–2 menit)
+   - Perkenalan: Nama, NIM, Mata Kuliah, Modul
+   - Overview singkat apa yang akan dibahas
+   - Tujuan praktikum
 
-2. TEORI/KONSEP (1-2 menit)
-   - Penjelasan konsep dasar
-   - Diagram atau ilustrasi
-   - Analogi jika membantu
+2. PENJELASAN MATERI (3–5 menit)
+   - Konsep GPIO: apa itu GPIO, arsitektur internal
+   - Mode output: Push-Pull vs Open-Drain
+   - Mode input: Pull-Up vs Pull-Down (eksternal & internal)
+   - Konsep debounce, encoder kuadratur, keypad matrix
+   - Active-HIGH vs Active-LOW
+   - Perbedaan STM32 HAL vs ESP-IDF
+   (Gunakan diagram, slide, atau gambar di layar)
 
-3. IMPLEMENTASI (2-3 menit)
-   - Tunjukkan hardware setup
-   - Walkthrough kode
-   - Highlight bagian penting
+3. PERCOBAAN PRAKTIKUM (7–12 menit)
+   Untuk SETIAP percobaan (P01–P10):
+   a. Sebutkan judul dan tujuan percobaan
+   b. Tunjukkan rangkaian hardware (video kamera)
+   c. Tunjukkan kode program penting (screen recording)
+   d. Upload dan jalankan program
+   e. Tunjukkan hasil: LED menyala, LCD display, serial monitor output
+   f. Berikan analisa singkat hasil percobaan
 
-4. DEMONSTRASI (1-2 menit)
-   - Live demo program berjalan
-   - Tunjukkan Serial Monitor output
-   - Explain what's happening
+   Percobaan:
+   - P01: LED Parade — output push-pull, 4 pola LED
+   - P02: Shadow & Ghost — open-drain vs push-pull, LED redup
+   - P03: Sentinel Gate — tombol pull-up eksternal
+   - P04: Ground Guardian — tombol pull-down eksternal
+   - P05: Phantom Touch — pull-up internal
+   - P06: Force Field — pull-down internal
+   - P07: Clean Contact — debounce state machine 4 tombol
+   - P08: Speed Racer — GPIO speed/drive, pola LED multi-mode
+   - P09: Twist & Count — rotary encoder, binary counter
+   - P10: Matrix Commander — keypad 4×4 scanning
 
-5. TIPS & TROUBLESHOOTING (30-60 detik)
-   - Common mistakes
-   - Best practices
-   - Debugging tips
+4. PROJECT (3–5 menit)
+   - Jelaskan skenario project (Sistem Kontrol Akses Lab)
+   - Tunjukkan rangkaian hardware lengkap (video kamera)
+   - Demo fitur: keypad input kode, encoder brightness, tombol darurat
+   - Tunjukkan LCD display dan semua state sistem
+   - Jelaskan bagaimana 10 percobaan terintegrasi dalam project
 
-6. PENUTUP (30 detik)
-   - Summary key points
-   - Ajakan untuk praktek
-   - Referensi jika perlu
+5. PENUTUP (1–2 menit)
+   - Kesimpulan: apa yang dipelajari dari seluruh praktikum
+   - Kesulitan yang dihadapi dan solusinya
+   - Saran/refleksi
 ```
 
 ---
 
-## ⚠️ Penalti
+## Komponen Penilaian
+
+| Komponen | Bobot | Poin |
+|----------|-------|------|
+| A. Penjelasan Materi | 20% | 20 |
+| B. Percobaan Praktikum (P01–P10) | 35% | 35 |
+| C. Project | 20% | 20 |
+| D. Kualitas Teknis Video | 15% | 15 |
+| E. Penyampaian & Komunikasi | 10% | 10 |
+| **Total** | **100%** | **100** |
+
+---
+
+## Rubrik Detail
+
+### A. Penjelasan Materi (20 poin)
+
+| Poin | Kriteria |
+|------|----------|
+| 17–20 | Semua konsep dijelaskan dengan akurat, lengkap, dan jelas. Ada diagram/slide pendukung. |
+| 13–16 | Sebagian besar konsep benar, ada minor gaps |
+| 9–12 | Penjelasan dasar, beberapa konsep kurang mendalam |
+| 5–8 | Penjelasan tidak lengkap atau ada kesalahan konsep |
+| 0–4 | Tidak ada penjelasan materi |
+
+### B. Percobaan Praktikum (35 poin)
+
+| Poin | Kriteria |
+|------|----------|
+| 30–35 | Semua 10 percobaan ditunjukkan lengkap: hardware terlihat, kode dijelaskan, hasil demo jelas, analisa diberikan |
+| 24–29 | 8–9 percobaan lengkap, sisanya kurang detail |
+| 17–23 | 5–7 percobaan ditunjukkan |
+| 10–16 | Kurang dari 5 percobaan |
+| 0–9 | Sangat minim atau tidak ada demo percobaan |
+
+### C. Project (20 poin)
+
+| Poin | Kriteria |
+|------|----------|
+| 17–20 | Project berjalan lengkap sesuai spesifikasi, semua fitur di-demo, penjelasan integrasi konsep jelas |
+| 13–16 | Project berjalan dengan sebagian besar fitur, penjelasan cukup |
+| 9–12 | Project parsial, beberapa fitur belum jalan |
+| 5–8 | Project minimal, banyak fitur tidak berfungsi |
+| 0–4 | Tidak ada demo project |
+
+### D. Kualitas Teknis Video (15 poin)
+
+| Aspek | Poin | Kriteria |
+|-------|------|----------|
+| Visual (screen rec + webcam + hardware) | 0–6 | **6:** Semua elemen visual ada dan jelas. **4:** Ada tapi kurang jelas. **2:** Hanya satu elemen. **0:** Tidak bisa dilihat |
+| Audio | 0–5 | **5:** Jernih, tidak ada noise. **3:** Dapat didengar. **1:** Sulit didengar |
+| Durasi & editing | 0–4 | **4:** Sesuai durasi, editing rapi. **2:** Sedikit di luar range. **0:** Terlalu pendek/panjang |
+
+### E. Penyampaian & Komunikasi (10 poin)
+
+| Poin | Kriteria |
+|------|----------|
+| 9–10 | Sangat jelas, percaya diri, alur logis, mudah diikuti |
+| 7–8 | Jelas dengan minor gaps |
+| 5–6 | Cukup jelas |
+| 3–4 | Membingungkan |
+| 0–2 | Tidak dapat dimengerti |
+
+---
+
+## Penalti
 
 | Pelanggaran | Penalti |
 |-------------|---------|
-| Terlambat submit (per hari) | -5 poin |
-| Video tidak bisa diputar | Tidak dinilai sampai diperbaiki |
-| Plagiarisme (copy video orang lain) | -100% (nilai 0) |
-| Konten menyesatkan (dangerous code) | -20 poin |
-| Audio/Video completely unusable | -30 poin |
-| Durasi < 3 menit atau > 10 menit | -10 poin |
+| Tidak ada webcam (wajah tidak terlihat) | −10 poin |
+| Tidak ada hardware demo (hanya screen rec) | −15 poin |
+| Tidak ada screen recording (hanya hardware) | −10 poin |
+| Terlambat submit (per hari) | −5 poin |
+| Plagiarisme | Nilai 0 |
+| Durasi < 10 menit | −10 poin |
+| Durasi > 30 menit | −5 poin |
 
 ---
 
-## ✅ Checklist Sebelum Submit
+## Checklist Sebelum Submit
 
 ```
-□ Video dapat diputar (test di device lain)
-□ Audio jelas terdengar
+□ Video dapat diputar di device lain
+□ Webcam terlihat jelas selama presentasi
 □ Screen recording terbaca (font cukup besar)
-□ Durasi 5-8 menit
-□ Ada intro dan outro
-□ Kode yang ditunjukkan bisa di-compile
-□ Demo hardware terlihat jelas
+□ Hardware demo terlihat jelas (LED, tombol, LCD, encoder, keypad)
+□ Audio jernih dan terdengar
+□ Durasi 15–25 menit
+□ Semua 10 percobaan ditunjukkan
+□ Project di-demo
 □ Nama dan NIM disebutkan di video
+□ Ada pembukaan dan penutup
 ```
 
 ---
 
-## 📱 Tips Teknis Pembuatan Video
+## Tips Teknis
 
-### Recording Tools (Gratis)
-| Tool | Platform | Fungsi |
-|------|----------|--------|
-| OBS Studio | Win/Mac/Linux | Screen recording + webcam |
-| Loom | Web/Desktop | Simple screen recording |
-| Zoom | All | Recording dengan share screen |
-| DaVinci Resolve | Win/Mac | Free video editing |
-| Kdenlive | Linux | Free video editing |
+| Tool | Fungsi |
+|------|--------|
+| OBS Studio | Screen recording + webcam overlay |
+| DaVinci Resolve / Kdenlive | Editing gratis |
+| HP/Kamera | Rekam hardware demo terpisah, gabungkan saat editing |
 
-### Tips Recording
-1. **Screen recording:** Gunakan resolusi 1920x1080, font minimal 14pt
-2. **Webcam:** Posisi di corner, tidak menghalangi kode
-3. **Audio:** Gunakan microphone external jika memungkinkan
-4. **Lighting:** Pastikan wajah terlihat jelas
-5. **Hardware demo:** Gunakan angle yang menunjukkan LED dan button jelas
-
-### Tips Editing
-1. Cut dead air dan kesalahan
-2. Add zoom in pada kode penting
-3. Add text overlay untuk key points
-4. Add transitions antar section
-5. Add background music (optional, volume rendah)
+1. **Screen recording:** Resolusi 1920×1080, font 14pt+, dark theme IDE
+2. **Webcam:** Posisi di pojok kanan bawah, tidak menutupi kode penting
+3. **Hardware demo:** Close-up pada LED, tombol, LCD agar terlihat jelas
+4. **Narasi:** Jelaskan sambil menunjukkan, jangan hanya membaca teks
 
 ---
 
-## 📈 Konversi Nilai
-
-| Rentang Poin | Huruf | Keterangan |
-|--------------|-------|------------|
-| 85 - 100 | A | Sangat Baik - Video berkualitas tinggi |
-| 80 - 84 | A- | |
-| 75 - 79 | B+ | Baik - Video informatif |
-| 70 - 74 | B | |
-| 65 - 69 | B- | |
-| 60 - 64 | C+ | Cukup - Memenuhi minimum |
-| 55 - 59 | C | |
-| 50 - 54 | C- | |
-| 40 - 49 | D | Kurang - Perlu perbaikan signifikan |
-| 0 - 39 | E | Tidak Lulus |
-
----
-
-## 📝 Form Penilaian Video
-
-### Mahasiswa: _______________ | NIM: _______________ | Topik: _______________
-
-| Komponen | Poin Maks | Poin | Catatan |
-|----------|-----------|------|---------|
-| **A. Konten & Kebenaran** | | | |
-| A.1 Keakuratan Teknis | 15 | | |
-| A.2 Kelengkapan Materi | 10 | | |
-| A.3 Demonstrasi Praktis | 10 | | |
-| A.4 Penjelasan Kode | 5 | | |
-| **Subtotal A** | **40** | | |
-| **B. Teknis Video** | | | |
-| B.1 Kualitas Visual | 8 | | |
-| B.2 Kualitas Audio | 8 | | |
-| B.3 Durasi | 5 | | |
-| B.4 Editing | 4 | | |
-| **Subtotal B** | **25** | | |
-| **C. Penyampaian** | | | |
-| C.1 Kejelasan | 10 | | |
-| C.2 Struktur | 8 | | |
-| C.3 Visual Aids | 7 | | |
-| **Subtotal C** | **25** | | |
-| **D. Kreativitas** | | | |
-| D.1 Pendekatan Unik | 5 | | |
-| D.2 Contoh Real-world | 5 | | |
-| **Subtotal D** | **10** | | |
-| **TOTAL** | **100** | | |
-| **Penalti** | | | |
-| **NILAI AKHIR** | | | |
-
-### Komentar/Feedback:
-
-_______________________________________________________________
-
-_______________________________________________________________
-
-_______________________________________________________________
-
-### Tanda Tangan Penilai: _______________ | Tanggal: _______________
-
----
-
-*Rubrik Penilaian Video Modul 01 - Praktikum Sistem Embedded*
-*Versi 1.0 - Februari 2026*
+*Tugas Video Modul 01 — Praktikum Sistem Embedded*

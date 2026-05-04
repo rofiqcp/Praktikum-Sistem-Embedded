@@ -30,6 +30,25 @@
 #define configENABLE_BACKWARD_COMPATIBILITY     0
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS  0
 
+// Include FreeRTOS API functions
+#define INCLUDE_vTaskDelay                    1
+#define INCLUDE_vTaskDelayUntil               1
+#define INCLUDE_xTaskGetIdleTaskHandle       0
+#define INCLUDE_xTaskAbortDelay              0
+#define INCLUDE_xQueueGetMutexHolder         0
+#define INCLUDE_xSemaphoreGetMutexHolder    0
+#define INCLUDE_xTaskGetCurrentTaskHandle   1
+#define INCLUDE_xTaskGetSchedulerState       0
+#define INCLUDE_pcTaskGetTaskName            0
+#define INCLUDE_pxTaskGetStackStart          0
+#define INCLUDE_xTaskGetIdleTaskHandle       0
+#define INCLUDE_eTaskGetState               0
+#define INCLUDE_xTaskResumeFromISR          1
+#define INCLUDE_xTimerPendFunctionCall      0
+#define INCLUDE_xTaskGetHandle             0
+#define INCLUDE_xTaskPriorityInherit       0
+#define INCLUDE_xTaskPriorityDisinherit    0
+
 // Cortex-M specific settings
 #define configKERNEL_INTERRUPT_PRIORITY         (255)
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY    (191)

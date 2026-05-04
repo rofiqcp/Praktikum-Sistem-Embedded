@@ -38,6 +38,7 @@
 #include "freertos/semphr.h"
 #include "driver/i2c_master.h"
 #include "esp_log.h"
+#include <math.h>
 
 // Konfigurasi pin I2C
 #if defined(CONFIG_IDF_TARGET_ESP32)
@@ -192,7 +193,6 @@ static void producer_task(void *arg) {
             i2c_master_transmit_receive(dev_bme, &reg, 1, raw, 8, -1);
             int32_t adc_T = ((int32_t)raw[3] << 12) | ((int32_t)raw[4] << 4) | (raw[5] >> 4);
             int32_t adc_P = ((int32_t)raw[0] << 12) | ((int32_t)raw[1] << 4) | (raw[2] >> 4);
-            int32_t adc_H = ((int32_t)raw[6] << 8) | raw[7];
 
             // Kompensasi suhu
             int32_t var1 = ((((adc_T >> 3) - ((int32_t)dig_T1 << 1))) * dig_T2) >> 11;

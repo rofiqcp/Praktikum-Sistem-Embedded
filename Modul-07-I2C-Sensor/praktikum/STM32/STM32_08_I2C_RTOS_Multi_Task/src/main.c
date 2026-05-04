@@ -1,3 +1,4 @@
+#include <stdio.h>
 /**
  * ==========================================================
  *  Modul 07 - STM32_08_I2C_RTOS_Multi_Task
@@ -55,9 +56,9 @@ typedef struct {
 
 // Deklarasi fungsi
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_I2C1_Init(void);
-static void MX_USART1_UART_Init(void);
+void MX_GPIO_Init(void);
+void MX_I2C1_Init(void);
+void MX_USART1_UART_Init(void);
 void StartBmeTask(void *argument);
 void StartOledTask(void *argument);
 void StartLogTask(void *argument);
@@ -147,7 +148,7 @@ void StartLogTask(void *argument) {
 }
 
 // Inisialisasi I2C1
-static void MX_I2C1_Init(void) {
+void MX_I2C1_Init(void) {
   hi2c1.Instance = I2C1;
   hi2c1.Init.ClockSpeed = 100000;
   hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
@@ -163,7 +164,7 @@ static void MX_I2C1_Init(void) {
 }
 
 // Inisialisasi USART1
-static void MX_USART1_UART_Init(void) {
+void MX_USART1_UART_Init(void) {
   huart1.Instance = USART1;
   huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
@@ -178,7 +179,7 @@ static void MX_USART1_UART_Init(void) {
 }
 
 // Inisialisasi GPIO
-static void MX_GPIO_Init(void) {
+void MX_GPIO_Init(void) {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -194,14 +195,18 @@ static void MX_GPIO_Init(void) {
   GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+#if !defined(STM32F103xB)
   GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
+#endif
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pin = GPIO_PIN_9 | GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+#if !defined(STM32F103xB)
   GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
+#endif
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
@@ -242,17 +247,6 @@ void SystemClock_Config(void) {
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
-    Error_Handler();
-  }
-}
-
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-                              | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
     Error_Handler();
   }

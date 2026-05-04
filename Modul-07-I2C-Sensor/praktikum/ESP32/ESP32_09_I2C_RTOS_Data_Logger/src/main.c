@@ -40,8 +40,19 @@
 #include "esp_log.h"
 
 // Konfigurasi pin I2C
+#if defined(CONFIG_IDF_TARGET_ESP32)
 #define I2C_SDA_GPIO GPIO_NUM_21
 #define I2C_SCL_GPIO GPIO_NUM_22
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+#define I2C_SDA_GPIO GPIO_NUM_8
+#define I2C_SCL_GPIO GPIO_NUM_9
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#define I2C_SDA_GPIO GPIO_NUM_8
+#define I2C_SCL_GPIO GPIO_NUM_9
+#else
+#define I2C_SDA_GPIO GPIO_NUM_21
+#define I2C_SCL_GPIO GPIO_NUM_22
+#endif
 #define I2C_PORT I2C_NUM_0
 #define I2C_FREQ_HZ 100000
 
@@ -83,7 +94,8 @@ static int16_t dig_H2, dig_H4, dig_H5, dig_H6;
 // Read calibration data from BME280
 static void bme280_read_calibration(void) {
     uint8_t cal1[26];
-    i2c_master_transmit_receive(dev_bme, (uint8_t[]){0x88}, 1, cal1, 26, -1);
+    uint8_t reg = 0x88;
+    i2c_master_transmit_receive(dev_bme, &reg, 1, cal1, 26, -1);
     dig_T1 = (uint16_t)cal1[0] | ((uint16_t)cal1[1] << 8);
     dig_T2 = (int16_t)((uint16_t)cal1[2] | ((uint16_t)cal1[3] << 8));
     dig_T3 = (int16_t)((uint16_t)cal1[4] | ((uint16_t)cal1[5] << 8));
@@ -97,8 +109,9 @@ static void bme280_read_calibration(void) {
     dig_P8 = (int16_t)((uint16_t)cal1[20] | ((uint16_t)cal1[21] << 8));
     dig_P9 = (int16_t)((uint16_t)cal1[22] | ((uint16_t)cal1[23] << 8));
     dig_H1 = cal1[25];
+    reg = 0xE1;
     uint8_t cal2[7];
-    i2c_master_transmit_receive(dev_bme, (uint8_t[]){0xE1}, 1, cal2, 7, -1);
+    i2c_master_transmit_receive(dev_bme, &reg, 1, cal2, 7, -1);
     dig_H2 = (int16_t)((uint16_t)cal2[0] | ((uint16_t)cal2[1] << 8));
     dig_H3 = cal2[2];
     dig_H4 = (int16_t)((cal2[3] << 4) | (cal2[4] & 0x0F));
@@ -123,10 +136,13 @@ static bool init_bme280(void) {
     };
     if (i2c_master_bus_add_device(bus, &dev_cfg, &dev_bme) != ESP_OK) return false;
     uint8_t chip_id;
-    i2c_master_transmit_receive(dev_bme, (uint8_t[]){0xD0}, 1, &chip_id, 1, -1);
+    uint8_t reg = 0xD0;
+    i2c_master_transmit_receive(dev_bme, &reg, 1, &chip_id, 1, -1);
     if (chip_id != 0x60) { i2c_master_bus_rm_device(dev_bme); return false; }
-    i2c_master_transmit(dev_bme, (uint8_t[]){0xF2, 0x01}, 2, -1);
-    i2c_master_transmit(dev_bme, (uint8_t[]){0xF4, 0x27}, 2, -1);
+    uint8_t ctrl_hum[] = {0xF2, 0x01};
+    i2c_master_transmit(dev_bme, ctrl_hum, 2, -1);
+    uint8_t ctrl_meas[] = {0xF4, 0x27};
+    i2c_master_transmit(dev_bme, ctrl_meas, 2, -1);
     bme280_read_calibration();
     return true;
 }
@@ -138,7 +154,8 @@ static bool init_mpu6050(void) {
         .scl_speed_hz = 400000,
     };
     if (i2c_master_bus_add_device(bus, &dev_cfg, &dev_mpu) != ESP_OK) return false;
-    i2c_master_transmit(dev_mpu, (uint8_t[]){0x6B, 0x00}, 2, -1);
+    uint8_t pwr_mgmt[] = {0x6B, 0x00};
+    i2c_master_transmit(dev_mpu, pwr_mgmt, 2, -1);
     return true;
 }
 
@@ -165,14 +182,14 @@ static void eeprom_write(uint16_t addr, const uint8_t *data, size_t len) {
 static void producer_task(void *arg) {
     ESP_LOGI(TAG, "Producer task started");
     log_data_t data;
-    uint16_t eeprom_ptr = EEPROM_LOG_START;
 
     while (1) {
         // Ambil mutex untuk akses I2C
         if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) {
             // Baca BME280
             uint8_t raw[8];
-            i2c_master_transmit_receive(dev_bme, (uint8_t[]){0xF7}, 1, raw, 8, -1);
+            uint8_t reg = 0xF7;
+            i2c_master_transmit_receive(dev_bme, &reg, 1, raw, 8, -1);
             int32_t adc_T = ((int32_t)raw[3] << 12) | ((int32_t)raw[4] << 4) | (raw[5] >> 4);
             int32_t adc_P = ((int32_t)raw[0] << 12) | ((int32_t)raw[1] << 4) | (raw[2] >> 4);
             int32_t adc_H = ((int32_t)raw[6] << 8) | raw[7];
@@ -205,7 +222,8 @@ static void producer_task(void *arg) {
 
             // Baca MPU6050
             uint8_t mpu_raw[14];
-            i2c_master_transmit_receive(dev_mpu, (uint8_t[]){0x3B}, 1, mpu_raw, 14, -1);
+            reg = 0x3B;
+            i2c_master_transmit_receive(dev_mpu, &reg, 1, mpu_raw, 14, -1);
             int16_t ax = (int16_t)((mpu_raw[0] << 8) | mpu_raw[1]);
             int16_t ay = (int16_t)((mpu_raw[2] << 8) | mpu_raw[3]);
             int16_t az = (int16_t)((mpu_raw[4] << 8) | mpu_raw[5]);

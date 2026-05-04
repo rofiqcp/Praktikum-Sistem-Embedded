@@ -34,8 +34,19 @@
 #include "esp_log.h"
 
 // Konfigurasi pin I2C
+#if defined(CONFIG_IDF_TARGET_ESP32)
 #define I2C_SDA_GPIO GPIO_NUM_21
 #define I2C_SCL_GPIO GPIO_NUM_22
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+#define I2C_SDA_GPIO GPIO_NUM_8
+#define I2C_SCL_GPIO GPIO_NUM_9
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#define I2C_SDA_GPIO GPIO_NUM_8
+#define I2C_SCL_GPIO GPIO_NUM_9
+#else
+#define I2C_SDA_GPIO GPIO_NUM_21
+#define I2C_SCL_GPIO GPIO_NUM_22
+#endif
 #define I2C_PORT I2C_NUM_0
 #define I2C_FREQ_HZ 400000
 

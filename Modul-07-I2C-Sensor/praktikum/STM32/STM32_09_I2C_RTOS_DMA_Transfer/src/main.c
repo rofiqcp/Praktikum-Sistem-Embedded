@@ -22,12 +22,13 @@
  * ==========================================================
  */
 
-#include "main.h"
 #include "config.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
+#include <stdio.h>
+#include <string.h>
 
 #define DMA_QUEUE_LEN 5
 #define TRANSFER_SIZE 64
@@ -128,6 +129,8 @@ void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c) {
 static void MX_DMA_Init(void) {
   __HAL_RCC_DMA1_CLK_ENABLE();
 
+#if defined(STM32F103xB)
+  // F1: DMA Channels
   // DMA I2C1 TX
   hdma_i2c1_tx.Instance = DMA1_Channel6;
   hdma_i2c1_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
@@ -161,6 +164,44 @@ static void MX_DMA_Init(void) {
   HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
   HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
+#else
+  // F4: DMA Streams
+  // DMA I2C1 TX - Stream6, Channel 1
+  hdma_i2c1_tx.Instance = DMA1_Stream6;
+  hdma_i2c1_tx.Init.Channel = DMA_CHANNEL_1;
+  hdma_i2c1_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+  hdma_i2c1_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+  hdma_i2c1_tx.Init.MemInc = DMA_MINC_ENABLE;
+  hdma_i2c1_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+  hdma_i2c1_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+  hdma_i2c1_tx.Init.Mode = DMA_NORMAL;
+  hdma_i2c1_tx.Init.Priority = DMA_PRIORITY_LOW;
+  if (HAL_DMA_Init(&hdma_i2c1_tx) != HAL_OK) {
+    Error_Handler();
+  }
+  __HAL_LINKDMA(&hi2c1, hdmatx, hdma_i2c1_tx);
+
+  // DMA I2C1 RX - Stream0, Channel 1
+  hdma_i2c1_rx.Instance = DMA1_Stream0;
+  hdma_i2c1_rx.Init.Channel = DMA_CHANNEL_1;
+  hdma_i2c1_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+  hdma_i2c1_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+  hdma_i2c1_rx.Init.MemInc = DMA_MINC_ENABLE;
+  hdma_i2c1_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+  hdma_i2c1_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+  hdma_i2c1_rx.Init.Mode = DMA_NORMAL;
+  hdma_i2c1_rx.Init.Priority = DMA_PRIORITY_LOW;
+  if (HAL_DMA_Init(&hdma_i2c1_rx) != HAL_OK) {
+    Error_Handler();
+  }
+  __HAL_LINKDMA(&hi2c1, hdmarx, hdma_i2c1_rx);
+
+  // Enable DMA interrupt
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+#endif
 }
 
 // Inisialisasi I2C1
@@ -211,14 +252,18 @@ static void MX_GPIO_Init(void) {
   GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+#if !defined(STM32F103xB)
   GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
+#endif
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pin = GPIO_PIN_9 | GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+#if !defined(STM32F103xB)
   GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
+#endif
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
@@ -259,18 +304,7 @@ void SystemClock_Config(void) {
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
-    Error_Handler();
-  }
-}
-
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-                              | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
+   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
     Error_Handler();
   }
 }

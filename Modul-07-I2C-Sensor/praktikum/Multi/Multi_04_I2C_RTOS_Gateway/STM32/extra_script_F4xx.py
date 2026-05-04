@@ -1,6 +1,6 @@
 """
 Custom PlatformIO build script for STM32CubeF4 + FreeRTOS
-Adds FreeRTOS include paths, compiles FreeRTOS kernel, and sets FPU flags.
+Creates a static library from FreeRTOS sources and links it.
 """
 Import("env")
 import os
@@ -44,19 +44,21 @@ else:
 
     env.Append(CPPPATH=framework_includes)
 
+    # Build FreeRTOS as a static library
     freertos_sources = [
-        "tasks.c", "queue.c", "list.c", "timers.c",
-        "portable/GCC/ARM_CM4F/port.c",
-        "portable/MemMang/heap_4.c",
+        os.path.join(freertos_base, "tasks.c"),
+        os.path.join(freertos_base, "queue.c"),
+        os.path.join(freertos_base, "list.c"),
+        os.path.join(freertos_base, "timers.c"),
+        os.path.join(freertos_base, "portable/GCC/ARM_CM4F/port.c"),
+        os.path.join(freertos_base, "portable/MemMang/heap_4.c"),
     ]
 
-    freertos_objs = []
-    for src in freertos_sources:
-        src_path = os.path.join(freertos_base, src)
-        if os.path.exists(src_path):
-            obj_name = src.replace("/", "_").replace(".c", ".o")
-            obj_path = os.path.join("$BUILD_DIR", "FreeRTOS_obj", obj_name)
-            obj = env.Object(obj_path, src_path)
-            freertos_objs.append(obj)
+    # Create library from FreeRTOS sources
+    freertos_lib = env.Library(
+        target=os.path.join("$BUILD_DIR", "libfreertos"),
+        source=freertos_sources
+    )
 
-    env.Append(PIOBUILDFILES=freertos_objs)
+    # Add library to link stage
+    env.Append(LIBS=[freertos_lib])

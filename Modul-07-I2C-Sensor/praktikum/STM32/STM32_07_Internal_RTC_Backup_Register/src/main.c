@@ -22,10 +22,16 @@
  */
 
 #include "config.h"
+#include <stdio.h>
 #include <string.h>
 
 #define RTC_WAKEUP_SEC 10
+#if defined(STM32F103xB)
+// F1: backup register number (0-9), not a define
+#define BACKUP_REG 0
+#else
 #define BACKUP_REG RTC_BKP_DR0
+#endif
 
 // Handle peripheral
 RTC_HandleTypeDef hrtc;
@@ -50,18 +56,30 @@ int main(void) {
   uint32_t backup_data = 0;
 
   // Baca data backup register
+#if defined(STM32F103xB)
   backup_data = HAL_RTCEx_BKUPRead(&hrtc, BACKUP_REG);
-  sprintf(msg, "Data backup: %lu\r\n", backup_data);
+#else
+  backup_data = HAL_RTCEx_BKUPRead(&hrtc, BACKUP_REG);
+#endif
+
+  snprintf(msg, sizeof(msg), "Data backup: %lu\r\n", backup_data);
   HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 
   // Tulis data baru ke backup register
   backup_data++;
+#if defined(STM32F103xB)
   HAL_RTCEx_BKUPWrite(&hrtc, BACKUP_REG, backup_data);
-  sprintf(msg, "Data backup diupdate: %lu\r\n", backup_data);
+#else
+  HAL_RTCEx_BKUPWrite(&hrtc, BACKUP_REG, backup_data);
+#endif
+
+  snprintf(msg, sizeof(msg), "Data backup diupdate: %lu\r\n", backup_data);
   HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 
-  // Konfigurasi wakeup timer RTC
+  // Konfigurasi wakeup timer RTC (hanya untuk F4)
+#if !defined(STM32F103xB)
   HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, RTC_WAKEUP_SEC * 1000 / 100, RTC_WAKEUPCLOCK_RTCCLK_DIV16);
+#endif
 
   RTC_TimeTypeDef sTime;
   RTC_DateTypeDef sDate;
@@ -72,7 +90,7 @@ int main(void) {
     HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
     // Tampilkan waktu dan tanggal
-    sprintf(msg, "Waktu: %02d:%02d:%02d %02d/%02d/20%02d\r\n",
+    snprintf(msg, sizeof(msg), "Waktu: %02d:%02d:%02d %02d/%02d/20%02d\r\n",
             sTime.Hours, sTime.Minutes, sTime.Seconds,
             sDate.Date, sDate.Month, sDate.Year);
     HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
@@ -91,9 +109,16 @@ void RTC_WakeUpCallback(void) {
 // Inisialisasi RTC
 static void MX_RTC_Init(void) {
   hrtc.Instance = RTC;
+#if defined(STM32F103xB)
+  // F1 series
+  hrtc.Init.AsynchPrediv = 0x7F; // 32.768kHz / (127+1) = 256Hz
+  hrtc.Init.OutPut = RTC_OUTPUTSOURCE_NONE;
+#else
+  // F4 series
   hrtc.Init.AsynchPrediv = 0x7F; // 32.768kHz / (127+1) = 256Hz
   hrtc.Init.SynchPrediv = 0xFF;   // 256Hz / (255+1) = 1Hz
   hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+#endif
   if (HAL_RTC_Init(&hrtc) != HAL_OK) {
     Error_Handler();
   }
@@ -149,7 +174,9 @@ static void MX_GPIO_Init(void) {
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+#if !defined(STM32F103xB)
   GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
+#endif
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
@@ -193,20 +220,11 @@ void SystemClock_Config(void) {
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
     Error_Handler();
   }
-}
 
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-                              | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
-    Error_Handler();
-  }
-
-  // Enable clock RTC
+#if defined(STM32F103xB)
+  // Enable RTC clock for F1
   __HAL_RCC_RTC_ENABLE();
+#endif
 }
 
 // Error handler

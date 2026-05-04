@@ -36,8 +36,19 @@
 #define SCAN_DELAY_MS 5000        // Delay antar scan (ms)
 
 // Konfigurasi pin I2C
-#define I2C_SDA_GPIO GPIO_NUM_21  // SDA ESP32, ganti ke GPIO8 untuk S2/S3
-#define I2C_SCL_GPIO GPIO_NUM_22  // SCL ESP32, ganti ke GPIO9 untuk S2/S3
+#if defined(CONFIG_IDF_TARGET_ESP32)
+#define I2C_SDA_GPIO GPIO_NUM_21
+#define I2C_SCL_GPIO GPIO_NUM_22
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+#define I2C_SDA_GPIO GPIO_NUM_8
+#define I2C_SCL_GPIO GPIO_NUM_9
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#define I2C_SDA_GPIO GPIO_NUM_8
+#define I2C_SCL_GPIO GPIO_NUM_9
+#else
+#define I2C_SDA_GPIO GPIO_NUM_21
+#define I2C_SCL_GPIO GPIO_NUM_22
+#endif
 #define I2C_PORT I2C_NUM_0        // Port I2C yang digunakan
 #define I2C_FREQ_HZ 100000        // Frekuensi I2C (100kHz)
 

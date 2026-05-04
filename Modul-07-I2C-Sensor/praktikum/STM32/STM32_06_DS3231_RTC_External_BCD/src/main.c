@@ -23,6 +23,7 @@
  */
 
 #include "config.h"
+#include <stdio.h>
 #include <string.h>
 
 #define DS3231_ADDR 0x68
@@ -197,14 +198,18 @@ static void MX_GPIO_Init(void) {
   GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+#if !defined(STM32F103xB)
   GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
+#endif
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pin = GPIO_PIN_9 | GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+#if !defined(STM32F103xB)
   GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
+#endif
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
@@ -245,18 +250,7 @@ void SystemClock_Config(void) {
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
-    Error_Handler();
-  }
-}
-
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-                              | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
+   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
     Error_Handler();
   }
 }

@@ -177,17 +177,18 @@ void app_main(void) {
         float temp = (t_fine * 5 + 128) >> 8;
         temp /= 100.0f;
 
-        // Kompensasi tekanan
-        var1 = t_fine - 128000;
-        var2 = var1 * var1 * (int32_t)dig_P6;
-        var2 = var2 + ((var1 * (int32_t)dig_P5) << 17);
-        var2 = var2 + (((int32_t)dig_P4) << 35);
-        var1 = ((var1 * var1 * (int32_t)dig_P3) >> 8) + ((var1 * (int32_t)dig_P2) << 12);
-        var1 = (((((int32_t)1) << 47) + var1)) * ((int32_t)dig_P1) >> 33;
+        // Kompensasi tekanan (gunakan int64_t untuk menghindari undefined behavior)
+        int64_t var1_64, var2_64;
+        var1_64 = (int64_t)t_fine - 128000;
+        var2_64 = var1_64 * var1_64 * (int64_t)dig_P6;
+        var2_64 = var2_64 + ((var1_64 * (int64_t)dig_P5) << 17);
+        var2_64 = var2_64 + ((int64_t)dig_P4 << 35);
+        var1_64 = ((var1_64 * var1_64 * (int64_t)dig_P3) >> 8) + ((var1_64 * (int64_t)dig_P2) << 12);
+        var1_64 = (((((int64_t)1) << 47) + var1_64)) * (int64_t)dig_P1 >> 33;
         float pressure = 0;
-        if (var1 != 0) {
+        if (var1_64 != 0) {
             int64_t p = 1048576 - adc_P;
-            p = (((p << 31) - var2) * 3125) / var1;
+            p = (((p << 31) - var2_64) * 3125) / var1_64;
             int64_t var3 = ((int64_t)dig_P9 * (p >> 13) * (p >> 13)) >> 25;
             int64_t var4 = ((int64_t)dig_P8 * p) >> 19;
             p = ((p + var3 + var4) >> 8) + (((int64_t)dig_P7) << 4);

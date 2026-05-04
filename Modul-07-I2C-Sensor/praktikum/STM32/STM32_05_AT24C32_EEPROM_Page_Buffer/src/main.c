@@ -224,13 +224,32 @@ static void MX_GPIO_Init(void) {
 void SystemClock_Config(void) {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  uint32_t flash_latency;
 
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+
+#if defined(STM32F401xC) || defined(STM32F411xE)
+  // F4 (F401/F411) configuration
+  RCC_OscInitStruct.PLL.PLLM = 25;
+#if defined(STM32F401xC)
+  RCC_OscInitStruct.PLL.PLLN = 336; // 25MHz/25 * 336 = 336MHz VCO, /4 = 84MHz
+  flash_latency = FLASH_LATENCY_2;
+#else
+  RCC_OscInitStruct.PLL.PLLN = 400; // 25MHz/25 * 400 = 400MHz VCO, /4 = 100MHz
+  flash_latency = FLASH_LATENCY_3;
+#endif
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
+#else
+  // F1 (Bluepill) configuration
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+  flash_latency = FLASH_LATENCY_2;
+#endif
+
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
     Error_Handler();
   }
@@ -241,7 +260,8 @@ void SystemClock_Config(void) {
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, flash_latency) != HAL_OK) {
     Error_Handler();
   }
 }

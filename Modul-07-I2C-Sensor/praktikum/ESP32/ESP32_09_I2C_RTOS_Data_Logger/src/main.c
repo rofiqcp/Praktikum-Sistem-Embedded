@@ -74,6 +74,38 @@ static SemaphoreHandle_t i2c_mutex;
 static i2c_master_bus_handle_t bus;
 static i2c_master_dev_handle_t dev_bme, dev_mpu, dev_eeprom;
 
+// BME280 calibration data
+static uint16_t dig_T1, dig_P1;
+static int16_t dig_T2, dig_T3, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9;
+static uint8_t dig_H1, dig_H3;
+static int16_t dig_H2, dig_H4, dig_H5, dig_H6;
+
+// Read calibration data from BME280
+static void bme280_read_calibration(void) {
+    uint8_t cal1[26];
+    i2c_master_transmit_receive(dev_bme, (uint8_t[]){0x88}, 1, cal1, 26, -1);
+    dig_T1 = (uint16_t)cal1[0] | ((uint16_t)cal1[1] << 8);
+    dig_T2 = (int16_t)((uint16_t)cal1[2] | ((uint16_t)cal1[3] << 8));
+    dig_T3 = (int16_t)((uint16_t)cal1[4] | ((uint16_t)cal1[5] << 8));
+    dig_P1 = (uint16_t)cal1[6] | ((uint16_t)cal1[7] << 8);
+    dig_P2 = (int16_t)((uint16_t)cal1[8] | ((uint16_t)cal1[9] << 8));
+    dig_P3 = (int16_t)((uint16_t)cal1[10] | ((uint16_t)cal1[11] << 8));
+    dig_P4 = (int16_t)((uint16_t)cal1[12] | ((uint16_t)cal1[13] << 8));
+    dig_P5 = (int16_t)((uint16_t)cal1[14] | ((uint16_t)cal1[15] << 8));
+    dig_P6 = (int16_t)((uint16_t)cal1[16] | ((uint16_t)cal1[17] << 8));
+    dig_P7 = (int16_t)((uint16_t)cal1[18] | ((uint16_t)cal1[19] << 8));
+    dig_P8 = (int16_t)((uint16_t)cal1[20] | ((uint16_t)cal1[21] << 8));
+    dig_P9 = (int16_t)((uint16_t)cal1[22] | ((uint16_t)cal1[23] << 8));
+    dig_H1 = cal1[25];
+    uint8_t cal2[7];
+    i2c_master_transmit_receive(dev_bme, (uint8_t[]){0xE1}, 1, cal2, 7, -1);
+    dig_H2 = (int16_t)((uint16_t)cal2[0] | ((uint16_t)cal2[1] << 8));
+    dig_H3 = cal2[2];
+    dig_H4 = (int16_t)((cal2[3] << 4) | (cal2[4] & 0x0F));
+    dig_H5 = (int16_t)((cal2[5] << 4) | (cal2[4] >> 4));
+    dig_H6 = (int8_t)cal2[6];
+}
+
 // Struktur data untuk queue
 typedef struct {
     uint32_t timestamp;
@@ -95,6 +127,7 @@ static bool init_bme280(void) {
     if (chip_id != 0x60) { i2c_master_bus_rm_device(dev_bme); return false; }
     i2c_master_transmit(dev_bme, (uint8_t[]){0xF2, 0x01}, 2, -1);
     i2c_master_transmit(dev_bme, (uint8_t[]){0xF4, 0x27}, 2, -1);
+    bme280_read_calibration();
     return true;
 }
 
@@ -141,11 +174,34 @@ static void producer_task(void *arg) {
             uint8_t raw[8];
             i2c_master_transmit_receive(dev_bme, (uint8_t[]){0xF7}, 1, raw, 8, -1);
             int32_t adc_T = ((int32_t)raw[3] << 12) | ((int32_t)raw[4] << 4) | (raw[5] >> 4);
-            int32_t var1 = ((((adc_T >> 3) - (int32_t)0x8260) * (int32_t)0xBB60) >> 11);
-            int32_t var2 = (((((adc_T >> 4) - (int32_t)0x8260) * ((adc_T >> 4) - (int32_t)0x8260)) >> 12) * (int32_t)0xC800) >> 14;
+            int32_t adc_P = ((int32_t)raw[0] << 12) | ((int32_t)raw[1] << 4) | (raw[2] >> 4);
+            int32_t adc_H = ((int32_t)raw[6] << 8) | raw[7];
+
+            // Kompensasi suhu
+            int32_t var1 = ((((adc_T >> 3) - ((int32_t)dig_T1 << 1))) * dig_T2) >> 11;
+            int32_t var2 = (((((adc_T >> 4) - dig_T1) * ((adc_T >> 4) - dig_T1)) >> 12) * dig_T3) >> 14;
             int32_t t_fine = var1 + var2;
-            data.bme_temp = ((t_fine * 5 + 128) >> 8) / 100.0f;
-            data.bme_press = ((int32_t)((raw[0] << 12) | (raw[1] << 4) | (raw[2] >> 4))) / 100.0f;
+            data.bme_temp = (t_fine * 5 + 128) >> 8;
+            data.bme_temp /= 100.0f;
+
+            // Kompensasi tekanan (gunakan int64_t)
+            int64_t var1_64, var2_64;
+            var1_64 = (int64_t)t_fine - 128000;
+            var2_64 = var1_64 * var1_64 * (int64_t)dig_P6;
+            var2_64 = var2_64 + ((var1_64 * (int64_t)dig_P5) << 17);
+            var2_64 = var2_64 + ((int64_t)dig_P4 << 35);
+            var1_64 = ((var1_64 * var1_64 * (int64_t)dig_P3) >> 8) + ((var1_64 * (int64_t)dig_P2) << 12);
+            var1_64 = (((((int64_t)1) << 47) + var1_64)) * (int64_t)dig_P1 >> 33;
+            if (var1_64 != 0) {
+                int64_t p = 1048576 - adc_P;
+                p = (((p << 31) - var2_64) * 3125) / var1_64;
+                int64_t var3 = ((int64_t)dig_P9 * (p >> 13) * (p >> 13)) >> 25;
+                int64_t var4 = ((int64_t)dig_P8 * p) >> 19;
+                p = ((p + var3 + var4) >> 8) + (((int64_t)dig_P7) << 4);
+                data.bme_press = p / 256.0f;
+            } else {
+                data.bme_press = 0;
+            }
 
             // Baca MPU6050
             uint8_t mpu_raw[14];

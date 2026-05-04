@@ -100,8 +100,9 @@ void app_main(void) {
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus, &dev_cfg, &rtc));
 
     // Set waktu awal: Sen 01/01/2024 00:00:00
-    uint8_t init_time[8] = {
-        0x00,           // Detik: 00
+    uint8_t set_time[8] = {
+        0x00,           // Register address 0x00
+        dec2bcd(0),     // Detik: 00
         dec2bcd(0),     // Menit: 00
         dec2bcd(0),     // Jam: 00 (24h mode)
         dec2bcd(1),     // Hari: Senin
@@ -109,16 +110,17 @@ void app_main(void) {
         dec2bcd(1),     // Bulan: Januari
         dec2bcd(24)     // Tahun: 2024
     };
-    ESP_ERROR_CHECK(i2c_master_transmit(rtc, init_time, 8, -1));
+    ESP_ERROR_CHECK(i2c_master_transmit(rtc, set_time, 8, -1));
 
     // Konfigurasi alarm1 setiap menit pada detik ke-10
-    uint8_t alarm1[4] = {
+    uint8_t alarm1[5] = {
+        0x07,           // Register address 0x07
         ALARM_SECOND,   // Detik: 10 (dengan A1M1=0)
         0x80,           // Menit: A1M2=1 (match)
         0x80,           // Jam: A1M3=1 (match)
         0x80            // Hari: A1M4=1 (match)
     };
-    ESP_ERROR_CHECK(i2c_master_transmit(rtc, alarm1, 4, -1));
+    ESP_ERROR_CHECK(i2c_master_transmit(rtc, alarm1, 5, -1));
 
     // Enable alarm1 interrupt, set A1IE=1
     ds_write(DS3231_REG_CONTROL, 0x05);  // A1IE=1, INTCN=1

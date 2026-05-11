@@ -364,10 +364,16 @@ Praktik baik:
 
 ESP32 punya dua controller I2C dan GPIO matrix fleksibel.
 
+Konfigurasi praktikum Modul 07:
+- **SDA**: GPIO21
+- **SCL**: GPIO22
+- **I2C port**: I2C_NUM_0
+- **Clock speed**: 100 kHz
+
 Konsep ESP-IDF:
 
 - Pilih `I2C_NUM_0` atau `I2C_NUM_1`.
-- Tentukan SDA/SCL ke GPIO valid.
+- Tentukan SDA/SCL ke GPIO valid (praktikum: GPIO21/22).
 - Aktifkan pull-up internal hanya untuk bus sangat pendek; pull-up eksternal tetap disarankan.
 - Set clock 100 kHz/400 kHz.
 - Gunakan timeout dan cek return `esp_err_t`.
@@ -458,23 +464,63 @@ Pada Modul 07, multi STM32-ESP32 memakai kontrol ownership eksplisit: tidak ada 
 
 Praktikum final berisi tepat **25 eksperimen**:
 
-- **10 ESP32**: ESP32_01 sampai ESP32_10.
-- **10 STM32**: STM32_01 sampai STM32_10.
-- **5 Multi STM32-ESP32**: MULTI_01 sampai MULTI_05.
+### 10 Eksperimen ESP32 (GPIO21=SDA, GPIO22=SCL, 100 kHz, I2C_NUM_0)
 
-Ringkasannya:
+| No | Kode | Topik | Sensor/Device | Alamat |
+|---|---|---|---|---|
+| 1 | ESP32_01_I2C_Bus_Scanner_Address_Map | I2C scanner, address map | Semua device | Scan 0x08-0x77 |
+| 2 | ESP32_02_SSD1306_OLED_Display_Graphics | OLED graphics | SSD1306 | 0x3C/0x3D |
+| 3 | ESP32_03_BME280_Environmental_Sensor | Sensor suhu/tekanan/lembap | BME280 | 0x76/0x77 |
+| 4 | ESP32_04_MPU6050_IMU_Raw_And_Angle | IMU raw data, sudut | MPU6050 | 0x68/0x69 |
+| 5 | ESP32_05_AT24C32_EEPROM_Data_Log | Data logging EEPROM | AT24C32 | 0x50-0x57 |
+| 6 | ESP32_06_DS3231_RTC_Alarm_Temperature | RTC eksternal, alarm | DS3231 | 0x68 |
+| 7 | ESP32_07_BH1750_Light_Adaptive_Display | Sensor cahaya, adaptive display | BH1750 | 0x23/0x5C |
+| 8 | ESP32_08_I2C_RTOS_Multi_Task_Sensor | FreeRTOS multi-task sensor | BME280/BH1750 | 0x76/0x23 |
+| 9 | ESP32_09_I2C_RTOS_Data_Logger | FreeRTOS data logger | EEPROM/Sensor | 0x50-0x57 |
+| 10 | ESP32_10_I2C_RTOS_Interrupt_Driven | FreeRTOS interrupt-driven | Sensor+OLED | 0x76/0x3C |
+
+### 10 Eksperimen STM32 (I2C1 PB6=SCL, PB7=SDA, HAL I2C)
+
+| No | Kode | Topik | Sensor/Device | Alamat |
+|---|---|---|---|---|
+| 1 | STM32_01_I2C_HAL_Scanner_Address_Map | I2C HAL scanner | Semua device | Scan 0x08-0x77 |
+| 2 | STM32_02_SSD1306_OLED_HAL_Driver | OLED HAL driver | SSD1306 | 0x3C/0x3D |
+| 3 | STM32_03_BME280_Register_Driver | BME280 register-level | BME280 | 0x76/0x77 |
+| 4 | STM32_04_MPU6050_IMU_Interrupt_Ready | IMU interrupt ready | MPU6050 | 0x68 |
+| 5 | STM32_05_AT24C32_EEPROM_Page_Buffer | EEPROM page buffer | AT24C32 | 0x50-0x57 |
+| 6 | STM32_06_DS3231_RTC_External_BCD | RTC eksternal BCD | DS3231 | 0x68 |
+| 7 | STM32_07_Internal_RTC_Backup_Register | RTC internal, backup register | RTC internal | - |
+| 8 | STM32_08_I2C_RTOS_Multi_Task | FreeRTOS multi-task | Sensor+Display | 0x76/0x3C |
+| 9 | STM32_09_I2C_RTOS_DMA_Transfer | FreeRTOS DMA transfer | OLED/EEPROM | 0x3C/0x50 |
+| 10 | STM32_10_I2C_RTOS_Error_Recovery | FreeRTOS error recovery | Sensor+Watchdog | 0x76/0x68 |
+
+### 5 Eksperimen Multi STM32-ESP32
+
+| No | Kode | Topik | Fokus |
+|---|---|---|---|
+| 1 | Multi_01_I2C_Master_Slave_Basic | Master-slave dasar | STM32 slave addr 0x42 |
+| 2 | Multi_02_I2C_Role_Swap_Command | Role swap via command | Dynamic master-slave |
+| 3 | Multi_03_I2C_Shared_Sensor | Shared sensor access | Bus arbitration |
+| 4 | Multi_04_I2C_RTOS_Gateway | RTOS gateway | Data aggregation |
+| 5 | Multi_05_I2C_RTOS_Weather_Station | Weather station integration | Project integration |
+
+### GUI Monitor
+
+- **GUI_I2C.py**: tkinter I2C monitor untuk visualisasi data sensor real-time, serial connection, grafik, dan simulasi I2C scanner.
+
+Ringkasan fokus:
 
 | Kelompok | Jumlah | Fokus |
 |---|---:|---|
-| ESP32 | 10 | ESP-IDF, GPIO matrix, SNTP/RTC, sensor/display, recovery |
-| STM32 | 10 | HAL, DMA, internal RTC, raw register, sensor/display, recovery |
-| Multi STM32-ESP32 | 5 | bus ownership, bridge, sync, project integration |
+| ESP32 | 10 | ESP-IDF, GPIO21/22 SDA/SCL, 100kHz, SNTP/RTC, sensor/display, FreeRTOS |
+| STM32 | 10 | HAL I2C1 PB6/7, DMA, internal RTC backup register, raw register, FreeRTOS error recovery |
+| Multi STM32-ESP32 | 5 | bus ownership, master-slave (addr 0x42), role swap, shared sensor, project integration |
 
 ---
 
 ## 22. Integrasi Project Weather Station
 
-Project akhir Modul 07 adalah weather station dual-MCU.
+Project akhir Modul 07 adalah weather station dual-MCU dengan monitor GUI.
 
 Peran utama:
 
@@ -486,6 +532,7 @@ Peran utama:
 - **BH1750**: cahaya.
 - **MPU6050**: orientasi/guncangan.
 - **SSD1306/LCD**: tampilan lokal.
+- **GUI_I2C.py**: tkinter monitor untuk visualisasi data sensor real-time via serial.
 
 Record log disarankan 16 byte:
 

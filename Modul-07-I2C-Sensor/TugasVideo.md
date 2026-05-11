@@ -76,15 +76,15 @@ Bahasa presentasi: Indonesia.
 | Kode | Demo wajib | Bukti output |
 |---|---|---|
 | ESP32_01 | I2C scanner | address map di serial |
-| ESP32_02 | BME280/BMP280 fallback | suhu/tekanan/humidity atau `N/A` |
-| ESP32_03 | SSD1306 OLED dashboard | teks/grafik tampil |
-| ESP32_04 | DS3231 + internal RTC + SNTP | waktu terbaca/sinkron |
-| ESP32_05 | EEPROM AT24C32/24LC256 logger | tulis-baca record; kapasitas benar |
-| ESP32_06 | MPU6050 raw/library | accel/gyro berubah saat digerakkan |
-| ESP32_07 | BH1750 lux | lux berubah saat cahaya berubah |
-| ESP32_08 | LCD PCF8574 | LCD menampilkan data |
-| ESP32_09 | GPIO matrix, dual bus, speed test | pin remap/speed 100 vs 400 kHz |
-| ESP32_10 | error handling dan recovery | sensor dicabut lalu reconnect |
+| ESP32_02 | SSD1306 OLED display graphics | teks/grafik tampil |
+| ESP32_03 | BME280 environmental sensor (addr 0x76/0x77, SDA GPIO21, SCL GPIO22) | suhu/tekanan/humidity valid |
+| ESP32_04 | MPU6050 IMU raw/angle | accel/gyro/angle berubah saat digerakkan |
+| ESP32_05 | AT24C32 EEPROM data logger | tulis-baca record; kapasitas benar |
+| ESP32_06 | DS3231 RTC alarm/temperature (addr 0x68) | waktu terbaca, alarm berfungsi |
+| ESP32_07 | BH1750 light adaptive display (addr 0x23) | lux berubah saat cahaya berubah |
+| ESP32_08 | I2C RTOS multi-task sensor | multiple task baca sensor via I2C RTOS |
+| ESP32_09 | I2C RTOS data logger | logging data sensor via I2C RTOS |
+| ESP32_10 | I2C RTOS interrupt-driven | interrupt-based I2C transfer berjalan |
 
 ---
 
@@ -93,15 +93,15 @@ Bahasa presentasi: Indonesia.
 | Kode | Demo wajib | Bukti output |
 |---|---|---|
 | STM32_01 | HAL I2C scanner | address map via UART |
-| STM32_02 | BME280/BMP280 raw driver | chip ID + data cuaca |
-| STM32_03 | SSD1306 via HAL | OLED tampil |
-| STM32_04 | DS3231 + internal RTC | waktu DS3231 dan RTC internal |
-| STM32_05 | EEPROM logger + page boundary | data valid setelah reset |
-| STM32_06 | MPU6050 burst read | 14 byte accel/gyro valid |
-| STM32_07 | BH1750 mode one-shot/continuous | lux dan mode tampil |
-| STM32_08 | LCD PCF8574 via HAL | LCD tampil via STM32 |
-| STM32_09 | I2C DMA benchmark | polling vs interrupt vs DMA |
-| STM32_10 | HAL error code dan recovery | error code + bus recovery |
+| STM32_02 | SSD1306 OLED HAL driver | OLED tampil via STM32 HAL |
+| STM32_03 | BME280 register driver | chip ID + data cuaca valid |
+| STM32_04 | MPU6050 IMU interrupt ready | accel/gyro/interrupt berfungsi |
+| STM32_05 | AT24C32 EEPROM page buffer | data valid setelah reset, page boundary benar |
+| STM32_06 | DS3231 external RTC BCD (I2C1 PB6/7, addr 0x68) | waktu DS3231 tampil, BCD terkonversi |
+| STM32_07 | Internal RTC backup register | waktu RTC internal + backup register valid |
+| STM32_08 | I2C RTOS multi-task | multiple task I2C via STM32 RTOS |
+| STM32_09 | I2C RTOS DMA transfer | DMA transfer I2C valid |
+| STM32_10 | I2C RTOS error recovery | error recovery I2C via RTOS berjalan |
 
 ---
 
@@ -109,11 +109,11 @@ Bahasa presentasi: Indonesia.
 
 | Kode | Demo wajib | Bukti output |
 |---|---|---|
-| MULTI_01 | ESP32 master/gateway + STM32 sensor node via UART | data STM32 tampil di ESP32 |
-| MULTI_02 | Bus ownership request/grant | tidak ada collision saat akses bergantian |
-| MULTI_03 | ESP32 SNTP sync ke STM32/DS3231 | waktu sinkron |
-| MULTI_04 | Multi-display dashboard | OLED ESP32 + LCD STM32 konsisten |
-| MULTI_05 | Final weather station integration | semua sensor/display/log/recovery aktif |
+| MULTI_01 | I2C master-slave basic (STM32 slave addr 0x42) | data transfer master-slave valid |
+| MULTI_02 | I2C role swap command | role master/slave swap via command |
+| MULTI_03 | I2C shared sensor | sensor dibagi antara master dan slave |
+| MULTI_04 | I2C RTOS gateway | gateway I2C RTOS berfungsi |
+| MULTI_05 | I2C RTOS weather station | integrasi weather station final |
 
 ---
 

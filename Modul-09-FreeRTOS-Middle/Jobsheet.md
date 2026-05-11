@@ -43,8 +43,8 @@ Setelah menyelesaikan jobsheet Modul 09, mahasiswa mampu:
 | 6 | STM32_06 | STM32 | ADC dengan RTOS |
 | 7 | STM32_07 | STM32 | I2C dengan RTOS |
 | 8 | STM32_08 | STM32 | SPI dengan RTOS |
-| 9 | STM32_09 | STM32 | Multi Task GPIO-ADC-UART |
-| 10 | STM32_10 | STM32 | FreeRTOS Semaphore Mutex |
+| 9 | STM32_09 | STM32 | Multi-Input GPIO + Interrupt (ISR vs Polling) |
+| 10 | STM32_10 | STM32 | Sistem RTOS Multi-Peripheral (Queue Set + Event Group) |
 | 11 | ESP32_01 | ESP32 | GPIO Task Blink RTOS |
 | 12 | ESP32_02 | ESP32 | External Interrupt RTOS |
 | 13 | ESP32_03 | ESP32 | Encoder 2-Pin Interrupt RTOS |
@@ -53,8 +53,8 @@ Setelah menyelesaikan jobsheet Modul 09, mahasiswa mampu:
 | 16 | ESP32_06 | ESP32 | ADC dengan RTOS |
 | 17 | ESP32_07 | ESP32 | I2C dengan RTOS |
 | 18 | ESP32_08 | ESP32 | SPI dengan RTOS |
-| 19 | ESP32_09 | ESP32 | Multi Task GPIO-ADC-UART |
-| 20 | ESP32_10 | ESP32 | FreeRTOS Semaphore Mutex |
+| 19 | ESP32_09 | ESP32 | Multi-Input GPIO + Interrupt (ISR vs Polling) |
+| 20 | ESP32_10 | ESP32 | Sistem RTOS Multi-Peripheral (Queue Set + Event Group) |
 | 21 | MULTI_01 | Multi | RTOS GPIO Task Sync |
 | 22 | MULTI_02 | Multi | RTOS ADC-DAC Communication |
 | 23 | MULTI_03 | Multi | RTOS I2C Sensor Sharing |
@@ -201,37 +201,37 @@ Setelah menyelesaikan jobsheet Modul 09, mahasiswa mampu:
 
 ---
 
-### STM32_09 — Multi Task GPIO-ADC-UART
+### STM32_09 — Multi-Input GPIO + Interrupt (ISR vs Polling)
 
-**Tujuan:** mengintegrasikan multiple task RTOS: GPIO, ADC, UART.
+**Tujuan:** membandingkan penanganan interrupt menggunakan ISR dengan semaphore vs polling di task, dan mengelola multiple input dengan queue.
 
-**Hardware:** STM32, LED, potensiometer.
+**Hardware:** STM32, 3 push button, 3 LED.
 
 **Langkah:**
-1. Buat task LED blink.
-2. Buat task ADC reader dengan queue ke task UART.
-3. Buat task UART receiver untuk command.
-4. Gunakan event group untuk sinkronisasi task.
-5. Implementasikan command parsing (LED ON/OFF, ADC start/stop).
+1. Konfigurasi Button 1 dengan EXTI interrupt (ISR-based): ISR memberikan semaphore, task mengambil semaphore dan kirim event ke queue.
+2. Konfigurasi Button 2 dan Button 3 dengan polling di task: task monitor membaca state pin dan mengirim event ke queue jika ada perubahan.
+3. Buat struct `button_event_t` berisi nomor button, tipe event, dan timestamp.
+4. Task `vLEDControlTask` terima event dari queue dan toggle LED sesuai nomor button.
+5. Amati perbedaan responsivitas ISR vs polling, dan catat timestamp event.
 
-**Output diharapkan:** sistem multi-task berjalan stabil dengan command UART.
+**Output diharapkan:** LED toggle sesuai button yang ditekan; ISR lebih responsif dari polling; log event menampilkan nomor button dan timestamp.
 
 ---
 
-### STM32_10 — FreeRTOS Semaphore Mutex
+### STM32_10 — Sistem RTOS Multi-Peripheral (Queue Set + Event Group)
 
-**Tujuan:** demonstrasi penggunaan semaphore dan mutex untuk resource sharing.
+**Tujuan:** mengintegrasikan semua peripheral dalam satu sistem RTOS menggunakan Queue Set untuk multiplexing multiple data source dan Event Group untuk sinkronisasi state sistem.
 
-**Hardware:** STM32, 2 LED, UART.
+**Hardware:** STM32, LED, push button, potensiometer, sensor I2C (opsional).
 
 **Langkah:**
-1. Buat mutex untuk akses UART (shared resource).
-2. Buat 2 task yang mengakses UART secara bergantian.
-3. Gunakan binary semaphore untuk task synchronization.
-4. Counting semaphore untuk buffer pool.
-5. Amati urutan akses resource via serial.
+1. Buat 3 queue: `xButtonQueue`, `xUartQueue`, `xAdcQueue`.
+2. Buat Queue Set dan tambahkan ketiga queue: `xQueueAddToSet()`.
+3. Buat Event Group untuk state: `EVENT_BIT_BUTTON`, `EVENT_BIT_UART`, `EVENT_BIT_ADC`.
+4. Task `vSystemMonitorTask` gunakan `xQueueSelectFromSet()` untuk menunggu event dari semua queue, lalu baca data sesuai queue aktif.
+5. ISR button, task ADC, dan task UART TX masing-masing set event bit dan kirim ke queue.
 
-**Output diharapkan:** tidak ada race condition pada akses UART.
+**Output diharapkan:** monitor task menangani semua peripheral tanpa polling; event dari button, UART, dan ADC ditampilkan dengan identitas sumber; tidak ada race condition.
 
 ---
 
@@ -373,37 +373,37 @@ Setelah menyelesaikan jobsheet Modul 09, mahasiswa mampu:
 
 ---
 
-### ESP32_09 — Multi Task GPIO-ADC-UART
+### ESP32_09 — Multi-Input GPIO + Interrupt (ISR vs Polling)
 
-**Tujuan:** integrasi multi-task ESP32: GPIO, ADC, UART.
+**Tujuan:** membandingkan penanganan interrupt menggunakan ISR + semaphore vs polling di task, dan mengelola multiple input dengan queue pada ESP32.
 
-**Hardware:** ESP32, LED, potensiometer.
+**Hardware:** ESP32, 3 push button, 3 LED.
 
 **Langkah:**
-1. Buat task LED blink.
-2. Buat task ADC reader dengan queue ke UART task.
-3. Buat task UART command parser.
-4. Gunakan event group untuk sinkronisasi.
-5. Implementasikan kontrol LED dan ADC via command.
+1. Konfigurasi Button 1 (GPIO0) dengan `gpio_install_isr_service()` + `gpio_isr_handler_add()`: ISR memberikan binary semaphore, task monitor mengambil semaphore dan kirim event ke queue.
+2. Button 2 (GPIO35) dan Button 3 (GPIO36) dikonfigurasi dengan polling di task.
+3. Buat struct `button_event_t` berisi nomor button, tipe event, dan timestamp.
+4. Task `vLEDControlTask` terima event dari queue dan toggle LED sesuai nomor button.
+5. Bandingkan responsivitas ISR vs polling dengan catat timestamp di serial.
 
-**Output diharapkan:** sistem multi-task stabil dengan kontrol UART.
+**Output diharapkan:** LED toggle sesuai button; ISR lebih responsif dari polling; log menampilkan nomor button dan timestamp.
 
 ---
 
-### ESP32_10 — FreeRTOS Semaphore Mutex
+### ESP32_10 — Sistem RTOS Multi-Peripheral (Queue Set + Event Group)
 
-**Tujuan:** demonstrasi semaphore/mutex ESP32 untuk resource sharing.
+**Tujuan:** mengintegrasikan semua peripheral ESP32 dalam satu sistem RTOS menggunakan Queue Set untuk multiplexing multiple data source dan Event Group untuk sinkronisasi state sistem.
 
-**Hardware:** ESP32, 2 LED, UART.
+**Hardware:** ESP32, LED, push button, potensiometer, UART.
 
 **Langkah:**
-1. Buat mutex untuk akses UART shared resource.
-2. Buat 2 task dengan akses UART bergantian.
-3. Gunakan binary semaphore untuk task sync.
-4. Counting semaphore untuk buffer management.
-5. Amati urutan akses via serial monitor.
+1. Buat 3 queue: `xButtonQueue`, `xUartQueue`, `xAdcQueue`.
+2. Buat Queue Set dan tambahkan ketiga queue: `xQueueAddToSet()`.
+3. Buat Event Group untuk flag state: `EVENT_BIT_BUTTON`, `EVENT_BIT_UART`, `EVENT_BIT_ADC`, `EVENT_BIT_ERROR`.
+4. ISR button kirim event ke `xButtonQueue` dan set event bit. Task ADC (100 ms) kirim ke `xAdcQueue`. Task UART (driver event queue) kirim ke `xUartQueue`.
+5. Task `vSystemMonitorTask` gunakan `xQueueSelectFromSet()` untuk menangani semua queue; tampilkan statistik saat semua tiga event bit aktif.
 
-**Output diharapkan:** akses resource teratur tanpa race condition.
+**Output diharapkan:** monitor task menangani GPIO, UART, ADC dari satu titik dengan Queue Set; event group menampilkan statistik real-time; sistem multi-peripheral stabil.
 
 ---
 

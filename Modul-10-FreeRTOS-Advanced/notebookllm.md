@@ -4,7 +4,7 @@
 
 ### Slide 1 — Modul 10 dan Target Akhir
 
-Modul 10 membahas fitur lanjutan FreeRTOS yang digunakan dalam sistem embedded industri modern. Target akhir pembelajaran modul ini adalah penyelesaian 20 eksperimen final yang terdiri dari 10 eksperimen STM32 dan 10 eksperimen ESP32 yang dirancang untuk membangun kompetensi praktis mahasiswa dalam mengimplementasikan fitur RTOS lanjutan. Eksperimen mencakup Event Groups, Software Timers, Task Notifications, Semaphore varieties, Mutex dan Priority Inheritance, Memory Management, Static Allocation, Message Buffers, Stream Buffers, dan Queue Sets. Setiap eksperimen diimplementasikan pada platform STM32 dan ESP32 untuk membandingkan perilaku FreeRTOS di kedua arsitektur. Semua percobaan diarahkan untuk mendukung pengembangan project akhir berupa Advanced RTOS Industrial System yang mengintegrasikan semua fitur RTOS lanjutan untuk monitoring dan kontrol industri. Mahasiswa diwajibkan memahami teori setiap objek RTOS, mengimplementasikannya pada kedua platform, dan mendokumentasikan hasilnya dalam laporan praktikum.
+Modul 10 membahas fitur lanjutan FreeRTOS yang digunakan dalam sistem embedded industri modern. Target akhir pembelajaran modul ini adalah penyelesaian **25 eksperimen final** yang terdiri dari 10 eksperimen STM32, 10 eksperimen ESP32, dan 5 eksperimen Multi STM32-ESP32 yang dirancang untuk membangun kompetensi praktis mahasiswa dalam mengimplementasikan fitur RTOS lanjutan. Eksperimen mencakup Event Groups, Software Timers, Task Notifications, Semaphore varieties, Mutex dan Priority Inheritance, Memory Management, Static Allocation, Critical Section dan Task Suspension, Message Buffers, Stream Buffers, dan Queue Sets. Setiap eksperimen diimplementasikan pada platform STM32 dan ESP32 untuk membandingkan perilaku FreeRTOS di kedua arsitektur. Eksperimen Multi mengintegrasikan kedua MCU dengan koordinasi menggunakan objek RTOS lanjutan via UART. Semua percobaan diarahkan untuk mendukung pengembangan project akhir berupa Advanced RTOS Industrial System yang mengintegrasikan semua fitur RTOS lanjutan untuk monitoring dan kontrol industri. Mahasiswa diwajibkan memahami teori setiap objek RTOS, mengimplementasikannya pada semua platform, dan mendokumentasikan hasilnya dalam laporan praktikum.
 
 ---
 
@@ -50,15 +50,21 @@ Static Allocation membuat objek FreeRTOS (task, queue, semaphore, timer) dengan 
 
 ---
 
-### Slide 9 — Message Buffers
+### Slide 9 — Critical Section dan Task Suspension
+
+Critical Section adalah mekanisme proteksi data paling ringan di FreeRTOS — menonaktifkan scheduler/interrupt sementara agar operasi berjalan atomis. Fungsi utama: `taskENTER_CRITICAL()` dan `taskEXIT_CRITICAL()` untuk proteksi singkat. Versi ISR: `taskENTER_CRITICAL_FROM_ISR()` dan `taskEXIT_CRITICAL_FROM_ISR()`. Perbedaan dengan Mutex: Critical Section tidak memanggil RTOS API di dalamnya (karena scheduler dinonaktifkan), sementara Mutex dapat memanggil RTOS API dan mendukung Priority Inheritance. Critical Section cocok untuk operasi sangat singkat (increment counter, set flag), Mutex untuk operasi lebih lama yang perlu memanggil fungsi RTOS. Task Suspension (`vTaskSuspend()` / `vTaskResume()`) memungkinkan kontrol eksekusi task dari task lain tanpa menghapus task. Pada praktikum, Critical Section dan Task Suspension diuji pada STM32_08 dan ESP32_08 untuk demonstrasi race condition dan perlindungan data atomis.
+
+---
+
+### Slide 10 — Message Buffers dan Stream Buffers
 
 Message Buffer digunakan untuk transfer data dengan panjang variabel antar task atau antara ISR dan task. Setiap pengiriman menulis pesan dengan header panjang pesan otomatis, sehingga penerima tahu panjang pesan yang diterima. Fungsi utama meliputi `xMessageBufferCreate()` untuk membuat buffer, `xMessageBufferSend()` untuk mengirim pesan (tersedia versi ISR), dan `xMessageBufferReceive()` untuk menerima pesan. Keunggulannya adalah otomatis mendeteksi panjang pesan, dapat menangani pesan 1 byte hingga ukuran buffer penuh, dan thread-safe untuk ISR dan task. Cocok untuk pesan variabel seperti komando, log, atau data sensor dengan panjang berubah. Pada praktikum, Message Buffers diuji pada STM32_08 dan ESP32_08 untuk mengirim pesan 1-128 byte antar task.
 
 ---
 
-### Slide 10 — Stream Buffers
+### Slide 10 — Message Buffers dan Stream Buffers
 
-Stream Buffer digunakan untuk transfer byte stream (data kontinu) antar task atau antara ISR dan task. Berbeda dengan Message Buffer, Stream Buffer tidak menyimpan panjang pesan, hanya byte mentah. Fungsi utama meliputi `xStreamBufferCreate()` untuk membuat buffer (dengan parameter trigger level), `xStreamBufferSend()` untuk mengirim byte stream, `xStreamBufferReceive()` untuk menerima byte stream, `xStreamBufferBytesAvailable()` untuk cek byte tersedia, dan `xStreamBufferSpacesAvailable()` untuk cek sisa ruang. Keunggulannya adalah cocok untuk transfer data serial, audio, atau sensor stream, dan dapat diatur trigger level agar task baru bangun saat minimal X byte tersedia. Pada praktikum, Stream Buffers diuji pada STM32_09 dan ESP32_09 untuk menangani byte stream simulasi sensor.
+Message Buffer digunakan untuk transfer data dengan panjang variabel antar task atau ISR. Header panjang otomatis ditambahkan saat pengiriman sehingga penerima tahu panjang pesan. Fungsi: `xMessageBufferCreate()`, `xMessageBufferSend()`, `xMessageBufferReceive()`. Cocok untuk pesan variabel seperti komando, log, JSON. Stream Buffer digunakan untuk transfer byte stream kontinu tanpa header panjang — hanya byte mentah. Fungsi: `xStreamBufferCreate(size, triggerLevel)`, `xStreamBufferSend()`, `xStreamBufferReceive()`. Trigger level menentukan minimum byte sebelum task penerima bangun. Stream Buffer cocok untuk audio, sensor stream, data serial. Pada praktikum, keduanya diuji bersama pada STM32_09 dan ESP32_09 untuk membandingkan perilaku masing-masing dengan data variabel dan stream kontinu.
 
 ---
 
@@ -114,7 +120,7 @@ Pada praktikum, mahasiswa diwajibkan menguji skenario error dan mengimplementasi
 
 ### Slide 16 — Struktur Final Praktikum
 
-Modul 10 memiliki tepat 20 eksperimen yang terdiri dari STM32_01 sampai STM32_10 (10 eksperimen) dan ESP32_01 sampai ESP32_10 (10 eksperimen). Struktur ini memastikan mahasiswa memahami FreeRTOS lanjutan dari sisi STM32 dan ESP32 secara bertahap, mulai dari teori hingga implementasi. Setiap eksperimen memiliki tujuan pembelajaran spesifik, mencakup semua fitur RTOS lanjutan yang diajarkan pada teori. Mahasiswa diwajibkan menyelesaikan semua 20 eksperimen untuk mendapatkan nilai lengkap, dengan setiap eksperimen harus menunjukkan output yang valid dan dokumentasi yang lengkap. Struktur ini juga memastikan bahwa semua topik FreeRTOS lanjutan tercakup pada praktikum, sehingga mahasiswa memiliki kompetensi penuh dalam mengimplementasikan RTOS lanjutan setelah menyelesaikan modul ini.
+Modul 10 memiliki tepat **25 eksperimen** yang terdiri dari STM32_01 sampai STM32_10 (10 eksperimen), ESP32_01 sampai ESP32_10 (10 eksperimen), dan MULTI_01 sampai MULTI_05 (5 eksperimen Multi STM32-ESP32). Struktur ini memastikan mahasiswa memahami FreeRTOS lanjutan dari sisi STM32, ESP32, dan integrasi dua MCU secara bertahap. Eksperimen STM32 dan ESP32 mencakup: Event Groups, Software Timers, Task Notifications, Semaphore Varieties, Mutex+Priority Inheritance, Memory Management, Static Allocation, Critical Section+Task Suspension, Message+Stream Buffers, dan Queue Sets. Eksperimen Multi mencakup: Distributed Event Group Sync, Multi-MCU Timer Network, Task Notification Pipeline, Priority Inheritance Network, dan Full Advanced Industrial System. Mahasiswa diwajibkan menyelesaikan semua 25 eksperimen untuk mendapatkan nilai lengkap.
 
 ---
 
@@ -138,13 +144,13 @@ STM32_05 adalah Mutex and Priority Inheritance: buat 3 task Low, Medium, High. L
 
 ### Slide 20 — STM32_07 dan STM32_08
 
-STM32_07 adalah Static Allocation: alokasi statis TCB dan stack untuk task, buat task dengan `xTaskCreateStatic()`, buat queue statis. Toggle LED saat data diterima via queue statis. STM32_08 adalah Message Buffers: buat Message Buffer, kirim pesan variabel 1-128 byte saat button ditekan, terima pesan dan print ke serial. Output menunjukkan pesan variabel diterima utuh dengan panjang otomatis terdeteksi.
+STM32_07 adalah Static Allocation: alokasi statis TCB dan stack untuk task, buat task dengan `xTaskCreateStatic()`, buat queue statis. Toggle LED saat data diterima via queue statis. STM32_08 adalah Critical Section dan Task Suspension: demonstrasikan race condition pada variabel `shared_counter` tanpa proteksi, lalu gunakan `taskENTER_CRITICAL()`/`taskEXIT_CRITICAL()` untuk perbaiki. Tambah `vTaskSuspend()`/`vTaskResume()` untuk kontrol eksekusi task dari task lain. Output menunjukkan nilai counter konsisten dengan critical section; task dapat di-suspend/resume runtime.
 
 ---
 
 ### Slide 21 — STM32_09 dan STM32_10
 
-STM32_09 adalah Stream Buffers: buat Stream Buffer, tulis byte stream simulasi sensor, baca stream dan rekonstruksi data. Uji 100 byte/detik dan 1000 byte/detik. STM32_10 adalah Queue Sets: buat 2 queue dan 1 binary semaphore, tambahkan ke Queue Set, task tunggu event dari Queue Set. Tangani event sesuai objek yang aktif. Output menunjukkan task menangani multiple objek tanpa polling.
+STM32_09 adalah Message Buffers dan Stream Buffers: bagian 1 buat Message Buffer kirim pesan variabel 1-128 byte; bagian 2 buat Stream Buffer kirim byte stream 100 byte/100ms; bandingkan perilaku keduanya; demonstrasikan overrun. STM32_10 adalah Queue Sets Multiplexing: buat 2 queue + 1 semaphore, tambahkan ke Queue Set, task monitor gunakan `xQueueSelectFromSet()`, identifikasi sumber event (Data/Status/Button), toggle LED sesuai event. Output menunjukkan task menangani multiple objek tanpa polling per objek.
 
 ---
 
@@ -168,17 +174,35 @@ ESP32_05 adalah Mutex and Priority Inheritance: sama dengan STM32_05 pada ESP32,
 
 ### Slide 25 — ESP32_07 dan ESP32_08
 
-ESP32_07 adalah Static Allocation: task dan queue statis pada ESP32, sama dengan STM32_07. ESP32_08 adalah Message Buffers: pesan variabel pada ESP32, sama dengan STM32_08. Output menunjukkan pesan variabel diterima utuh.
+ESP32_07 adalah Static Allocation: task dan queue statis pada ESP32, sama dengan STM32_07. ESP32_08 adalah Critical Section dan Task Suspension: sama dengan STM32_08 pada ESP32 — demonstrasikan race condition, perbaiki dengan `taskENTER_CRITICAL()`, tambah `vTaskSuspend()`/`vTaskResume()`. Output menunjukkan nilai counter konsisten; task dapat di-suspend/resume.
 
 ---
 
 ### Slide 26 — ESP32_09 dan ESP32_10
 
-ESP32_09 adalah Stream Buffers: byte stream pada ESP32, sama dengan STM32_09. ESP32_10 adalah Queue Sets: multiple queue/semaphore pada ESP32, sama dengan STM32_10. Output menunjukkan task menangani multiple objek tanpa polling.
+ESP32_09 adalah Message Buffers dan Stream Buffers pada ESP32: sama dengan STM32_09. Uji kecepatan stream buffer 100 byte/detik dan 1000 byte/detik. ESP32_10 adalah Queue Sets Multiplexing pada ESP32: sama dengan STM32_10, toggle LED GPIO2 saat data event, LED GPIO4 saat status event. Output menunjukkan task menangani multiple queue tanpa polling.
 
 ---
 
-### Slide 27 — Perbandingan STM32 dan ESP32
+### Slide 27 — MULTI_01 dan MULTI_02
+
+MULTI_01 adalah Distributed Event Group Synchronization: STM32 set event bit via button + software timer, kirim event code ke ESP32 via UART; ESP32 set event group lokal sesuai kode diterima, kirim ACK ke STM32. Round-trip event sync <10 ms, LED kedua MCU mencerminkan state event. MULTI_02 adalah Multi-MCU Software Timer Network: ESP32 master timer coordinator kirim perintah START/STOP/CHANGE_PERIOD ke STM32; STM32 jalankan software timer sesuai perintah dan lapor event kembali ke ESP32; ESP32 log timestamp timer event. Demonstrasikan pengendalian software timer antar MCU via UART command.
+
+---
+
+### Slide 28 — MULTI_03 dan MULTI_04
+
+MULTI_03 adalah Task Notification Pipeline: STM32 ADC task baca sensor → task notification → UART TX task → ESP32 RX ISR → task notification → processor task → Message Buffer → analyzer task. Pipeline menggunakan hanya Task Notification + Message Buffer tanpa semaphore konvensional; latensi pipeline <5 ms. MULTI_04 adalah Priority Inheritance dan Critical Section Network: STM32 demonstrasikan priority inheritance (3 task, Low pegang mutex, High tertunda, Medium blocked); kirim log ke ESP32; ESP32 gunakan critical section untuk update statistik atomis dan tampilkan laporan inheritance events. Kedua MCU membuktikan mekanisme RTOS lanjutan dalam skenario jaringan.
+
+---
+
+### Slide 29 — MULTI_05 Full Advanced Industrial System
+
+MULTI_05 adalah integrasi penuh semua fitur Modul 10 dalam satu sistem industri. STM32 node: Static Allocation untuk task kritis, Critical Section untuk stats atomis, Message Buffer untuk paket data variabel, Task Notification untuk pipeline ADC. ESP32 gateway: Event Group state machine (IDLE/ACTIVE/ALARM), Software Timer watchdog 5 detik, Queue Set pantau multiple sumber data, Stream Buffer logging kontinu. UART bridge bawa data + perintah antar MCU. LED indicators: hijau (ACTIVE), kuning (IDLE), merah (ALARM). Watchdog ESP32 trigger ALARM jika STM32 tidak kirim data 5 detik. Demonstrasikan semua 10+ objek RTOS aktif secara bersamaan dalam satu sistem terintegrasi.
+
+---
+
+### Slide 30 — Data Pengamatan Praktikum
 
 Mahasiswa diwajibkan membandingkan implementasi FreeRTOS lanjutan antara STM32 dan ESP32:
 - Event Groups: perilaku sama, hanya perbedaan pin GPIO.
@@ -194,15 +218,9 @@ Perbandingan ini membantu mahasiswa memahami portabilitas FreeRTOS antar platfor
 
 ---
 
-### Slide 28 — Data Pengamatan Praktikum
+### Slide 30 — Data Pengamatan Praktikum
 
-Setiap eksperimen wajib dicatat:
-- Kode eksperimen, Platform (STM32/ESP32), Objek RTOS yang digunakan.
-- Wiring (LED, button, GPIO).
-- Output serial/LED yang diamati.
-- Error yang muncul dan solusi yang diterapkan.
-
-Tabel 20 eksperimen wajib lengkap dalam laporan, dengan foto wiring dan screenshot output serial/LED sebagai bukti. Data disimpan dalam folder terstruktur per eksperimen untuk memudahkan penilaian.
+Setiap eksperimen wajib dicatat: kode eksperimen, platform, objek RTOS yang digunakan, wiring, output serial/LED, error yang muncul dan solusi. Tabel **25 eksperimen** (10 STM32 + 10 ESP32 + 5 Multi) wajib lengkap. Foto wiring dan screenshot serial/LED sebagai bukti. Untuk eksperimen Multi, catat protokol UART yang digunakan dan timing komunikasi antar MCU. Mahasiswa diwajibkan dokumentasi penggunaan heap dengan `xPortGetFreeHeapSize()` dan stack usage dengan `uxTaskGetStackHighWaterMark()` untuk setiap task di semua eksperimen. Data disimpan dalam folder terstruktur per eksperimen.
 
 ---
 

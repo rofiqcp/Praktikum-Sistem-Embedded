@@ -4,11 +4,12 @@
 
 Setelah menyelesaikan Modul 10, mahasiswa mampu:
 
-1. Menjelaskan konsep lanjutan FreeRTOS: Event Groups, Software Timers, Task Notifications, Semaphore varieties, Mutex dan Priority Inheritance, Memory Management, Static Allocation, Message Buffers, Stream Buffers, dan Queue Sets.
+1. Menjelaskan konsep lanjutan FreeRTOS: Event Groups, Software Timers, Task Notifications, Semaphore varieties, Mutex dan Priority Inheritance, Memory Management, Static Allocation, Critical Section, Task Suspension, Message Buffers, Stream Buffers, dan Queue Sets.
 2. Mengimplementasikan fitur lanjutan FreeRTOS pada ESP32 dengan ESP-IDF/Arduino.
 3. Mengimplementasikan fitur lanjutan FreeRTOS pada STM32 dengan STM32Cube HAL.
 4. Memilih mekanisme komunikasi/sinkronisasi RTOS yang tepat untuk aplikasi industri.
-5. Mengintegrasikan seluruh konsep menjadi project Advanced RTOS Industrial System.
+5. Mengimplementasikan sistem multi-MCU menggunakan objek RTOS lanjutan untuk koordinasi terdistribusi.
+6. Mengintegrasikan seluruh konsep menjadi project Advanced RTOS Industrial System.
 
 ---
 
@@ -153,7 +154,41 @@ Objek lain (queue, semaphore, timer) juga memiliki versi `CreateStatic()` dengan
 
 ---
 
-## 8. Message Buffers
+## 8. Critical Section dan Task Suspension
+
+### Critical Section
+
+Critical Section adalah mekanisme paling ringan untuk proteksi data bersama — mematikan scheduler (dan/atau interrupt) sementara agar operasi berjalan secara atomis.
+
+```c
+// STM32 / ESP32
+taskENTER_CRITICAL();       // nonaktifkan scheduler/interrupt
+shared_counter++;           // operasi atomis
+taskEXIT_CRITICAL();        // aktifkan kembali
+
+// ISR-safe version (simpan/pulihkan interrupt mask):
+taskENTER_CRITICAL_FROM_ISR();
+// ... operasi atomis ...
+taskEXIT_CRITICAL_FROM_ISR(uxSavedInterruptStatus);
+```
+
+Kapan Critical Section vs Mutex:
+- Critical Section: operasi sangat singkat (increment, flag set, read-modify-write). Blokir semua interrupt, tidak boleh memanggil RTOS API di dalamnya.
+- Mutex: operasi lebih lama, perlu memanggil RTOS API, atau butuh Priority Inheritance. Tidak blokir interrupt.
+
+### Task Suspension dan Resume
+
+```c
+vTaskSuspend(xTaskHandle);   // suspend task tertentu (NULL = self)
+vTaskResume(xTaskHandle);    // resume task dari task lain
+vTaskResumeFromISR(xHandle); // resume dari ISR
+```
+
+Task yang disuspend tidak menggunakan CPU dan tidak masuk scheduling. Berguna untuk pause task saat tidak diperlukan.
+
+---
+
+## 9. Message Buffers
 
 Message Buffer digunakan untuk transfer data dengan panjang variabel antar task atau antara ISR dan task. Setiap pengiriman (send) menulis pesan dengan header panjang pesan otomatis, sehingga penerima tahu panjang pesan yang diterima.
 
@@ -206,7 +241,7 @@ Keunggulan:
 
 ## 11. Struktur Praktikum Final Modul 10
 
-Praktikum final berisi tepat **20 eksperimen**:
+Praktikum final berisi tepat **25 eksperimen**:
 
 ### 10 Eksperimen STM32
 
@@ -216,12 +251,12 @@ Praktikum final berisi tepat **20 eksperimen**:
 | 2 | STM32_02 | Software Timers | Software Timer |
 | 3 | STM32_03 | Task Notifications | Task Notification |
 | 4 | STM32_04 | Semaphore Varieties | Binary, Counting Semaphore |
-| 5 | STM32_05 | Mutex and Priority Inheritance | Mutex |
+| 5 | STM32_05 | Mutex dan Priority Inheritance | Mutex |
 | 6 | STM32_06 | Memory Management | heap_1-heap_5 |
 | 7 | STM32_07 | Static Allocation | Static Task/Queue |
-| 8 | STM32_08 | Message Buffers | Message Buffer |
-| 9 | STM32_09 | Stream Buffers | Stream Buffer |
-| 10 | STM32_10 | Queue Sets | Queue Set |
+| 8 | STM32_08 | Critical Section dan Task Suspension | Critical Section, vTaskSuspend |
+| 9 | STM32_09 | Message Buffers dan Stream Buffers | Message Buffer, Stream Buffer |
+| 10 | STM32_10 | Queue Sets Multiplexing | Queue Set |
 
 ### 10 Eksperimen ESP32
 
@@ -231,25 +266,36 @@ Praktikum final berisi tepat **20 eksperimen**:
 | 2 | ESP32_02 | Software Timers | Software Timer |
 | 3 | ESP32_03 | Task Notifications | Task Notification |
 | 4 | ESP32_04 | Semaphore Varieties | Binary, Counting Semaphore |
-| 5 | ESP32_05 | Mutex and Priority Inheritance | Mutex |
+| 5 | ESP32_05 | Mutex dan Priority Inheritance | Mutex |
 | 6 | ESP32_06 | Memory Management | heap_1-heap_5 |
 | 7 | ESP32_07 | Static Allocation | Static Task/Queue |
-| 8 | ESP32_08 | Message Buffers | Message Buffer |
-| 9 | ESP32_09 | Stream Buffers | Stream Buffer |
-| 10 | ESP32_10 | Queue Sets | Queue Set |
+| 8 | ESP32_08 | Critical Section dan Task Suspension | Critical Section, vTaskSuspend |
+| 9 | ESP32_09 | Message Buffers dan Stream Buffers | Message Buffer, Stream Buffer |
+| 10 | ESP32_10 | Queue Sets Multiplexing | Queue Set |
+
+### 5 Eksperimen Multi STM32-ESP32
+
+| No | Kode | Topik | Fokus RTOS |
+|---|---|---|---|
+| 1 | MULTI_01 | Distributed Event Group Sync | Event Group + UART protocol |
+| 2 | MULTI_02 | Multi-MCU Software Timer Network | Software Timer + remote control |
+| 3 | MULTI_03 | Task Notification Pipeline + Message Buffer | Task Notification + Message Buffer |
+| 4 | MULTI_04 | Priority Inheritance + Critical Section Network | Mutex + Critical Section |
+| 5 | MULTI_05 | Full Advanced Industrial RTOS System | Semua objek RTOS terintegrasi |
 
 Ringkasan fokus:
 
 | Kelompok | Jumlah | Fokus |
 |---|---:|---|
-| STM32 | 10 | STM32Cube HAL, FreeRTOS lanjutan, priority inheritance, heap management |
+| STM32 | 10 | STM32Cube HAL, FreeRTOS lanjutan, priority inheritance, heap, critical section |
 | ESP32 | 10 | ESP-IDF/Arduino, FreeRTOS lanjutan, task notification, stream/message buffer |
+| Multi | 5 | Koordinasi multi-MCU dengan objek RTOS lanjutan, protokol UART |
 
 ---
 
 ## 12. Referensi
 
-1. FreeRTOS Official Documentation — Event Groups, Software Timers, Task Notifications, Semaphores, Mutex, Memory Management, Static Allocation, Message/Stream Buffers, Queue Sets.
+1. FreeRTOS Official Documentation — Event Groups, Software Timers, Task Notifications, Semaphores, Mutex, Memory Management, Static Allocation, Critical Sections, Message/Stream Buffers, Queue Sets.
 2. Espressif ESP-IDF Programming Guide — FreeRTOS on ESP32.
 3. STM32Cube Reference Manual — FreeRTOS integration with STM32 HAL.
 4. Book: "Mastering the FreeRTOS Real Time Kernel" by Richard Barry.

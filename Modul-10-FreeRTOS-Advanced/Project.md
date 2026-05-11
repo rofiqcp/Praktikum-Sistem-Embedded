@@ -5,7 +5,7 @@
 | Item | Keterangan |
 |---|---|
 | Modul | 10 — FreeRTOS Advanced |
-| Struktur praktikum | 20 eksperimen: 10 STM32 + 10 ESP32 |
+| Struktur praktikum | 25 eksperimen: 10 STM32 + 10 ESP32 + 5 Multi STM32-ESP32 |
 | Platform | ESP32 DevKit + STM32F103/STM32F4 |
 | Tema | Industrial monitoring and control dengan fitur RTOS lanjutan |
 | Durasi | 2 minggu |
@@ -18,8 +18,9 @@
 Project Modul 10 menggabungkan seluruh materi FreeRTOS Advanced menjadi **Advanced RTOS Industrial System** untuk monitoring dan kontrol industri. ESP32 dan STM32 bekerja bersama menggunakan objek RTOS lanjutan untuk menangani event, timer, notifikasi, sinkronisasi, dan manajemen memory secara efisien.
 
 Sistem wajib selaras dengan struktur final praktikum:
-- **10 eksperimen STM32**: Event Groups, Software Timers, Task Notifications, Semaphore varieties, Mutex/Priority Inheritance, Memory Management, Static Allocation, Message Buffers, Stream Buffers, Queue Sets.
-- **10 eksperimen ESP32**: Topic yang sama dengan STM32, diimplementasikan pada platform ESP32.
+- **10 eksperimen STM32**: Event Groups, Software Timers, Task Notifications, Semaphore varieties, Mutex/Priority Inheritance, Memory Management, Static Allocation, Critical Section+Task Suspension, Message+Stream Buffers, Queue Sets.
+- **10 eksperimen ESP32**: Topik yang sama dengan STM32, diimplementasikan pada platform ESP32.
+- **5 eksperimen Multi STM32-ESP32**: Distributed Event Sync, Timer Network, Task Notification Pipeline, Priority Inheritance Network, Full Industrial System.
 
 ---
 
@@ -77,16 +78,26 @@ Data ditampilkan melalui LED indikator, serial monitor, dan dikirim antar MCU me
   - STM32_05: Mutex dan Priority Inheritance untuk shared resource.
   - STM32_06: Memory Management pilih heap tepat.
   - STM32_07: Static Allocation untuk task/queue kritis.
-  - STM32_08: Message Buffers untuk pesan variabel.
-  - STM32_09: Stream Buffers untuk data sensor stream.
-  - STM32_10: Queue Sets untuk multiple input.
+  - STM32_08: Critical Section dan Task Suspension untuk proteksi atomis.
+  - STM32_09: Message Buffers dan Stream Buffers untuk data variabel.
+  - STM32_10: Queue Sets untuk multiple input multiplexing.
 
 ### ESP32
 - Gateway dan koordinator sistem.
 - ESP32 DevKit dengan FreeRTOS ESP-IDF/Arduino.
-- Implementasi 10 eksperimen ESP32 (topic sama dengan STM32).
-- Komunikasi antar MCU menggunakan Queue Sets atau Message Buffers.
-- Monitoring via serial dan LED indikator.
+- Implementasi 10 eksperimen ESP32 (topik sama dengan STM32).
+- State machine berbasis Event Group: IDLE, ACTIVE, ALARM.
+- Software Timer watchdog untuk deteksi timeout STM32.
+- Queue Set untuk pantau multiple data source.
+- Komunikasi antar MCU menggunakan Message Buffer protokol.
+
+### Multi STM32-ESP32
+- 5 eksperimen koordinasi antar MCU dengan advanced RTOS objects:
+  - MULTI_01: Distributed Event Group dengan ACK protocol UART.
+  - MULTI_02: ESP32 kontrol software timer STM32 via UART.
+  - MULTI_03: Task Notification Pipeline end-to-end.
+  - MULTI_04: Priority Inheritance dan Critical Section terdistribusi.
+  - MULTI_05: Full Industrial System dengan semua objek RTOS.
 
 ---
 
@@ -94,16 +105,17 @@ Data ditampilkan melalui LED indikator, serial monitor, dan dikirim antar MCU me
 
 | Objek RTOS | Fungsi | Platform |
 |---|---|---|
-| Event Groups | Sinkronisasi event button/mode | STM32_01, ESP32_01 |
-| Software Timers | Eksekusi periodik pengecekan | STM32_02, ESP32_02 |
-| Task Notifications | Notifikasi data ready | STM32_03, ESP32_03 |
+| Event Groups | Sinkronisasi event button/mode/distributed | STM32_01, ESP32_01, MULTI_01 |
+| Software Timers | Eksekusi periodik, watchdog, remote control | STM32_02, ESP32_02, MULTI_02 |
+| Task Notifications | Notifikasi data ready, pipeline | STM32_03, ESP32_03, MULTI_03 |
 | Binary/Counting Semaphore | Kontrol akses resource | STM32_04, ESP32_04 |
-| Mutex + Priority Inheritance | Shared resource kritis | STM32_05, ESP32_05 |
+| Mutex + Priority Inheritance | Shared resource kritis, terdistribusi | STM32_05, ESP32_05, MULTI_04 |
 | Heap_1-heap_5 | Manajemen memory | STM32_06, ESP32_06 |
-| Static Allocation | Task/queue deterministik | STM32_07, ESP32_07 |
-| Message Buffers | Pesan variabel antar task | STM32_08, ESP32_08 |
-| Stream Buffers | Byte stream data sensor | STM32_09, ESP32_09 |
-| Queue Sets | Pantau multiple input | STM32_10, ESP32_10 |
+| Static Allocation | Task/queue deterministik | STM32_07, ESP32_07, MULTI_05 |
+| Critical Section + Task Suspend | Proteksi atomis, kontrol task | STM32_08, ESP32_08, MULTI_04 |
+| Message Buffers | Pesan variabel antar task/MCU | STM32_09, ESP32_09, MULTI_03 |
+| Stream Buffers | Byte stream data sensor/log | STM32_09, ESP32_09, MULTI_05 |
+| Queue Sets | Pantau multiple input/MCU | STM32_10, ESP32_10, MULTI_05 |
 
 ---
 
